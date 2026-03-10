@@ -29,7 +29,6 @@ import {
   type Beneficiary,
 } from "@/lib/api"
 
-
 interface BeneficiaryError {
   type: "TIMEOUT" | "GENERAL" | "NO_REPORTS"
   message: string

@@ -1,28 +1,16 @@
-import { AnalyticsManager, MBAnalytics } from "@docsapp/analytics";
-import { HOTJAR } from "../../constants";
+// @docsapp/analytics is a private npm package - use direct Hotjar API in v0 runtime
+// Replace with @docsapp/analytics import when deploying to production
 import { EventPayloadType } from "../../types";
-
-const __MB_Analytics = new MBAnalytics(
-  [HOTJAR],
-  process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0",
-);
-
-const analyticsManager = new AnalyticsManager({
-  analyticsInstance: __MB_Analytics,
-  platforms: {},
-  schemas: {},
-  defaultServiceName: "",
-  defaultProviders: [HOTJAR],
-});
 
 export const sendHotjarEvent = (
   name: string,
   payload: EventPayloadType
 ) => {
-  analyticsManager.sendHotjarEvent(
-    name,
-    payload as Record<string, string>
-  );
+  try {
+    if (typeof window !== "undefined" && typeof (window as any).hj === "function") {
+      (window as any).hj("event", name);
+    }
+  } catch {
+    // non-blocking
+  }
 };
-
-export { __MB_Analytics };
