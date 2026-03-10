@@ -1,11 +1,10 @@
 /** @type {import('next').NextConfig} */
-const path = require("path");
+import fs from "fs";
 
 const FILE_PATHS = {
-  HOTJAR_LOADER: path.resolve(
-    __dirname,
+  HOTJAR_LOADER:
     "lib/analytics/loaders/hotjar/loader.js",
-  )
+
 }
 
 // Utility function to safely read file
