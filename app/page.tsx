@@ -29,6 +29,7 @@ import {
   type Beneficiary,
 } from "@/lib/api"
 
+
 interface BeneficiaryError {
   type: "TIMEOUT" | "GENERAL" | "NO_REPORTS"
   message: string
@@ -201,7 +202,7 @@ export default function HealthDashboard() {
             return { status: "fulfilled" as const, value: report, docId }
           } catch (error) {
             const isFailed = error instanceof Error && error.message === "DOCUMENT_FAILED"
-            
+
             if (isFailed) {
               // Mark this doc as failed - exclude from all downstream flows
               failedDocIds.add(docId)
@@ -289,7 +290,7 @@ export default function HealthDashboard() {
       } catch (err) {
         // Even if report loading fails, still try to load trends for this beneficiary
         // Trends API is independent and may still return useful data
-        loadBeneficiaryTrends(beneficiary, token).catch(() => {})
+        loadBeneficiaryTrends(beneficiary, token).catch(() => { })
 
 
         const errorMessage = err instanceof Error ? err.message : String(err)
@@ -376,16 +377,16 @@ export default function HealthDashboard() {
           token = null
         }
 
-      // Use debug token if cookie token not available
-      if (!token) {
-        token = "ab397e0245964072b0b9f60d90c19a99"
-      }
+        // Use debug token if cookie token not available
+        if (!token) {
+          token = "ab397e0245964072b0b9f60d90c19a99"
+        }
 
-      setAccessToken(token)
+        setAccessToken(token)
 
-      const pmEntityId = getPmEntityIdFromCookie()
+        const pmEntityId = getPmEntityIdFromCookie()
 
-      const data = await fetchBeneficiaries(token, pmEntityId)
+        const data = await fetchBeneficiaries(token, pmEntityId)
 
         if (!isMounted) return
 
@@ -431,7 +432,7 @@ export default function HealthDashboard() {
         const selfBeneficiary = sortedBeneficiaries[0]
         if (selfBeneficiary) {
           await loadBeneficiaryReport(selfBeneficiary, token)
-          if(selfBeneficiary.dmS_Doc_ID.length==0){
+          if (selfBeneficiary.dmS_Doc_ID.length == 0) {
             trackHealthTrendsEvent("No Reports Available")
           }
         }
