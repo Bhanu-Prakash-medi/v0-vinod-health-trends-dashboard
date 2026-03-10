@@ -1,5 +1,3 @@
-// @docsapp/analytics is a private npm package - use direct Hotjar API in v0 runtime
-// Replace with @docsapp/analytics import when deploying to production
 import { EventPayloadType } from "../../types";
 
 export const sendHotjarEvent = (
