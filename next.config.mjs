@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require("path");
 
 const FILE_PATHS = {
   HOTJAR_LOADER: path.resolve(
