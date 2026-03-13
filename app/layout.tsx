@@ -1,9 +1,9 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Lexend_Deca } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import HotjarLoader from "@/components/hotjar-loader"
 import "./globals.css"
+import InitAnalytics from "@/lib/analytics/InitAnalytics"
 
 const lexendDeca = Lexend_Deca({ subsets: ["latin"] })
 
@@ -40,7 +40,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${lexendDeca.className} antialiased`}>
         {children}
-        <Analytics />
+        <InitAnalytics hotjarJS={process.env.hotjarJS} />
         <HotjarLoader />
       </body>
     </html>
