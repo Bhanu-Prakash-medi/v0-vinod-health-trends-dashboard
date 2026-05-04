@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const jwtSecret = process.env.N8N_JWT_SECRET
-    console.log("[v0] N8N_JWT_SECRET present:", !!jwtSecret, "length:", jwtSecret?.length || 0)
+    console.log("[v0] N8N_JWT_SECRET present:",jwtSecret, "length:", jwtSecret?.length || 0)
     
     const jwtToken = await generateN8nJwtAsync()
     console.log("[v0] Generated JWT token (first 50 chars):", jwtToken?.substring(0, 50) + "...")
