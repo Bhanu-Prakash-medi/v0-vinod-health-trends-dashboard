@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
   try {
     const jwtToken = await generateN8nJwtAsync()
 
+    console.log("[v0] Beneficiaries API request - accessToken:", accessToken?.substring(0, 10) + "...", "pmEntityId:", pmEntityId)
+    
     const response = await fetchWithRetry("https://n8n-public.medibuddy.in/webhook/ht/beneficiaries", {
       method: "POST",
       headers: {
@@ -56,12 +58,16 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    console.log("[v0] Beneficiaries API response status:", response.status)
+    
     const text = await response.text()
+    console.log("[v0] Beneficiaries API response text (first 500 chars):", text.substring(0, 500))
 
     let data
     try {
       data = JSON.parse(text)
     } catch {
+      console.log("[v0] Beneficiaries API JSON parse error, full response:", text)
       return NextResponse.json({ error: "Invalid response from API", details: text }, { status: 502 })
     }
 
