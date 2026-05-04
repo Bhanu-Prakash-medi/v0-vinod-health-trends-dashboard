@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "webhookUrl is required in request body" }, { status: 400 })
     }
 
-    // Generate JWT dynamically using N8N_JWT_SECRET
+    // Generate JWT dynamically using HEALT_HTRENDS_JWT_SECRET
     const jwtToken = generateN8nJwt()
 
     // Forward the request to n8n webhook

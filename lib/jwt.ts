@@ -43,10 +43,10 @@ function createHmacSignatureSync(data: string, secret: string): string {
 }
 
 export function generateN8nJwt(): string {
-  const secret = process.env.N8N_JWT_SECRET
+  const secret = process.env.HEALT_HTRENDS_JWT_SECRET
 
   if (!secret) {
-    throw new Error("N8N_JWT_SECRET environment variable is not set")
+    throw new Error("HEALT_HTRENDS_JWT_SECRET environment variable is not set")
   }
 
   // JWT Header
@@ -77,10 +77,10 @@ export function generateN8nJwt(): string {
 
 // Async version for edge runtime compatibility
 export async function generateN8nJwtAsync(): Promise<string> {
-  const secret = process.env.N8N_JWT_SECRET
+  const secret = process.env.HEALT_HTRENDS_JWT_SECRET
 
   if (!secret) {
-    throw new Error("N8N_JWT_SECRET environment variable is not set")
+    throw new Error("HEALT_HTRENDS_JWT_SECRET environment variable is not set")
   }
 
   // JWT Header
