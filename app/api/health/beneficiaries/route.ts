@@ -36,10 +36,20 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3)
 }
 
 export async function GET(request: NextRequest) {
+  // Debug: log all headers
+  const allHeaders: Record<string, string> = {}
+  request.headers.forEach((value, key) => {
+    allHeaders[key] = key.toLowerCase().includes("token") ? value.substring(0, 10) + "..." : value
+  })
+  console.log("[v0] All request headers:", JSON.stringify(allHeaders))
+  
   const accessToken = request.headers.get("accesstoken")
   const pmEntityId = request.headers.get("pmEntityId") || "0"
+  
+  console.log("[v0] Parsed accessToken:", accessToken ? accessToken.substring(0, 10) + "..." : "NULL")
 
   if (!accessToken) {
+    console.log("[v0] accessToken is missing, returning 401")
     return NextResponse.json({ error: "Access token required" }, { status: 401 })
   }
 
