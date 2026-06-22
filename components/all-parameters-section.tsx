@@ -48,17 +48,20 @@ function calculateDynamicPosition(result: number, range: string): number {
     }
   }
 
-  // Handle ">min" format
+  // Handle ">min" format (>=min)
   const greaterThanMatch = range.match(/>\s*(\d+\.?\d*)/)
   if (greaterThanMatch) {
     const min = Number.parseFloat(greaterThanMatch[1])
     if (result > min) {
-      // Normal - position in green zone
+      // Normal - position in green zone (33-67%)
       return 50
     } else {
-      // Abnormal - position in left red zone
-      const deficit = (min - result) / min
-      return Math.max(5, 16.5 - deficit * 16.5)
+      // Abnormal - position in left red zone (0-33%)
+      // Calculate how close to the threshold: closer to threshold = closer to 33%
+      const deficit = min - result
+      const percentOfMin = (deficit / min) * 100
+      // Position from left: 5% at 0 value, 33% at threshold
+      return Math.max(5, 33 - (percentOfMin / 100) * 28)
     }
   }
 
