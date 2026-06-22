@@ -179,7 +179,7 @@ export default function AllParametersSection({
                   style={{ left: `${param.position}%` }}
                 />
 
-                <div className="text-center text-[9px] text-[#9dabbd] mt-1">Normal Range: {param.range}</div>
+                <div className="text-center text-[9px] text-[#9dabbd] mt-[9px]">Normal Range: {param.range}</div>
               </div>
             </div>
           </Card>

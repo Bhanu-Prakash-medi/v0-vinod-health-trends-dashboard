@@ -151,7 +151,7 @@ export default function AllParametersPage({
                   style={{ left: `${param.position}%` }}
                 />
 
-                <div className="mt-1 text-center text-[9px] text-[#9dabbd]">Normal Range: {param.range}</div>
+                <div className="mt-[9px] text-center text-[9px] text-[#9dabbd]">Normal Range: {param.range}</div>
               </div>
             </div>
           </Card>
