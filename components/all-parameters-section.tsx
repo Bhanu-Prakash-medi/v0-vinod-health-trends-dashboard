@@ -213,11 +213,11 @@ export default function AllParametersSection({
 
               {/* Visual Scale */}
               <div className="relative w-[140px]">
-                {/* Scale bar */}
+                {/* Scale bar - color based on actual status */}
                 <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3">
-                  <div className="w-1/3 bg-[#faa9a3] h-3" />
-                  <div className="w-1/3 bg-[#addaaf] h-3" />
-                  <div className="w-1/3 bg-[#faa9a3] h-3" />
+                  <div className={`w-1/3 h-3 ${param.status === "abnormal" ? "bg-[#faa9a3]" : "bg-[#faa9a3]"}`} />
+                  <div className={`w-1/3 h-3 ${param.status === "abnormal" ? "bg-[#faa9a3]" : "bg-[#addaaf]"}`} />
+                  <div className={`w-1/3 h-3 ${param.status === "abnormal" ? "bg-[#faa9a3]" : "bg-[#faa9a3]"}`} />
                 </div>
 
                 {/* Separators */}
