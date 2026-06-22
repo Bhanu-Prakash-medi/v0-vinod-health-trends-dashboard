@@ -81,7 +81,7 @@ export default function AllParametersSection({
       const dynamicPosition = calculateDynamicPosition(result, range)
 
       // Debug: log parameter position calculation
-      if (metricName?.includes("CRP")) {
+      if (metricName?.includes("CRP") || metricName?.includes("Epithelial")) {
         console.log(`[v0] LAB REPORT API - Metric: "${metricName}" | API Status: "${apiStatus}" | Value: ${result} ${units} | Range: ${range} | Processed Status: ${status} | Position: ${dynamicPosition}%`)
       } else {
         console.log(`[v0] Parameter: "${metricName}" | Value: ${result} ${units} | Range: ${range} | Status: ${status} | Position: ${dynamicPosition}%`)
