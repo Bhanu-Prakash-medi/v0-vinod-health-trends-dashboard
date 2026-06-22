@@ -175,10 +175,10 @@ export default function AllParametersSection({
 
                   {/* Indicator */}
                   <div
-                    className={`absolute top-1/3 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                    className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
                       param.status === "abnormal" ? "border-red-600" : "border-green-600"
                     } bg-white shadow-sm`}
-                    style={{ left: `${param.position}%` }}
+                    style={{ left: `${param.position}%`, top: "8px" }}
                   />
                 </div>
 
