@@ -36,16 +36,32 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3)
 }
 
 export async function GET(request: NextRequest) {
+  // Debug: log all headers
+  const allHeaders: Record<string, string> = {}
+  request.headers.forEach((value, key) => {
+    allHeaders[key] = key.toLowerCase().includes("token") ? value.substring(0, 10) + "..." : value
+  })
+  console.log("[v0] All request headers:", JSON.stringify(allHeaders))
+  
   const accessToken = request.headers.get("accesstoken")
   const pmEntityId = request.headers.get("pmEntityId") || "0"
+  
+  console.log("[v0] Parsed accessToken:", accessToken ? accessToken.substring(0, 10) + "..." : "NULL")
 
   if (!accessToken) {
+    console.log("[v0] accessToken is missing, returning 401")
     return NextResponse.json({ error: "Access token required" }, { status: 401 })
   }
 
   try {
+    const jwtSecret = process.env.NEXT_PUBLIC_HEALT_HTRENDS_JWT_SECRET
+    console.log("[v0] NEXT_PUBLIC_HEALT_HTRENDS_JWT_SECRET present:", !!jwtSecret, "length:", jwtSecret?.length || 0)
+    
     const jwtToken = await generateN8nJwtAsync()
+    console.log("[v0] Generated JWT token (first 50 chars):", jwtToken?.substring(0, 50) + "...")
 
+    console.log("[v0] Beneficiaries API request - accessToken:", accessToken?.substring(0, 10) + "...", "pmEntityId:", pmEntityId)
+    
     const response = await fetchWithRetry("https://n8n-public.medibuddy.in/webhook/ht/beneficiaries", {
       method: "POST",
       headers: {
@@ -56,12 +72,16 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    console.log("[v0] Beneficiaries API response status:", response.status)
+    
     const text = await response.text()
+    console.log("[v0] Beneficiaries API response text (first 500 chars):", text.substring(0, 500))
 
     let data
     try {
       data = JSON.parse(text)
     } catch {
+      console.log("[v0] Beneficiaries API JSON parse error, full response:", text)
       return NextResponse.json({ error: "Invalid response from API", details: text }, { status: 502 })
     }
 

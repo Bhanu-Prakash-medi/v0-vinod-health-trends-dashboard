@@ -5,65 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import type { ApiHealthReport } from "@/lib/api"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
-
-function calculateDynamicPosition(result: number, range: string): number {
-  if (!range || !result) return 50
-
-  // Handle "min - max" format
-  const rangeParts = range.match(/(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/)
-  if (rangeParts) {
-    const min = Number.parseFloat(rangeParts[1])
-    const max = Number.parseFloat(rangeParts[2])
-    const rangeSpan = max - min
-
-    // Calculate how far the value is from normal range
-    if (result < min) {
-      // Value is below normal range - position in left red zone (0-33%)
-      const deficit = min - result
-      const deficitPercent = Math.min(deficit / rangeSpan, 1) // Cap at 100% of range span
-      return Math.max(5, 16.5 - deficitPercent * 16.5) // Scale within 0-16.5%, min 5%
-    } else if (result > max) {
-      // Value is above normal range - position in right red zone (67-100%)
-      const excess = result - max
-      const excessPercent = Math.min(excess / rangeSpan, 1) // Cap at 100% of range span
-      return Math.min(95, 83.5 + excessPercent * 16.5) // Scale within 83.5-100%, max 95%
-    } else {
-      // Value is within normal range - position in green zone (33-67%)
-      const normalizedPosition = (result - min) / rangeSpan // 0 to 1 within range
-      return 33 + normalizedPosition * 34 // Map to 33-67%
-    }
-  }
-
-  // Handle "<max" format
-  const lessThanMatch = range.match(/<\s*(\d+\.?\d*)/)
-  if (lessThanMatch) {
-    const max = Number.parseFloat(lessThanMatch[1])
-    if (result < max) {
-      // Normal - position in green zone (33-67%)
-      return 33 + (result / max) * 34
-    } else {
-      // Abnormal - position in red zone
-      const excess = (result - max) / max
-      return Math.min(95, 83.5 + excess * 16.5)
-    }
-  }
-
-  // Handle ">min" format
-  const greaterThanMatch = range.match(/>\s*(\d+\.?\d*)/)
-  if (greaterThanMatch) {
-    const min = Number.parseFloat(greaterThanMatch[1])
-    if (result > min) {
-      // Normal - position in green zone
-      return 50
-    } else {
-      // Abnormal - position in left red zone
-      const deficit = (min - result) / min
-      return Math.max(5, 16.5 - deficit * 16.5)
-    }
-  }
-
-  return 50 // Default to center
-}
+import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 
 export default function AllParametersSection({
   patientData,
@@ -128,25 +70,30 @@ export default function AllParametersSection({
     return null
   }
 
-  const allParameters = parametersArray.map((param: any) => {
-    const metricName = param.metric_name || param.name || "Unknown"
-    const result = Number.parseFloat(param.value || param.result || "0") || 0
-    const range = param.normal_range || param.range || ""
-    const units = param.unit || param.units || ""
-    const apiStatus = (param.status || "").toLowerCase()
-    const status = apiStatus === "abnormal" || apiStatus === "high" || apiStatus === "low" ? "abnormal" : "normal"
-    const dynamicPosition = calculateDynamicPosition(result, range)
+  const allParameters = parametersArray
+    .map((param: any) => {
+      const metricName = param.metric_name || param.name || "Unknown"
+      const result = Number.parseFloat(param.value || param.result || "0") || 0
+      const range = param.normal_range || param.range || ""
+      const units = param.unit || param.units || ""
+      const apiStatus = (param.status || "").toLowerCase()
+      const status = apiStatus === "abnormal" || apiStatus === "high" || apiStatus === "low" ? "abnormal" : "normal"
+      const dynamicPosition = calculateDynamicPosition(result, range)
 
-    return {
-      name: metricName,
-      status,
-      currentValue: `${result} ${units}`.trim(),
-      date: latestLabReport?.report_date || "",
-      range,
-      position: dynamicPosition,
-      result,
-    }
-  })
+      // Debug: log parameter position calculation
+      console.log(`[v0] Parameter: "${metricName}" | Value: ${result} ${units} | Range: ${range} | Status: ${status} | Position: ${dynamicPosition}%`)
+
+      return {
+        name: metricName,
+        status,
+        currentValue: `${result} ${units}`.trim(),
+        date: latestLabReport?.report_date || "",
+        range,
+        position: dynamicPosition,
+        result,
+      }
+    })
+    .filter((param) => param.position !== null) // Case 4: Filter out malformed ranges
 
   const displayedParameters = allParameters.slice(0, 3)
 
@@ -212,27 +159,31 @@ export default function AllParametersSection({
               </div>
 
               {/* Visual Scale */}
-              <div className="relative w-[140px]">
-                {/* Scale bar */}
-                <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3">
-                  <div className="w-1/3 bg-[#faa9a3] h-3" />
-                  <div className="w-1/3 bg-[#addaaf] h-3" />
-                  <div className="w-1/3 bg-[#faa9a3] h-3" />
+              <div className="w-[140px]">
+                {/* Scale bar + marker wrapper */}
+                <div className="relative h-4">
+                  {/* Scale bar */}
+                  <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
+                    <div className="w-1/3 bg-[#faa9a3] h-3" />
+                    <div className="w-1/3 bg-[#addaaf] h-3" />
+                    <div className="w-1/3 bg-[#faa9a3] h-3" />
+                  </div>
+
+                  {/* Separators */}
+                  <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+                  <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+
+                  {/* Indicator */}
+                  <div
+                    className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                      param.status === "abnormal" ? "border-red-600" : "border-green-600"
+                    } bg-white shadow-sm`}
+                    style={{ left: `${param.position}%`, top: "12px" }}
+                  />
                 </div>
 
-                {/* Separators */}
-                <div className="absolute left-1/3 top-0 h-6 w-[1px] border-l border-dashed border-white" />
-                <div className="absolute left-2/3 top-0 h-6 w-[1px] border-l border-dashed border-white" />
-
-                {/* Indicator - now with dynamic position */}
-                <div
-                  className={`absolute left-0 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 text-left py-0 px-0 mx-0 my-0 mr-0 ${
-                    param.status === "abnormal" ? "border-red-600" : "border-green-600"
-                  } bg-white shadow-sm`}
-                  style={{ left: `${param.position}%` }}
-                />
-
-                <div className="text-center text-[9px] text-[#9dabbd] mt-1">Normal Range: {param.range}</div>
+                {/* Normal Range text */}
+                <div className="text-center text-[9px] text-[#9dabbd] mt-2">Normal Range: {param.range}</div>
               </div>
             </div>
           </Card>
