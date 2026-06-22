@@ -134,23 +134,27 @@ export default function AllParametersPage({
                 <p className="mt-0.5 text-[10px] text-[#9dabbd]">{param.date}</p>
               </div>
 
-              <div className="relative w-[140px]">
-                <div className="flex h-3 overflow-hidden rounded">
-                  <div className="w-1/3 bg-[#faa9a3]" />
-                  <div className="w-1/3 bg-[#addaaf]" />
-                  <div className="w-1/3 bg-[#faa9a3]" />
+              <div className="w-[140px]">
+                {/* Scale bar + marker wrapper */}
+                <div className="relative h-4">
+                  <div className="flex h-3 overflow-hidden rounded mt-0.5">
+                    <div className="w-1/3 bg-[#faa9a3]" />
+                    <div className="w-1/3 bg-[#addaaf]" />
+                    <div className="w-1/3 bg-[#faa9a3]" />
+                  </div>
+
+                  <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+                  <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+
+                  <div
+                    className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                      param.status === "abnormal" ? "border-[#de3d31]" : "border-[#459f49]"
+                    } bg-white shadow-sm`}
+                    style={{ left: `${param.position}%` }}
+                  />
                 </div>
 
-                <div className="absolute left-1/3 top-0 h-3 w-[1px] border-l border-dashed border-white" />
-                <div className="absolute left-2/3 top-0 h-3 w-[1px] border-l border-dashed border-white" />
-
-                <div
-                  className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-                    param.status === "abnormal" ? "border-[#de3d31]" : "border-[#459f49]"
-                  } bg-white shadow-sm`}
-                  style={{ left: `${param.position}%` }}
-                />
-
+                {/* Normal Range text */}
                 <div className="mt-5 text-center text-[9px] text-[#9dabbd]">Normal Range: {param.range}</div>
               </div>
             </div>

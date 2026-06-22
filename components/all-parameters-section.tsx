@@ -159,26 +159,30 @@ export default function AllParametersSection({
               </div>
 
               {/* Visual Scale */}
-              <div className="relative w-[140px]">
-                {/* Scale bar */}
-                <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3">
-                  <div className="w-1/3 bg-[#faa9a3] h-3" />
-                  <div className="w-1/3 bg-[#addaaf] h-3" />
-                  <div className="w-1/3 bg-[#faa9a3] h-3" />
+              <div className="w-[140px]">
+                {/* Scale bar + marker wrapper */}
+                <div className="relative h-4">
+                  {/* Scale bar */}
+                  <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
+                    <div className="w-1/3 bg-[#faa9a3] h-3" />
+                    <div className="w-1/3 bg-[#addaaf] h-3" />
+                    <div className="w-1/3 bg-[#faa9a3] h-3" />
+                  </div>
+
+                  {/* Separators */}
+                  <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+                  <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+
+                  {/* Indicator */}
+                  <div
+                    className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                      param.status === "abnormal" ? "border-red-600" : "border-green-600"
+                    } bg-white shadow-sm`}
+                    style={{ left: `${param.position}%` }}
+                  />
                 </div>
 
-                {/* Separators */}
-                <div className="absolute left-1/3 top-0 h-6 w-[1px] border-l border-dashed border-white" />
-                <div className="absolute left-2/3 top-0 h-6 w-[1px] border-l border-dashed border-white" />
-
-                {/* Indicator - now with dynamic position */}
-                <div
-                  className={`absolute left-0 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 text-left py-0 px-0 mx-0 my-0 mr-0 ${
-                    param.status === "abnormal" ? "border-red-600" : "border-green-600"
-                  } bg-white shadow-sm`}
-                  style={{ left: `${param.position}%` }}
-                />
-
+                {/* Normal Range text */}
                 <div className="text-center text-[9px] text-[#9dabbd] mt-5">Normal Range: {param.range}</div>
               </div>
             </div>
