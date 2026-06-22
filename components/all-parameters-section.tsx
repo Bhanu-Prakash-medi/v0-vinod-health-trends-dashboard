@@ -161,7 +161,7 @@ export default function AllParametersSection({
               {/* Visual Scale */}
               <div className="w-[140px]">
                 {/* Scale bar + marker wrapper */}
-                <div className="relative h-4 mt-1">
+                <div className="relative h-4">
                   {/* Scale bar */}
                   <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
                     <div className="w-1/3 bg-[#faa9a3] h-3" />

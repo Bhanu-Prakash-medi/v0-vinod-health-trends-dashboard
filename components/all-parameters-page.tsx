@@ -136,7 +136,7 @@ export default function AllParametersPage({
 
               <div className="w-[140px]">
                 {/* Scale bar + marker wrapper */}
-                <div className="relative h-4 mt-1">
+                <div className="relative h-4">
                   <div className="flex h-3 overflow-hidden rounded mt-0.5">
                     <div className="w-1/3 bg-[#faa9a3]" />
                     <div className="w-1/3 bg-[#addaaf]" />
