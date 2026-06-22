@@ -85,10 +85,8 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
         data: sortedData,
       }
       
-      // Debug: log trend API status for hsCRP
-      if (item.metric_name?.includes("CRP")) {
-        console.log(`[v0] TRENDS API - Metric: "${item.metric_name}" | API Status: "${item.status}" | Processed Status: "${item.status?.toLowerCase() === "normal" || item.status?.toLowerCase() === "in range" ? "normal" : "abnormal"}" | Current Value: ${currentValue}`)
-      }
+      // Debug: log ALL trend metrics
+      console.log(`[v0] TRENDS API - Metric: "${item.metric_name}" | API Status: "${item.status}" | Processed Status: "${item.status?.toLowerCase() === "normal" || item.status?.toLowerCase() === "in range" ? "normal" : "abnormal"}" | Current Value: ${currentValue}`)
     })
   } else {
     // Fallback to old logic
