@@ -183,7 +183,7 @@ export default function AllParametersSection({
                 </div>
 
                 {/* Normal Range text */}
-                <div className="text-center text-[9px] text-[#9dabbd] mt-5">Normal Range: {param.range}</div>
+                <div className="text-center text-[9px] text-[#9dabbd] mt-2">Normal Range: {param.range}</div>
               </div>
             </div>
           </Card>

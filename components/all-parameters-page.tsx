@@ -155,7 +155,7 @@ export default function AllParametersPage({
                 </div>
 
                 {/* Normal Range text */}
-                <div className="mt-5 text-center text-[9px] text-[#9dabbd]">Normal Range: {param.range}</div>
+                <div className="mt-2 text-center text-[9px] text-[#9dabbd]">Normal Range: {param.range}</div>
               </div>
             </div>
           </Card>
