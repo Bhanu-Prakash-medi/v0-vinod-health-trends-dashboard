@@ -110,23 +110,6 @@ function calculateDynamicPosition(result: number, range: string): number | null 
 
   return null // Case 4: Malformed range - filter out
 }
-  }
-
-  // Handle "<max" format
-  const lessThanMatch = range.match(/<\s*(\d+\.?\d*)/)
-  if (lessThanMatch) {
-    const max = Number.parseFloat(lessThanMatch[1])
-    if (result < max) {
-      // Normal - position in green zone (33-67%)
-      return 33 + (result / max) * 34
-    } else {
-      // Abnormal - position in red zone
-      const excess = (result - max) / max
-      return Math.min(95, 83.5 + excess * 16.5)
-    }
-  }
-
-  // Handle ">=min" or ">min" format
   const greaterThanMatch = range.match(/(>=?)\s*(\d+\.?\d*)/)
   if (greaterThanMatch) {
     const operator = greaterThanMatch[1]
