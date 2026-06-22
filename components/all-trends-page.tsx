@@ -158,7 +158,7 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
                     trend.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
                   }`}
                 >
-                  {trend.status === "normal" ? "Normal" : "Low"}
+                  {trend.status === "normal" ? "Normal" : "Abnormal"}
                 </div>
               </div>
 
