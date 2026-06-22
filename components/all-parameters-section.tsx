@@ -140,6 +140,9 @@ export default function AllParametersSection({
     const status = apiStatus === "abnormal" || apiStatus === "high" || apiStatus === "low" ? "abnormal" : "normal"
     const dynamicPosition = calculateDynamicPosition(result, range)
 
+    // Debug: log parameter position calculation
+    console.log(`[v0] Parameter: "${metricName}" | Value: ${result} ${units} | Range: ${range} | Status: ${status} | Position: ${dynamicPosition}%`)
+
     return {
       name: metricName,
       status,
