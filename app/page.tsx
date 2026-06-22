@@ -378,7 +378,7 @@ export default function HealthDashboard() {
 
         // Use debug token if cookie token not available
         if (!token) {
-          token = "3dfaaaf36b5b43d2b083692fbf4b00f1"
+          token = "3e41422ac9d74c4b89878af222d0adb3"
         }
 
         setAccessToken(token)
