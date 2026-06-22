@@ -51,13 +51,27 @@ function calculateDynamicPosition(result: number, range: string): number {
   // Handle ">=min" or ">min" format
   const greaterThanMatch = range.match(/(>=?)\s*(\d+\.?\d*)/)
   if (greaterThanMatch) {
+    const operator = greaterThanMatch[1]
     const min = Number.parseFloat(greaterThanMatch[2])
-    if (result > min) {
+    const isNormal = operator === ">=" ? result >= min : result > min
+    
+    if (isNormal) {
       // Normal - position in green zone (33-67%)
-      return 50
+      // Special case: when min = 0, position at start of green zone
+      if (min === 0) {
+        return 33
+      }
+      // Calculate position based on how much above min
+      const excess = result - min
+      const percentAboveMin = (excess / min) * 100
+      return Math.min(67, 33 + (percentAboveMin / 100) * 34)
     } else {
       // Abnormal - position in left red zone (0-33%)
       // Calculate how close to the threshold: closer to threshold = closer to 33%
+      // Special case: when min = 0, this shouldn't happen (0 >= 0 is normal)
+      if (min === 0) {
+        return 5 // Far left if somehow negative
+      }
       const deficit = min - result
       const percentOfMin = (deficit / min) * 100
       // Position from left: 5% at 0 value, 33% at threshold
