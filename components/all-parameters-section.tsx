@@ -48,10 +48,10 @@ function calculateDynamicPosition(result: number, range: string): number {
     }
   }
 
-  // Handle ">min" format (>=min)
-  const greaterThanMatch = range.match(/>\s*(\d+\.?\d*)/)
+  // Handle ">=min" or ">min" format
+  const greaterThanMatch = range.match(/(>=?)\s*(\d+\.?\d*)/)
   if (greaterThanMatch) {
-    const min = Number.parseFloat(greaterThanMatch[1])
+    const min = Number.parseFloat(greaterThanMatch[2])
     if (result > min) {
       // Normal - position in green zone (33-67%)
       return 50
