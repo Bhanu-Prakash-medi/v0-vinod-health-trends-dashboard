@@ -147,7 +147,7 @@ export default function AllParametersPage({
                   <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
 
                   <div
-                    className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                    className={`absolute top-1/3 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
                       param.status === "abnormal" ? "border-[#de3d31]" : "border-[#459f49]"
                     } bg-white shadow-sm`}
                     style={{ left: `${param.position}%` }}
