@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { getTrendData } from "@/lib/health-utils"
 import type { ApiHealthReport } from "@/lib/api"
+import { getParameterPriority } from "@/lib/parameterPriority"
 
 // Helper function to parse dates from various formats
 const parseDate = (dateStr: string): Date => {
@@ -47,7 +48,8 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
       const bIsAbnormal = b.status?.toLowerCase() !== "normal" && b.status?.toLowerCase() !== "in range"
       if (aIsAbnormal && !bIsAbnormal) return -1
       if (!aIsAbnormal && bIsAbnormal) return 1
-      return 0
+      // Then order commonly known parameters first for non-medical users
+      return getParameterPriority(a.metric_name) - getParameterPriority(b.metric_name)
     })
 
     // Use API trend_analysis data
