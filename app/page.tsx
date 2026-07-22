@@ -542,7 +542,7 @@ export default function HealthDashboard() {
       initial: b.patientName.charAt(0).toUpperCase(),
       age: report?.patient_info?.age || 0,
       gender: report?.patient_info?.gender || "Unknown",
-        image: report?.patient_info?.profileImage || "/images/profile-male.svg",
+      image: report?.patient_info?.profileImage || "/images/profile-male.svg",
       relation: b.relation,
     }
   })
@@ -583,7 +583,7 @@ export default function HealthDashboard() {
             gender={activeBeneficiary?.gender || "Unknown"}
             initial={activeMember?.initial || "U"}
             reportCount={activeBeneficiary?.dmS_Doc_ID?.length || 0}
-                profileImage={currentProfileData?.patient_info?.profileImage || "/images/profile-male.svg"}
+            profileImage={currentProfileData?.patient_info?.profileImage || "/images/profile-male.svg"}
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
             weight={currentProfileData?.patient_info?.weight}
@@ -627,11 +627,7 @@ export default function HealthDashboard() {
               {hasTrends && <TrendsSection onViewAll={() => setShowAllTrends(true)} patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />}
               <AllParametersSection patientData={currentProfileData} onViewAll={() => setShowAllParameters(true)} vasbenefId={activeBeneficiary?.rVasBenefId} />
               <HealthRecommendationsSection patientData={currentProfileData} />
-              <TestReportsSection
-                patientData={currentProfileData}
-                scrollToDate={pendingReportDate}
-                onScrollHandled={() => setPendingReportDate(null)}
-              />
+              <TestReportsSection patientData={currentProfileData} />
               <FeedbackSection vasbenefId={activeBeneficiary?.rVasBenefId} />
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
