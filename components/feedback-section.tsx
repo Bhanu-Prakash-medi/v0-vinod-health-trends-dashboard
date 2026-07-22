@@ -14,6 +14,7 @@ interface FeedbackSectionProps {
 }
 
 export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
+  const [isFormOpen, setIsFormOpen] = useState(false)
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [message, setMessage] = useState("")
@@ -38,6 +39,16 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
         </div>
       </div>
 
+      {!isFormOpen && !submitted ? (
+        <Button
+          type="button"
+          onClick={() => setIsFormOpen(true)}
+          className="w-full gap-2 bg-[#156ddc] text-white hover:bg-[#1160c4] sm:w-auto"
+        >
+          <MessageSquarePlus className="h-4 w-4" />
+          Share Feedback
+        </Button>
+      ) : (
       <Card className="border border-[#f0f3f5] p-4 shadow-sm">
         {submitted ? (
           <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
@@ -99,6 +110,7 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
           </form>
         )}
       </Card>
+      )}
     </section>
   )
 }
