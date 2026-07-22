@@ -44,6 +44,7 @@ export default function HealthDashboard() {
   const [healthSummaryLoading, setHealthSummaryLoading] = useState<Map<string, boolean>>(new Map())
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
+  const [pendingReportDate, setPendingReportDate] = useState<string | null>(null)
   const [isBeneficiariesLoading, setIsBeneficiariesLoading] = useState(true)
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -551,7 +552,16 @@ export default function HealthDashboard() {
   const hasTrends = (currentProfileData?.trend_analysis?.length || 0) > 0
 
   if (showAllTrends && currentProfileData) {
-    return <AllTrendsPage patientData={currentProfileData} onBack={() => setShowAllTrends(false)} />
+    return (
+      <AllTrendsPage
+        patientData={currentProfileData}
+        onBack={() => setShowAllTrends(false)}
+        onViewReport={(date) => {
+          setPendingReportDate(date)
+          setShowAllTrends(false)
+        }}
+      />
+    )
   }
 
   if (showAllParameters && currentProfileData) {
@@ -617,7 +627,11 @@ export default function HealthDashboard() {
               {hasTrends && <TrendsSection onViewAll={() => setShowAllTrends(true)} patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />}
               <AllParametersSection patientData={currentProfileData} onViewAll={() => setShowAllParameters(true)} vasbenefId={activeBeneficiary?.rVasBenefId} />
               <HealthRecommendationsSection patientData={currentProfileData} />
-              <TestReportsSection patientData={currentProfileData} />
+              <TestReportsSection
+                patientData={currentProfileData}
+                scrollToDate={pendingReportDate}
+                onScrollHandled={() => setPendingReportDate(null)}
+              />
               <FeedbackSection vasbenefId={activeBeneficiary?.rVasBenefId} />
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>

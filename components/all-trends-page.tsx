@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Calendar } from "lucide-react"
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Calendar, FileText, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -38,7 +38,36 @@ const formatDate = (timestamp: number): string => {
   return `${day}-${month}-${year}`
 }
 
-export default function AllTrendsPage({ onBack, patientData }: { onBack: () => void; patientData: ApiHealthReport }) {
+// Normalize various date string formats to a comparable YYYY-MM-DD key
+const normalizeDateKey = (dateStr: string): string | null => {
+  if (!dateStr) return null
+  const cleaned = dateStr.trim().replace(/\//g, "-")
+  const parts = cleaned.split("-")
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const [y, m, d] = parts
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`
+    }
+    const [d, m, y] = parts
+    const year = y.length === 2 ? `20${y}` : y
+    return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`
+  }
+  const dt = new Date(dateStr)
+  if (!isNaN(dt.getTime())) {
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`
+  }
+  return null
+}
+
+export default function AllTrendsPage({
+  onBack,
+  patientData,
+  onViewReport,
+}: {
+  onBack: () => void
+  patientData: ApiHealthReport
+  onViewReport?: (date: string) => void
+}) {
   const [selectedPoint, setSelectedPoint] = useState<{
     name: string
     dateStr: string
@@ -46,7 +75,25 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
     unit: string
     range: string
     status: "normal" | "abnormal"
+    reportName: string | null
+    reportDate: string | null
   } | null>(null)
+
+  const labReports = (patientData as any)?.lab_reports || []
+
+  // Find the lab report whose date matches the given data-point date
+  const findReportForDate = (dateStr: string): { name: string | null; date: string } | null => {
+    const key = normalizeDateKey(dateStr)
+    if (!key) return null
+    for (const lr of labReports) {
+      const reportDate = lr.report_date || lr.date || ""
+      if (normalizeDateKey(reportDate) === key) {
+        const names = Array.isArray(lr.report_name) ? lr.report_name : lr.report_name ? [lr.report_name] : []
+        return { name: names[0] || lr.lab_name || "Lab Report", date: reportDate }
+      }
+    }
+    return null
+  }
 
   const trendAnalysisFromApi = patientData?.trend_analysis || []
 
@@ -153,13 +200,17 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
           const handleChartClick = (state: any) => {
             const point = state?.activePayload?.[0]?.payload
             if (!point || point.value == null) return
+            const dateStr = point.dateStr || formatDate(point.timestamp)
+            const matchedReport = findReportForDate(dateStr)
             setSelectedPoint({
               name: trend.name,
-              dateStr: point.dateStr || formatDate(point.timestamp),
+              dateStr,
               value: point.value,
               unit: trend.unit,
               range: trend.range,
               status: getPointStatus(point.value),
+              reportName: matchedReport?.name ?? null,
+              reportDate: matchedReport?.date ?? null,
             })
           }
 
@@ -336,6 +387,30 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
               </div>
               {selectedPoint.range && (
                 <p className="text-xs text-[#9dabbd]">Normal range: {selectedPoint.range}</p>
+              )}
+
+              {selectedPoint.reportName ? (
+                <div className="mt-1 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3">
+                  <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-[#9dabbd]">From report</p>
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 shrink-0 text-[#156ddc]" />
+                    <p className="truncate text-sm font-medium text-[#2e3742]">{selectedPoint.reportName}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = selectedPoint.reportDate || selectedPoint.dateStr
+                      setSelectedPoint(null)
+                      onViewReport?.(target)
+                    }}
+                    className="mt-2 flex items-center gap-0.5 text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
+                  >
+                    View report
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-[#9dabbd]">No matching report found for this date.</p>
               )}
             </div>
           )}
