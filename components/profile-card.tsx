@@ -79,7 +79,7 @@ export default function ProfileCard({
             </svg>
             <Avatar className="absolute left-1/2 top-1/2 h-[42px] w-[42px] -translate-x-1/2 -translate-y-1/2">
               <AvatarImage 
-                src={profileImage || (gender?.toLowerCase() === "female" ? "/images/profile-indian-female-1.jpg" : "/images/profile-indian-male.jpg")} 
+                src={profileImage || (gender?.toLowerCase() === "female" ? "/images/profile-female.svg" : "/images/profile-male.svg")} 
                 alt={name} 
               />
               <AvatarFallback className="bg-[#156ddc] text-sm font-semibold text-white">{initial}</AvatarFallback>
