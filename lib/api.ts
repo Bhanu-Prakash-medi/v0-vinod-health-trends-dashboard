@@ -450,7 +450,7 @@ function transformReportMetrics(data: any): ApiHealthReport {
   const normalizedGender = gender.toLowerCase()
   let profileImage = "/images/profile-male.svg"
   if (normalizedGender === "female" || normalizedGender === "f") {
-    profileImage = "/images/profile-indian-female-1.jpg"
+    profileImage = "/images/profile-female.svg"
   }
 
   // Transform parameters
@@ -713,7 +713,7 @@ export function createInitialProfileFromBeneficiary(beneficiary: Beneficiary): A
   const normalizedGender = gender.toLowerCase()
   let profileImage = "/images/profile-male.svg"
   if (normalizedGender === "female" || normalizedGender === "f") {
-    profileImage = "/images/profile-indian-female-1.jpg"
+    profileImage = "/images/profile-female.svg"
   }
 
   return {
