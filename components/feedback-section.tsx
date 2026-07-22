@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { MessageSquarePlus, Star, CheckCircle2 } from "lucide-react"
+import { MessageSquarePlus, Star, CheckCircle2, X } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -44,12 +44,29 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
       ) : (
       <Card className="border border-[#f0f3f5] p-4 shadow-sm">
         {/* Header */}
-        <div className="mb-4 flex items-center gap-2">
-          <MessageSquarePlus className="h-6 w-6 text-[#000000]" />
-          <div>
-            <h2 className="text-base font-semibold text-[#2e3742]">Share Your Feedback</h2>
-            <p className="text-xs text-[#9dabbd]">Help us improve this feature</p>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <MessageSquarePlus className="h-6 w-6 text-[#000000]" />
+            <div>
+              <h2 className="text-base font-semibold text-[#2e3742]">Share Your Feedback</h2>
+              <p className="text-xs text-[#9dabbd]">Help us improve this feature</p>
+            </div>
           </div>
+          {!submitted && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsFormOpen(false)
+                setRating(0)
+                setHoverRating(0)
+                setMessage("")
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+              aria-label="Close feedback form"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {submitted ? (
