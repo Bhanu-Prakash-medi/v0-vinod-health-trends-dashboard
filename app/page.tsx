@@ -11,6 +11,8 @@ import AllParametersPage from "@/components/all-parameters-page"
 import TrendsSection from "@/components/trends-section"
 import Footer from "@/components/footer"
 import TestReportsSection from "@/components/test-reports-section"
+import HealthRecommendationsSection from "@/components/health-recommendations-section"
+import FeedbackSection from "@/components/feedback-section"
 import AllTrendsPage from "@/components/all-trends-page"
 import EmptyState from "@/components/empty-state"
 import { TopNavigationSkeleton, ProfileCardSkeleton, HealthSummarySkeleton } from "@/components/skeletons"
@@ -42,6 +44,7 @@ export default function HealthDashboard() {
   const [healthSummaryLoading, setHealthSummaryLoading] = useState<Map<string, boolean>>(new Map())
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
+  const [pendingReportDate, setPendingReportDate] = useState<string | null>(null)
   const [isBeneficiariesLoading, setIsBeneficiariesLoading] = useState(true)
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -361,10 +364,18 @@ export default function HealthDashboard() {
     sendHotjarEvent(HOTJAR_EVENTS_NAME.HEALTH_TRENDS_HOTJAR, {})
   }, [])
 
+  const hasLoadedRef = useRef(false)
+
   useEffect(() => {
     let isMounted = true
 
     async function loadBeneficiariesData() {
+      // Guard against duplicate/concurrent initial loads (e.g. Strict Mode
+      // double-invoke or effect re-runs), which would otherwise fire multiple
+      // simultaneous beneficiaries requests and overwhelm the backend.
+      if (hasLoadedRef.current) return
+      hasLoadedRef.current = true
+
       try {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
@@ -378,7 +389,7 @@ export default function HealthDashboard() {
 
         // Use debug token if cookie token not available
         if (!token) {
-          token = null
+          token = "278bd94aad2c44de9cc6bc1ccf1eb5e2"
         }
 
         setAccessToken(token)
@@ -442,6 +453,8 @@ export default function HealthDashboard() {
         })
       } catch (err) {
         trackHealthTrendsEvent("Failed to Login")
+        // Allow a subsequent retry to re-run the initial load.
+        hasLoadedRef.current = false
         if (isMounted) {
           if (err instanceof Error && err.message === "UNAUTHORIZED") {
             setGlobalError({ type: "UNAUTHORIZED", message: "Please login to access the health trends" })
@@ -529,7 +542,7 @@ export default function HealthDashboard() {
       initial: b.patientName.charAt(0).toUpperCase(),
       age: report?.patient_info?.age || 0,
       gender: report?.patient_info?.gender || "Unknown",
-      image: report?.patient_info?.profileImage || "/images/profile-indian-male.jpg",
+      image: report?.patient_info?.profileImage || "/images/profile-male.svg",
       relation: b.relation,
     }
   })
@@ -539,7 +552,16 @@ export default function HealthDashboard() {
   const hasTrends = (currentProfileData?.trend_analysis?.length || 0) > 0
 
   if (showAllTrends && currentProfileData) {
-    return <AllTrendsPage patientData={currentProfileData} onBack={() => setShowAllTrends(false)} />
+    return (
+      <AllTrendsPage
+        patientData={currentProfileData}
+        onBack={() => setShowAllTrends(false)}
+        onViewReport={(date) => {
+          setPendingReportDate(date)
+          setShowAllTrends(false)
+        }}
+      />
+    )
   }
 
   if (showAllParameters && currentProfileData) {
@@ -561,7 +583,7 @@ export default function HealthDashboard() {
             gender={activeBeneficiary?.gender || "Unknown"}
             initial={activeMember?.initial || "U"}
             reportCount={activeBeneficiary?.dmS_Doc_ID?.length || 0}
-            profileImage={currentProfileData?.patient_info?.profileImage || "/images/profile-indian-male.jpg"}
+            profileImage={currentProfileData?.patient_info?.profileImage || "/images/profile-male.svg"}
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
             weight={currentProfileData?.patient_info?.weight}
@@ -604,7 +626,12 @@ export default function HealthDashboard() {
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && <TrendsSection onViewAll={() => setShowAllTrends(true)} patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />}
               <AllParametersSection patientData={currentProfileData} onViewAll={() => setShowAllParameters(true)} vasbenefId={activeBeneficiary?.rVasBenefId} />
+              <HealthRecommendationsSection patientData={currentProfileData} />
               <TestReportsSection patientData={currentProfileData} />
+              <FeedbackSection vasbenefId={activeBeneficiary?.rVasBenefId} />
+              <div className="mt-4 text-center">
+                <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
+              </div>
             </>
           )}
         </div>

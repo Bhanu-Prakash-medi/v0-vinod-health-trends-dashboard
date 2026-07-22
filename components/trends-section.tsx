@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { getTrendData } from "@/lib/health-utils"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
+import { getParameterPriority } from "@/lib/parameterPriority"
 
 interface TrendsSectionProps {
   onViewAll?: () => void
@@ -53,7 +54,8 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
       const bIsAbnormal = b.status?.toLowerCase() !== "normal" && b.status?.toLowerCase() !== "in range"
       if (aIsAbnormal && !bIsAbnormal) return -1
       if (!aIsAbnormal && bIsAbnormal) return 1
-      return 0
+      // Then order commonly known parameters first for non-medical users
+      return getParameterPriority(a.metric_name) - getParameterPriority(b.metric_name)
     })
 
     displayedTrends = sortedTrends.slice(0, 3).map((item: any) => {
@@ -84,9 +86,6 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
         trend: item.trend,
         data: sortedData,
       }
-      
-      // Debug: log ALL trend metrics
-      console.log(`[v0] TRENDS API - Metric: "${item.metric_name}" | API Status: "${item.status}" | Processed Status: "${item.status?.toLowerCase() === "normal" || item.status?.toLowerCase() === "in range" ? "normal" : "abnormal"}" | Current Value: ${currentValue}`)
     })
   } else {
     // Fallback to old logic

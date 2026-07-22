@@ -8,6 +8,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Access token required" }, { status: 401 })
   }
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 25000)
+
   try {
     const body = await request.json()
     const jwtToken = await generateN8nJwtAsync()
@@ -20,6 +23,7 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${jwtToken}`,
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     })
 
     const text = await response.text()
@@ -33,10 +37,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
-
+    const isTimeout = error instanceof Error && error.name === "AbortError"
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 },
+      { error: isTimeout ? "Request timeout" : error instanceof Error ? error.message : "Internal server error" },
+      { status: isTimeout ? 504 : 500 },
     )
+  } finally {
+    clearTimeout(timeoutId)
   }
 }

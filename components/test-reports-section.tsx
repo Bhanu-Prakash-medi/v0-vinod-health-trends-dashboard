@@ -1,16 +1,39 @@
 "use client"
 
-import { Folder, Star, FileText, X, Clock } from "lucide-react"
+import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle } from "lucide-react"
 import { Card } from "@/components/ui/card"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface TestReportsSectionProps {
   patientData: any
+  scrollToDate?: string | null
+  onScrollHandled?: () => void
 }
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ""
   return dateStr
+}
+
+// Normalize various date string formats to a comparable YYYY-MM-DD key
+function normalizeDateKey(dateStr: string): string | null {
+  if (!dateStr) return null
+  const cleaned = dateStr.trim().replace(/\//g, "-")
+  const parts = cleaned.split("-")
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const [y, m, d] = parts
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`
+    }
+    const [d, m, y] = parts
+    const year = y.length === 2 ? `20${y}` : y
+    return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`
+  }
+  const dt = new Date(dateStr)
+  if (!isNaN(dt.getTime())) {
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`
+  }
+  return null
 }
 
 function isLatestReportTag(tag: string) {
@@ -28,9 +51,24 @@ function getReportNames(reportName: any): string[] {
   return ["Lab Report"]
 }
 
-export default function TestReportsSection({ patientData }: TestReportsSectionProps) {
+export default function TestReportsSection({ patientData, scrollToDate, onScrollHandled }: TestReportsSectionProps) {
   const [showPdfViewer, setShowPdfViewer] = useState(false)
   const [selectedReportIndex, setSelectedReportIndex] = useState(0)
+  const [highlightLatest, setHighlightLatest] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [highlightReportIndex, setHighlightReportIndex] = useState<number | null>(null)
+
+  useEffect(() => {
+    const handleScrollToLatest = () => {
+      const el = document.getElementById("latest-report-card")
+      if (!el) return
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      setHighlightLatest(true)
+      window.setTimeout(() => setHighlightLatest(false), 2600)
+    }
+    window.addEventListener("scroll-to-latest-report", handleScrollToLatest)
+    return () => window.removeEventListener("scroll-to-latest-report", handleScrollToLatest)
+  }, [])
 
   const labReportsFromApi = patientData?.lab_reports || []
   const healthSummaryFromApi = patientData?.health_summary || []
@@ -132,6 +170,37 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
     return isLatestReportTag(tag)
   }
 
+  useEffect(() => {
+    if (!scrollToDate) return
+    const key = normalizeDateKey(scrollToDate)
+    const targetIndex = reports.findIndex((r: any) => normalizeDateKey(r.date) === key)
+
+    if (targetIndex === -1) {
+      onScrollHandled?.()
+      return
+    }
+
+    // Expand if the target is hidden behind the "View more" collapse
+    if (targetIndex >= 3) setIsExpanded(true)
+
+    // Wait a tick so any expansion has rendered before scrolling
+    const scrollTimer = window.setTimeout(() => {
+      const targetId = isLatestReportTag(reports[targetIndex].tag)
+        ? "latest-report-card"
+        : `report-card-${targetIndex}`
+      const el = document.getElementById(targetId)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        setHighlightReportIndex(targetIndex)
+        window.setTimeout(() => setHighlightReportIndex(null), 2600)
+      }
+      onScrollHandled?.()
+    }, 100)
+
+    return () => window.clearTimeout(scrollTimer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollToDate])
+
   if (reports.length === 0) {
     return null
   }
@@ -151,12 +220,17 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
         </div>
       </div>
 
-      {/* Report Cards - Show all reports */}
+      {/* Report Cards - Show 3 by default, expand to show all */}
       <div className="flex flex-col gap-4">
-        {reports.map((report: any, index: number) => (
+        {(isExpanded ? reports : reports.slice(0, 3)).map((report: any, index: number) => (
           <Card
             key={index}
-            className="overflow-hidden border border-[#f0f3f5] py-0 cursor-pointer hover:border-[#156ddc] transition-colors"
+            id={isLatestReport(report.tag) ? "latest-report-card" : `report-card-${index}`}
+            className={`overflow-hidden py-0 cursor-pointer scroll-mt-24 border transition-all duration-500 ${
+              (isLatestReport(report.tag) && highlightLatest) || highlightReportIndex === index
+                ? "border-[#581daf] shadow-lg ring-2 ring-[#581daf] ring-offset-2"
+                : "border-[#f0f3f5] hover:border-[#156ddc]"
+            }`}
             onClick={() => handleReportClick(index)}
           >
             {/* Thumbnail with gradient */}
@@ -210,10 +284,22 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
         ))}
       </div>
 
-      {/* Powered by Medibuddy */}
-      <div className="mt-4">
-        <span className="text-muted-foreground font-light text-xs">powered by Medibuddy AI </span>
-      </div>
+      {/* View More / View Less toggle */}
+      {reports.length > 3 && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            className="flex items-center gap-1 text-sm font-medium text-[#156ddc] transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc] rounded"
+            aria-expanded={isExpanded}
+          >
+            {isExpanded ? "View less" : `View more (${reports.length - 3})`}
+            <ChevronDown
+              className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+      )}
 
       {/* PDF Viewer Modal */}
       {showPdfViewer && reports[selectedReportIndex] && (
@@ -241,8 +327,28 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
               </button>
             </div>
 
+            {/* System-generated disclaimer */}
+            <div className="flex flex-col gap-2 border-b border-[#fde9c8] bg-[#fff8ec] px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#c07f1a]" />
+                <p className="text-xs leading-relaxed text-[#8a6415]">
+                  This report is system generated. If you notice any issues or incorrect values, please report it.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPdfViewer(false)
+                  window.dispatchEvent(new CustomEvent("open-feedback-form"))
+                }}
+                className="shrink-0 self-start whitespace-nowrap rounded-md border border-[#c07f1a] px-3 py-1 text-xs font-medium text-[#8a6415] transition-colors hover:bg-[#fdefd4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c07f1a] sm:self-auto"
+              >
+                Report a problem
+              </button>
+            </div>
+
             {/* PDF Content */}
-            <div className="h-[calc(90vh-65px)] overflow-auto bg-[#f5f5f5] p-6">
+            <div className="h-[calc(90vh-113px)] overflow-auto bg-[#f5f5f5] p-6">
               <div className="bg-white rounded-lg p-8 max-w-3xl mx-auto shadow-sm">
                 {/* Lab Report Header */}
                 <div className="border-b-2 border-[#156ddc] pb-4 mb-6">

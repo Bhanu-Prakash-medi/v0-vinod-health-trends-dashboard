@@ -1,6 +1,14 @@
-import { Activity, FileText, Heart, Droplet, Atom, TrendingUp, Candy, Beaker } from "lucide-react"
+"use client"
+
+import { Activity, FileText, Heart, Droplet, Atom, TrendingUp, Candy, Beaker, Info, ChevronRight } from "lucide-react"
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
+
+function handleViewLatestReport() {
+  window.dispatchEvent(new CustomEvent("scroll-to-latest-report"))
+}
 
 interface HealthSummarySectionProps {
   patientData: any
@@ -42,6 +50,7 @@ const getIconForCategory = (category: string) => {
 }
 
 export default function HealthSummarySection({ patientData }: HealthSummarySectionProps) {
+  const [selectedCategory, setSelectedCategory] = useState<{ name: string; parameters: any[] } | null>(null)
   const latestDate = patientData?.latestReportDate || patientData?.reports?.[0]?.date || ""
 
   const healthSummaryFromApi = patientData?.health_summary || []
@@ -135,44 +144,46 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
     return null
   }
 
-  // Count abnormal parameters using Digital Twin logic
-  const countAbnormalParams = (categoryName: string, params: any[]): number => {
+  // Build the canonical, deduplicated parameter list for a category.
+  // This SAME list is used both for the out-of-range count on the card and
+  // for the detail dialog, so the numbers always match.
+  const getDisplayParams = (categoryName: string, params: any[]): any[] => {
     const categoryKey = getCategoryKey(categoryName)
-    
-    // For non-overlapping categories, count all abnormal params
-    if (!categoryKey || !digitalTwinParamLists[categoryKey]) {
-      return params.filter((p: any) => getParamStatus(p) === "abnormal").length
-    }
-
-    // For overlapping categories, use Digital Twin's exact parameter list and deduplication
-    const allowedParams = digitalTwinParamLists[categoryKey]
     const seenNames = new Set<string>()
-    let abnormalCount = 0
+    const result: any[] = []
+
+    // For overlapping categories, restrict to Digital Twin's allowed list.
+    const allowedParams =
+      categoryKey && digitalTwinParamLists[categoryKey] ? digitalTwinParamLists[categoryKey] : null
 
     for (const param of params) {
       const paramName = param.name || param.metric_name || ""
       if (!paramName) continue
 
-      // Check if this parameter is in Digital Twin's list
-      const isAllowed = allowedParams.some(allowed => 
-        allowed.toLowerCase() === paramName.toLowerCase() ||
-        paramName.toLowerCase().includes(allowed.toLowerCase()) ||
-        allowed.toLowerCase().includes(paramName.toLowerCase())
-      )
-      
-      if (!isAllowed) continue
+      if (allowedParams) {
+        const isAllowed = allowedParams.some(
+          (allowed) =>
+            allowed.toLowerCase() === paramName.toLowerCase() ||
+            paramName.toLowerCase().includes(allowed.toLowerCase()) ||
+            allowed.toLowerCase().includes(paramName.toLowerCase()),
+        )
+        if (!isAllowed) continue
+      }
 
       // Deduplicate using normalized names (same as Digital Twin)
       const normalizedName = normalizeParamName(paramName)
       if (seenNames.has(normalizedName)) continue
       seenNames.add(normalizedName)
 
-      if (getParamStatus(param) === "abnormal") {
-        abnormalCount++
-      }
+      result.push(param)
     }
 
-    return abnormalCount
+    return result
+  }
+
+  // Count abnormal parameters from the canonical display list.
+  const countAbnormalParams = (categoryName: string, params: any[]): number => {
+    return getDisplayParams(categoryName, params).filter((p: any) => getParamStatus(p) === "abnormal").length
   }
 
   // If we have health_summary from API, use it directly
@@ -180,14 +191,24 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
     return (
       <section>
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-[#000000]" />
             <div>
               <h2 className="text-base font-semibold text-[#2e3742]">Health Summary</h2>
-              <p className="text-xs text-[#9dabbd]">Updated {latestDate}</p>
+              <p className="flex items-center gap-1 text-xs text-[#9dabbd]">
+                <Info className="h-3 w-3 shrink-0 text-[#9dabbd]" />
+                Based on your latest health report
+              </p>
             </div>
           </div>
+          <button
+            onClick={handleViewLatestReport}
+            className="flex items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
+          >
+            View latest report
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Cards Grid - from API health_summary */}
@@ -196,17 +217,27 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
             const categoryName = item.category || item.name || `Category ${index + 1}`
             const Icon = getIconForCategory(categoryName)
             
-            // Recalculate status by checking all parameters (consistent with Digital Twin)
+            // Use the SAME canonical list for the count and the detail dialog
             const params = item.parameters || []
-            const outOfRangeCount = countAbnormalParams(categoryName, params)
-            
+            const displayParams = getDisplayParams(categoryName, params)
+            const outOfRangeCount = displayParams.filter((p: any) => getParamStatus(p) === "abnormal").length
+
             // Category has warning if ANY parameter is abnormal
             const isWarning = outOfRangeCount > 0
 
             return (
               <Card
                 key={`${categoryName}-${index}`}
-                className="flex items-start gap-3 border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md"
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedCategory({ name: categoryName, parameters: displayParams })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    setSelectedCategory({ name: categoryName, parameters: displayParams })
+                  }
+                }}
+                className="flex cursor-pointer items-start gap-3 border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
               >
                 <div className="rounded-lg bg-gray-50 p-2 text-[#000000]">
                   <Icon className="h-5 w-5" />
@@ -236,6 +267,62 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
             )
           })}
         </div>
+
+        <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
+          <DialogContent className="max-w-[380px] gap-0 p-0">
+            <DialogHeader className="border-b border-[#f0f3f5] px-4 py-3">
+              <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedCategory?.name}</DialogTitle>
+              {selectedCategory &&
+                (() => {
+                  const abnormal = selectedCategory.parameters.filter((p: any) => getParamStatus(p) === "abnormal").length
+                  return (
+                    <p className={`text-xs ${abnormal > 0 ? "text-[#de3d31]" : "text-[#459f49]"}`}>
+                      {abnormal > 0 ? `${abnormal} out of range` : "All in range"}
+                    </p>
+                  )
+                })()}
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto p-4">
+              {selectedCategory && selectedCategory.parameters.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {selectedCategory.parameters.map((param: any, i: number) => {
+                    const paramStatus = getParamStatus(param)
+                    const paramValue = param.value ?? param.result ?? "-"
+                    const paramUnit = param.unit || ""
+                    const paramRange = param.normal_range || param.range || ""
+                    return (
+                      <div
+                        key={`${param.name}-${i}`}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-[#2e3742]">{param.name}</p>
+                          {paramRange && <p className="mt-0.5 text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span
+                            className={`text-sm font-bold ${paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                          >
+                            {paramValue} {paramUnit}
+                          </span>
+                          <span
+                            className={`mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              paramStatus === "abnormal" ? "bg-[#fef0f0] text-[#de3d31]" : "bg-[#edf7ee] text-[#459f49]"
+                            }`}
+                          >
+                            {paramStatus === "abnormal" ? "Abnormal" : "Normal"}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="py-6 text-center text-sm text-[#9dabbd]">No parameter details available.</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </section>
     )
   }
