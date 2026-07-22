@@ -269,7 +269,7 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
         </div>
 
         <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
-          <DialogContent className="max-w-[380px] gap-0 p-0">
+          <DialogContent className="w-[calc(100%-2rem)] max-w-[380px] gap-0 overflow-hidden p-0">
             <DialogHeader className="border-b border-[#f0f3f5] px-4 py-3">
               <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedCategory?.name}</DialogTitle>
               {selectedCategory &&
@@ -296,12 +296,14 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
                         className="flex items-center justify-between gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-[#2e3742]">{param.name}</p>
-                          {paramRange && <p className="mt-0.5 text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>}
+                          <p className="break-words text-sm font-medium text-[#2e3742]">{param.name}</p>
+                          {paramRange && (
+                            <p className="mt-0.5 break-words text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>
+                          )}
                         </div>
-                        <div className="flex flex-col items-end">
+                        <div className="flex shrink-0 flex-col items-end text-right">
                           <span
-                            className={`text-sm font-bold ${paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                            className={`break-words text-sm font-bold ${paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
                           >
                             {paramValue} {paramUnit}
                           </span>
