@@ -30,26 +30,28 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
 
   return (
     <section>
-      {/* Header */}
-      <div className="mb-4 flex items-center gap-2">
-        <MessageSquarePlus className="h-6 w-6 text-[#000000]" />
-        <div>
-          <h2 className="text-base font-semibold text-[#2e3742]">Share Your Feedback</h2>
-          <p className="text-xs text-[#9dabbd]">Help us improve this feature</p>
-        </div>
-      </div>
-
       {!isFormOpen && !submitted ? (
-        <Button
-          type="button"
-          onClick={() => setIsFormOpen(true)}
-          className="w-full gap-2 bg-[#156ddc] text-white hover:bg-[#1160c4] sm:w-auto"
-        >
-          <MessageSquarePlus className="h-4 w-4" />
-          Share Feedback
-        </Button>
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            onClick={() => setIsFormOpen(true)}
+            className="gap-2 bg-[#156ddc] text-white hover:bg-[#1160c4]"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+            Share Feedback
+          </Button>
+        </div>
       ) : (
       <Card className="border border-[#f0f3f5] p-4 shadow-sm">
+        {/* Header */}
+        <div className="mb-4 flex items-center gap-2">
+          <MessageSquarePlus className="h-6 w-6 text-[#000000]" />
+          <div>
+            <h2 className="text-base font-semibold text-[#2e3742]">Share Your Feedback</h2>
+            <p className="text-xs text-[#9dabbd]">Help us improve this feature</p>
+          </div>
+        </div>
+
         {submitted ? (
           <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
             <CheckCircle2 className="h-10 w-10 text-[#459f49]" />
