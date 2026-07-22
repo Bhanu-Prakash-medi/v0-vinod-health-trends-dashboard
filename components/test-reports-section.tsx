@@ -2,7 +2,7 @@
 
 import { Folder, Star, FileText, X, Clock } from "lucide-react"
 import { Card } from "@/components/ui/card"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface TestReportsSectionProps {
   patientData: any
@@ -31,6 +31,19 @@ function getReportNames(reportName: any): string[] {
 export default function TestReportsSection({ patientData }: TestReportsSectionProps) {
   const [showPdfViewer, setShowPdfViewer] = useState(false)
   const [selectedReportIndex, setSelectedReportIndex] = useState(0)
+  const [highlightLatest, setHighlightLatest] = useState(false)
+
+  useEffect(() => {
+    const handleScrollToLatest = () => {
+      const el = document.getElementById("latest-report-card")
+      if (!el) return
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      setHighlightLatest(true)
+      window.setTimeout(() => setHighlightLatest(false), 2600)
+    }
+    window.addEventListener("scroll-to-latest-report", handleScrollToLatest)
+    return () => window.removeEventListener("scroll-to-latest-report", handleScrollToLatest)
+  }, [])
 
   const labReportsFromApi = patientData?.lab_reports || []
   const healthSummaryFromApi = patientData?.health_summary || []
@@ -156,7 +169,12 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
         {reports.map((report: any, index: number) => (
           <Card
             key={index}
-            className="overflow-hidden border border-[#f0f3f5] py-0 cursor-pointer hover:border-[#156ddc] transition-colors"
+            id={isLatestReport(report.tag) ? "latest-report-card" : undefined}
+            className={`overflow-hidden py-0 cursor-pointer scroll-mt-24 border transition-all duration-500 ${
+              isLatestReport(report.tag) && highlightLatest
+                ? "border-[#581daf] shadow-lg ring-2 ring-[#581daf] ring-offset-2"
+                : "border-[#f0f3f5] hover:border-[#156ddc]"
+            }`}
             onClick={() => handleReportClick(index)}
           >
             {/* Thumbnail with gradient */}

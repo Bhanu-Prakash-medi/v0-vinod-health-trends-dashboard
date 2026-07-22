@@ -1,6 +1,12 @@
-import { Activity, FileText, Heart, Droplet, Atom, TrendingUp, Candy, Beaker } from "lucide-react"
+"use client"
+
+import { Activity, FileText, Heart, Droplet, Atom, TrendingUp, Candy, Beaker, Info, ChevronRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
+
+function handleViewLatestReport() {
+  window.dispatchEvent(new CustomEvent("scroll-to-latest-report"))
+}
 
 interface HealthSummarySectionProps {
   patientData: any
@@ -180,14 +186,29 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
     return (
       <section>
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-[#000000]" />
             <div>
-              <h2 className="text-base font-semibold text-[#2e3742]">Health Summary</h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-base font-semibold text-[#2e3742]">Health Summary</h2>
+                <span className="group relative flex items-center">
+                  <Info className="h-3.5 w-3.5 cursor-help text-[#9dabbd]" aria-label="About Health Summary" />
+                  <span className="pointer-events-none absolute left-1/2 top-6 z-20 w-52 -translate-x-1/2 rounded-md bg-[#2e3742] px-2 py-1.5 text-[10px] leading-relaxed text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
+                    This summary is based on your latest health report.
+                  </span>
+                </span>
+              </div>
               <p className="text-xs text-[#9dabbd]">Updated {latestDate}</p>
             </div>
           </div>
+          <button
+            onClick={handleViewLatestReport}
+            className="flex items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
+          >
+            View latest report
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Cards Grid - from API health_summary */}
