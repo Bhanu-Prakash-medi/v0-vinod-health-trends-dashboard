@@ -298,7 +298,7 @@ export default function AllTrendsPage({
                             stroke={referenceColor}
                             strokeDasharray="5 5"
                             strokeWidth={1}
-                            label={{ value: "Max", position: "right", fill: referenceColor, fontSize: 10 }}
+                            label={{ value: "Normal Limit", position: "right", fill: referenceColor, fontSize: 10 }}
                           />
                         </>
                       )}
