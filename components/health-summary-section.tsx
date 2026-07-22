@@ -144,36 +144,39 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
     return null
   }
 
+  // Build a precise comparison key: normalize the clinical name, then strip
+  // everything except alphanumerics so spacing/punctuation differences
+  // ("Non-HDL" vs "Non HDL") match, while distinct tests ("Hb" vs "HbA1c")
+  // never collide.
+  const comparisonKey = (name: string): string => normalizeParamName(name).replace(/[^a-z0-9]/g, "")
+
   // Build the canonical, deduplicated parameter list for a category.
   // This SAME list is used both for the out-of-range count on the card and
   // for the detail dialog, so the numbers always match.
   const getDisplayParams = (categoryName: string, params: any[]): any[] => {
     const categoryKey = getCategoryKey(categoryName)
-    const seenNames = new Set<string>()
+    const seenKeys = new Set<string>()
     const result: any[] = []
 
-    // For overlapping categories, restrict to Digital Twin's allowed list.
-    const allowedParams =
-      categoryKey && digitalTwinParamLists[categoryKey] ? digitalTwinParamLists[categoryKey] : null
+    // For overlapping categories, restrict to Digital Twin's allowed list
+    // using exact normalized-key matching (no loose substring matching).
+    const allowedKeys =
+      categoryKey && digitalTwinParamLists[categoryKey]
+        ? new Set(digitalTwinParamLists[categoryKey].map((a) => comparisonKey(a)))
+        : null
 
     for (const param of params) {
       const paramName = param.name || param.metric_name || ""
       if (!paramName) continue
 
-      if (allowedParams) {
-        const isAllowed = allowedParams.some(
-          (allowed) =>
-            allowed.toLowerCase() === paramName.toLowerCase() ||
-            paramName.toLowerCase().includes(allowed.toLowerCase()) ||
-            allowed.toLowerCase().includes(paramName.toLowerCase()),
-        )
-        if (!isAllowed) continue
-      }
+      const key = comparisonKey(paramName)
+      if (!key) continue
 
-      // Deduplicate using normalized names (same as Digital Twin)
-      const normalizedName = normalizeParamName(paramName)
-      if (seenNames.has(normalizedName)) continue
-      seenNames.add(normalizedName)
+      if (allowedKeys && !allowedKeys.has(key)) continue
+
+      // Deduplicate identical tests
+      if (seenKeys.has(key)) continue
+      seenKeys.add(key)
 
       result.push(param)
     }
@@ -269,7 +272,7 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
         </div>
 
         <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
-          <DialogContent className="max-w-[380px] gap-0 p-0">
+          <DialogContent className="w-[calc(100%-2rem)] max-w-[380px] gap-0 overflow-hidden p-0">
             <DialogHeader className="border-b border-[#f0f3f5] px-4 py-3">
               <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedCategory?.name}</DialogTitle>
               {selectedCategory &&
@@ -296,12 +299,14 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
                         className="flex items-center justify-between gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-[#2e3742]">{param.name}</p>
-                          {paramRange && <p className="mt-0.5 text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>}
+                          <p className="break-words text-sm font-medium text-[#2e3742]">{param.name}</p>
+                          {paramRange && (
+                            <p className="mt-0.5 break-words text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>
+                          )}
                         </div>
-                        <div className="flex flex-col items-end">
+                        <div className="flex shrink-0 flex-col items-end text-right">
                           <span
-                            className={`text-sm font-bold ${paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                            className={`break-words text-sm font-bold ${paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
                           >
                             {paramValue} {paramUnit}
                           </span>

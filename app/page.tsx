@@ -389,7 +389,7 @@ export default function HealthDashboard() {
 
         // Use debug token if cookie token not available
         if (!token) {
-          token = "278bd94aad2c44de9cc6bc1ccf1eb5e2"
+          token = "916d608f1ef342adacd3f799cae386e1"
         }
 
         setAccessToken(token)
@@ -627,7 +627,11 @@ export default function HealthDashboard() {
               {hasTrends && <TrendsSection onViewAll={() => setShowAllTrends(true)} patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />}
               <AllParametersSection patientData={currentProfileData} onViewAll={() => setShowAllParameters(true)} vasbenefId={activeBeneficiary?.rVasBenefId} />
               <HealthRecommendationsSection patientData={currentProfileData} />
-              <TestReportsSection patientData={currentProfileData} />
+              <TestReportsSection
+                patientData={currentProfileData}
+                scrollToDate={pendingReportDate}
+                onScrollHandled={() => setPendingReportDate(null)}
+              />
               <FeedbackSection vasbenefId={activeBeneficiary?.rVasBenefId} />
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>

@@ -358,7 +358,7 @@ export default function AllTrendsPage({
       </div>
 
       <Dialog open={!!selectedPoint} onOpenChange={(open) => !open && setSelectedPoint(null)}>
-        <DialogContent className="max-w-[340px] gap-0 p-0">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-[340px] gap-0 overflow-hidden p-0">
           <DialogHeader className="border-b border-[#f0f3f5] px-4 py-3">
             <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedPoint?.name}</DialogTitle>
           </DialogHeader>
@@ -368,17 +368,17 @@ export default function AllTrendsPage({
                 <Calendar className="h-4 w-4 text-[#9dabbd]" />
                 {selectedPoint.dateStr}
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3">
-                <div>
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3">
+                <div className="min-w-0">
                   <p className="text-xs text-[#9dabbd]">Reading</p>
                   <p
-                    className={`text-xl font-bold ${selectedPoint.status === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                    className={`break-words text-xl font-bold ${selectedPoint.status === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
                   >
                     {selectedPoint.value} {selectedPoint.unit}
                   </p>
                 </div>
                 <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                  className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${
                     selectedPoint.status === "abnormal" ? "bg-[#fef0f0] text-[#de3d31]" : "bg-[#edf7ee] text-[#459f49]"
                   }`}
                 >
@@ -392,9 +392,11 @@ export default function AllTrendsPage({
               {selectedPoint.reportName ? (
                 <div className="mt-1 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3">
                   <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-[#9dabbd]">From report</p>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 shrink-0 text-[#156ddc]" />
-                    <p className="truncate text-sm font-medium text-[#2e3742]">{selectedPoint.reportName}</p>
+                  <div className="flex items-start gap-2">
+                    <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[#156ddc]" />
+                    <p className="min-w-0 break-words text-sm font-medium text-[#2e3742]">
+                      {selectedPoint.reportName}
+                    </p>
                   </div>
                   <button
                     type="button"

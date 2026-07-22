@@ -183,21 +183,39 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     // Expand if the target is hidden behind the "View more" collapse
     if (targetIndex >= 3) setIsExpanded(true)
 
-    // Wait a tick so any expansion has rendered before scrolling
-    const scrollTimer = window.setTimeout(() => {
-      const targetId = isLatestReportTag(reports[targetIndex].tag)
-        ? "latest-report-card"
-        : `report-card-${targetIndex}`
+    const targetId = isLatestReportTag(reports[targetIndex].tag)
+      ? "latest-report-card"
+      : `report-card-${targetIndex}`
+
+    // Retry a few animation frames because the dashboard (and any expansion)
+    // may still be rendering right after navigating back from the trends page.
+    let attempts = 0
+    let rafId = 0
+    let highlightTimer = 0
+
+    const tryScroll = () => {
       const el = document.getElementById(targetId)
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" })
         setHighlightReportIndex(targetIndex)
-        window.setTimeout(() => setHighlightReportIndex(null), 2600)
+        highlightTimer = window.setTimeout(() => setHighlightReportIndex(null), 2600)
+        onScrollHandled?.()
+        return
       }
-      onScrollHandled?.()
-    }, 100)
+      attempts += 1
+      if (attempts < 30) {
+        rafId = window.requestAnimationFrame(tryScroll)
+      } else {
+        onScrollHandled?.()
+      }
+    }
 
-    return () => window.clearTimeout(scrollTimer)
+    rafId = window.requestAnimationFrame(tryScroll)
+
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.clearTimeout(highlightTimer)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollToDate])
 
