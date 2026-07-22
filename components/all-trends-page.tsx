@@ -1,8 +1,10 @@
 "use client"
 
-import { ArrowLeft, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Calendar } from "lucide-react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { getTrendData } from "@/lib/health-utils"
 import type { ApiHealthReport } from "@/lib/api"
@@ -37,6 +39,15 @@ const formatDate = (timestamp: number): string => {
 }
 
 export default function AllTrendsPage({ onBack, patientData }: { onBack: () => void; patientData: ApiHealthReport }) {
+  const [selectedPoint, setSelectedPoint] = useState<{
+    name: string
+    dateStr: string
+    value: number
+    unit: string
+    range: string
+    status: "normal" | "abnormal"
+  } | null>(null)
+
   const trendAnalysisFromApi = patientData?.trend_analysis || []
 
   let allTrends: any[] = []
@@ -103,18 +114,19 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="sticky top-0 z-10 border-b border-[#e5e7eb] bg-white px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">
-            <ArrowLeft className="h-5 w-5 text-[#2e3742]" />
-          </Button>
-          <h1 className="text-lg font-semibold text-[#2e3742]">
-            All Health Trends <span className="text-[#9dabbd]">({allTrends.length})</span>
-          </h1>
+      <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
+        <div className="sticky top-0 z-10 rounded-t-2xl border-b border-[#e5e7eb] bg-white px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">
+              <ArrowLeft className="h-5 w-5 text-[#2e3742]" />
+            </Button>
+            <h1 className="text-lg font-semibold text-[#2e3742]">
+              All Health Trends <span className="text-[#9dabbd]">({allTrends.length})</span>
+            </h1>
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-3 p-4">
+        <div className="space-y-3 p-4">
         {allTrends.map((trend) => {
           const isImproving = trend.change < 0 && trend.status === "abnormal"
           const isWorsening = trend.change > 0 && trend.status === "abnormal"
@@ -123,6 +135,33 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
 
           const lineColor = trend.status === "normal" ? "#2f9a48" : "#d93026"
           const referenceColor = "#2f9a48"
+
+          const getPointStatus = (value: number): "normal" | "abnormal" => {
+            if (!rangeData) return trend.status
+            if (rangeData.type === "range" && rangeData.min != null && rangeData.max != null) {
+              return value >= rangeData.min && value <= rangeData.max ? "normal" : "abnormal"
+            }
+            if (rangeData.type === "max" && rangeData.max != null) {
+              return value <= rangeData.max ? "normal" : "abnormal"
+            }
+            if (rangeData.type === "min" && rangeData.min != null) {
+              return value >= rangeData.min ? "normal" : "abnormal"
+            }
+            return "normal"
+          }
+
+          const handleChartClick = (state: any) => {
+            const point = state?.activePayload?.[0]?.payload
+            if (!point || point.value == null) return
+            setSelectedPoint({
+              name: trend.name,
+              dateStr: point.dateStr || formatDate(point.timestamp),
+              value: point.value,
+              unit: trend.unit,
+              range: trend.range,
+              status: getPointStatus(point.value),
+            })
+          }
 
           return (
             <Card key={trend.name} className="border border-[#f0f3f5] p-4 shadow-sm">
@@ -167,7 +206,12 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
               {trend.data && trend.data.length > 0 && (
                 <div className="w-full h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={trend.data} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                    <LineChart
+                      data={trend.data}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                      onClick={handleChartClick}
+                      style={{ cursor: "pointer" }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                       <XAxis
                         dataKey="timestamp"
@@ -251,12 +295,52 @@ export default function AllTrendsPage({ onBack, patientData }: { onBack: () => v
                       />
                     </LineChart>
                   </ResponsiveContainer>
+                  <p className="mt-1 text-center text-[10px] text-[#9dabbd]">
+                    Tap a point to view that date&apos;s reading
+                  </p>
                 </div>
               )}
             </Card>
           )
         })}
+        </div>
       </div>
+
+      <Dialog open={!!selectedPoint} onOpenChange={(open) => !open && setSelectedPoint(null)}>
+        <DialogContent className="max-w-[340px] gap-0 p-0">
+          <DialogHeader className="border-b border-[#f0f3f5] px-4 py-3">
+            <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedPoint?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedPoint && (
+            <div className="flex flex-col gap-3 p-4">
+              <div className="flex items-center gap-2 text-sm text-[#4d5c6f]">
+                <Calendar className="h-4 w-4 text-[#9dabbd]" />
+                {selectedPoint.dateStr}
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3">
+                <div>
+                  <p className="text-xs text-[#9dabbd]">Reading</p>
+                  <p
+                    className={`text-xl font-bold ${selectedPoint.status === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                  >
+                    {selectedPoint.value} {selectedPoint.unit}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    selectedPoint.status === "abnormal" ? "bg-[#fef0f0] text-[#de3d31]" : "bg-[#edf7ee] text-[#459f49]"
+                  }`}
+                >
+                  {selectedPoint.status === "abnormal" ? "Abnormal" : "Normal"}
+                </span>
+              </div>
+              {selectedPoint.range && (
+                <p className="text-xs text-[#9dabbd]">Normal range: {selectedPoint.range}</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

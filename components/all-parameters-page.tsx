@@ -96,18 +96,19 @@ export default function AllParametersPage({
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="sticky top-0 z-10 border-b border-[#e5e7eb] bg-white px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">
-            <ArrowLeft className="h-5 w-5 text-[#2e3742]" />
-          </Button>
-          <h1 className="text-lg font-semibold text-[#2e3742]">
-            All Parameters <span className="text-[#9dabbd]">({allParameters.length})</span>
-          </h1>
+      <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
+        <div className="sticky top-0 z-10 rounded-t-2xl border-b border-[#e5e7eb] bg-white px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">
+              <ArrowLeft className="h-5 w-5 text-[#2e3742]" />
+            </Button>
+            <h1 className="text-lg font-semibold text-[#2e3742]">
+              All Parameters <span className="text-[#9dabbd]">({allParameters.length})</span>
+            </h1>
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-3 p-4">
+        <div className="space-y-3 p-4">
         {sortedParameters.map((param, index) => (
           <Card key={index} className="overflow-hidden border border-[#f0f3f5] py-0">
             <div className="p-4 pb-3">
@@ -164,6 +165,7 @@ export default function AllParametersPage({
             </div>
           </Card>
         ))}
+        </div>
       </div>
     </div>
   )

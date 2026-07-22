@@ -1,7 +1,9 @@
 "use client"
 
 import { Activity, FileText, Heart, Droplet, Atom, TrendingUp, Candy, Beaker, Info, ChevronRight } from "lucide-react"
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
 
 function handleViewLatestReport() {
@@ -48,6 +50,7 @@ const getIconForCategory = (category: string) => {
 }
 
 export default function HealthSummarySection({ patientData }: HealthSummarySectionProps) {
+  const [selectedCategory, setSelectedCategory] = useState<{ name: string; parameters: any[] } | null>(null)
   const latestDate = patientData?.latestReportDate || patientData?.reports?.[0]?.date || ""
 
   const healthSummaryFromApi = patientData?.health_summary || []
@@ -222,7 +225,16 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
             return (
               <Card
                 key={`${categoryName}-${index}`}
-                className="flex items-start gap-3 border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md"
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedCategory({ name: categoryName, parameters: params })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    setSelectedCategory({ name: categoryName, parameters: params })
+                  }
+                }}
+                className="flex cursor-pointer items-start gap-3 border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
               >
                 <div className="rounded-lg bg-gray-50 p-2 text-[#000000]">
                   <Icon className="h-5 w-5" />
@@ -252,6 +264,53 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
             )
           })}
         </div>
+
+        <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
+          <DialogContent className="max-w-[380px] gap-0 p-0">
+            <DialogHeader className="border-b border-[#f0f3f5] px-4 py-3">
+              <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedCategory?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto p-4">
+              {selectedCategory && selectedCategory.parameters.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {selectedCategory.parameters.map((param: any, i: number) => {
+                    const paramStatus = getParamStatus(param)
+                    const paramValue = param.value ?? param.result ?? "-"
+                    const paramUnit = param.unit || ""
+                    const paramRange = param.normal_range || param.range || ""
+                    return (
+                      <div
+                        key={`${param.name}-${i}`}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-[#2e3742]">{param.name}</p>
+                          {paramRange && <p className="mt-0.5 text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span
+                            className={`text-sm font-bold ${paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                          >
+                            {paramValue} {paramUnit}
+                          </span>
+                          <span
+                            className={`mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              paramStatus === "abnormal" ? "bg-[#fef0f0] text-[#de3d31]" : "bg-[#edf7ee] text-[#459f49]"
+                            }`}
+                          >
+                            {paramStatus === "abnormal" ? "Abnormal" : "Normal"}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="py-6 text-center text-sm text-[#9dabbd]">No parameter details available.</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </section>
     )
   }

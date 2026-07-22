@@ -57,6 +57,12 @@ export default function ProfileCard({
   const validatedWeight = validateWeight(weight)
   const validatedHeight = validateHeight(height)
 
+  const hasBloodGroup = Boolean(bloodGroup && bloodGroup.trim() && bloodGroup.trim() !== "-")
+  const hasHeight = validatedHeight !== "-"
+  const hasWeight = validatedWeight !== "-"
+  const hasAbhaId = Boolean(abhaId && abhaId.trim() && abhaId.trim() !== "-")
+  const hasAnyInfo = hasBloodGroup || hasHeight || hasWeight || hasAbhaId
+
   return (
     <div className="relative overflow-hidden rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
       {/* Header Section: Avatar + Info */}
@@ -108,56 +114,66 @@ export default function ProfileCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        {/* Blood Group */}
-        <div className="flex items-center gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
-            <Droplet className="h-3.5 w-3.5 text-[#000000]" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[9px] font-medium text-[#4d5c6f] truncate">Blood</div>
-            <div className="text-xs font-bold text-[#2e3742]">{bloodGroup || "-"}</div>
-          </div>
-        </div>
+      {hasAnyInfo && (
+        <div className="grid grid-cols-2 gap-2">
+          {/* Blood Group */}
+          {hasBloodGroup && (
+            <div className="flex items-center gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                <Droplet className="h-3.5 w-3.5 text-[#000000]" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[9px] font-medium text-[#4d5c6f] truncate">Blood</div>
+                <div className="text-xs font-bold text-[#2e3742]">{bloodGroup}</div>
+              </div>
+            </div>
+          )}
 
-        {/* Height */}
-        <div className="flex items-center gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
-            <Ruler className="h-3.5 w-3.5 text-[#000000]" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[9px] font-medium text-[#4d5c6f] truncate">Height</div>
-            <div className="text-xs font-bold text-[#2e3742]">{validatedHeight}</div>
-          </div>
-        </div>
+          {/* Height */}
+          {hasHeight && (
+            <div className="flex items-center gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                <Ruler className="h-3.5 w-3.5 text-[#000000]" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[9px] font-medium text-[#4d5c6f] truncate">Height</div>
+                <div className="text-xs font-bold text-[#2e3742]">{validatedHeight}</div>
+              </div>
+            </div>
+          )}
 
-        {/* Weight */}
-        <div className="flex items-center gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
-            <Weight className="h-3.5 w-3.5 text-[#000000]" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[9px] font-medium text-[#4d5c6f] truncate">Weight</div>
-            <div className="text-xs font-bold text-[#2e3742]">{validatedWeight}</div>
-          </div>
-        </div>
+          {/* Weight */}
+          {hasWeight && (
+            <div className="flex items-center gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                <Weight className="h-3.5 w-3.5 text-[#000000]" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[9px] font-medium text-[#4d5c6f] truncate">Weight</div>
+                <div className="text-xs font-bold text-[#2e3742]">{validatedWeight}</div>
+              </div>
+            </div>
+          )}
 
-        {/* ABHA ID */}
-        <div className="flex items-center gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-[#000000]">
-              <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
-              <path d="M7 8H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <path d="M7 12H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <circle cx="16" cy="14" r="2" fill="currentColor" />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <div className="text-[9px] font-medium text-[#4d5c6f] truncate">ABHA ID</div>
-            <div className="text-xs font-bold text-[#2e3742] truncate">{abhaId || "-"}</div>
-          </div>
+          {/* ABHA ID */}
+          {hasAbhaId && (
+            <div className="flex items-center gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-[#000000]">
+                  <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
+                  <path d="M7 8H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M7 12H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="16" cy="14" r="2" fill="currentColor" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[9px] font-medium text-[#4d5c6f] truncate">ABHA ID</div>
+                <div className="text-xs font-bold text-[#2e3742] truncate">{abhaId}</div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   )
 }
