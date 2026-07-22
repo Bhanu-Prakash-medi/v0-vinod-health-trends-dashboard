@@ -11,6 +11,7 @@ import AllParametersPage from "@/components/all-parameters-page"
 import TrendsSection from "@/components/trends-section"
 import Footer from "@/components/footer"
 import TestReportsSection from "@/components/test-reports-section"
+import HealthRecommendationsSection from "@/components/health-recommendations-section"
 import AllTrendsPage from "@/components/all-trends-page"
 import EmptyState from "@/components/empty-state"
 import { TopNavigationSkeleton, ProfileCardSkeleton, HealthSummarySkeleton } from "@/components/skeletons"
@@ -604,6 +605,7 @@ export default function HealthDashboard() {
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && <TrendsSection onViewAll={() => setShowAllTrends(true)} patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />}
               <AllParametersSection patientData={currentProfileData} onViewAll={() => setShowAllParameters(true)} vasbenefId={activeBeneficiary?.rVasBenefId} />
+              <HealthRecommendationsSection patientData={currentProfileData} />
               <TestReportsSection patientData={currentProfileData} />
             </>
           )}
