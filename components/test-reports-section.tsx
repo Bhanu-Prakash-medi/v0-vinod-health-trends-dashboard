@@ -1,6 +1,6 @@
 "use client"
 
-import { Folder, Star, FileText, X, Clock, ChevronDown } from "lucide-react"
+import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 
@@ -327,8 +327,28 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
               </button>
             </div>
 
+            {/* System-generated disclaimer */}
+            <div className="flex flex-col gap-2 border-b border-[#fde9c8] bg-[#fff8ec] px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#c07f1a]" />
+                <p className="text-xs leading-relaxed text-[#8a6415]">
+                  This report is system generated. If you notice any issues or incorrect values, please report it.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPdfViewer(false)
+                  window.dispatchEvent(new CustomEvent("open-feedback-form"))
+                }}
+                className="shrink-0 self-start whitespace-nowrap rounded-md border border-[#c07f1a] px-3 py-1 text-xs font-medium text-[#8a6415] transition-colors hover:bg-[#fdefd4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c07f1a] sm:self-auto"
+              >
+                Report a problem
+              </button>
+            </div>
+
             {/* PDF Content */}
-            <div className="h-[calc(90vh-65px)] overflow-auto bg-[#f5f5f5] p-6">
+            <div className="h-[calc(90vh-113px)] overflow-auto bg-[#f5f5f5] p-6">
               <div className="bg-white rounded-lg p-8 max-w-3xl mx-auto shadow-sm">
                 {/* Lab Report Header */}
                 <div className="border-b-2 border-[#156ddc] pb-4 mb-6">

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { MessageSquarePlus, Star, CheckCircle2, X } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,20 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
   const [hoverRating, setHoverRating] = useState(0)
   const [message, setMessage] = useState("")
   const [submitted, setSubmitted] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const handleOpenFeedback = () => {
+      setSubmitted(false)
+      setIsFormOpen(true)
+      // Wait for the form to render before scrolling it into view
+      window.setTimeout(() => {
+        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+      }, 100)
+    }
+    window.addEventListener("open-feedback-form", handleOpenFeedback)
+    return () => window.removeEventListener("open-feedback-form", handleOpenFeedback)
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,7 +43,7 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
   }
 
   return (
-    <section>
+    <section ref={sectionRef} className="scroll-mt-24">
       {!isFormOpen && !submitted ? (
         <div className="flex justify-center">
           <Button
