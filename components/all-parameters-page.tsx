@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
+import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 
 export default function AllParametersPage({
   patientData,
@@ -90,6 +91,9 @@ export default function AllParametersPage({
     })
     .filter((param) => param.position !== null) // Filter out malformed ranges
 
+  // Order commonly known parameters first for non-medical users
+  const sortedParameters = sortByCommonKnowledge(allParameters)
+
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
       <div className="sticky top-0 z-10 border-b border-[#e5e7eb] bg-white px-4 py-3">
@@ -104,7 +108,7 @@ export default function AllParametersPage({
       </div>
 
       <div className="space-y-3 p-4">
-        {allParameters.map((param, index) => (
+        {sortedParameters.map((param, index) => (
           <Card key={index} className="overflow-hidden border border-[#f0f3f5] py-0">
             <div className="p-4 pb-3">
               <div className="flex items-start justify-between">

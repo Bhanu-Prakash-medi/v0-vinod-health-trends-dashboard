@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import type { ApiHealthReport } from "@/lib/api"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
+import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 
 export default function AllParametersSection({
   patientData,
@@ -99,7 +100,9 @@ export default function AllParametersSection({
     })
     .filter((param) => param.position !== null) // Case 4: Filter out malformed ranges
 
-  const displayedParameters = allParameters.slice(0, 3)
+  // Order commonly known parameters first for non-medical users
+  const sortedParameters = sortByCommonKnowledge(allParameters)
+  const displayedParameters = sortedParameters.slice(0, 3)
 
   return (
     <section>
