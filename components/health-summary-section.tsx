@@ -190,16 +190,11 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
           <div className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-[#000000]" />
             <div>
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-base font-semibold text-[#2e3742]">Health Summary</h2>
-                <span className="group relative flex items-center">
-                  <Info className="h-3.5 w-3.5 cursor-help text-[#9dabbd]" aria-label="About Health Summary" />
-                  <span className="pointer-events-none absolute left-1/2 top-6 z-20 w-52 -translate-x-1/2 rounded-md bg-[#2e3742] px-2 py-1.5 text-[10px] leading-relaxed text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
-                    This summary is based on your latest health report.
-                  </span>
-                </span>
-              </div>
-              <p className="text-xs text-[#9dabbd]">Updated {latestDate}</p>
+              <h2 className="text-base font-semibold text-[#2e3742]">Health Summary</h2>
+              <p className="flex items-center gap-1 text-xs text-[#9dabbd]">
+                <Info className="h-3 w-3 shrink-0 text-[#9dabbd]" />
+                Based on your latest health report
+              </p>
             </div>
           </div>
           <button
