@@ -228,11 +228,6 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
         ))}
       </div>
 
-      {/* Powered by Medibuddy */}
-      <div className="mt-4">
-        <span className="text-muted-foreground font-light text-xs">powered by Medibuddy AI </span>
-      </div>
-
       {/* PDF Viewer Modal */}
       {showPdfViewer && reports[selectedReportIndex] && (
         <div

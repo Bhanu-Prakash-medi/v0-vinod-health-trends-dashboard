@@ -609,6 +609,9 @@ export default function HealthDashboard() {
               <HealthRecommendationsSection patientData={currentProfileData} />
               <TestReportsSection patientData={currentProfileData} />
               <FeedbackSection vasbenefId={activeBeneficiary?.rVasBenefId} />
+              <div className="mt-4 text-center">
+                <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
+              </div>
             </>
           )}
         </div>
