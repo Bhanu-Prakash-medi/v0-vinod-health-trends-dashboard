@@ -448,7 +448,7 @@ function transformReportMetrics(data: any): ApiHealthReport {
 
   // Determine profile image based on gender
   const normalizedGender = gender.toLowerCase()
-  let profileImage = "/images/profile-indian-male.jpg"
+  let profileImage = "/images/profile-male.svg"
   if (normalizedGender === "female" || normalizedGender === "f") {
     profileImage = "/images/profile-indian-female-1.jpg"
   }
@@ -711,7 +711,7 @@ export async function fetchTrends(
 export function createInitialProfileFromBeneficiary(beneficiary: Beneficiary): ApiHealthReport {
   const gender = beneficiary.gender || "Unknown"
   const normalizedGender = gender.toLowerCase()
-  let profileImage = "/images/profile-indian-male.jpg"
+  let profileImage = "/images/profile-male.svg"
   if (normalizedGender === "female" || normalizedGender === "f") {
     profileImage = "/images/profile-indian-female-1.jpg"
   }
@@ -758,7 +758,7 @@ export function mergeReportsKeepLatest(
 ): ApiHealthReport {
   if (reports.length === 0) {
     return {
-      patient_info: { name: "Unknown", age: 0, gender: "Unknown", profileImage: "/images/profile-indian-male.jpg" },
+      patient_info: { name: "Unknown", age: 0, gender: "Unknown", profileImage: "/images/profile-male.svg" },
       reports: [],
       health_summary: [],
     }
