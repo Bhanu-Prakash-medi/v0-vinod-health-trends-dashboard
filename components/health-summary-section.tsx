@@ -193,7 +193,7 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
               <h2 className="text-base font-semibold text-[#2e3742]">Health Summary</h2>
               <p className="flex items-center gap-1 text-xs text-[#9dabbd]">
                 <Info className="h-3 w-3 shrink-0 text-[#9dabbd]" />
-                Based on your latest health report
+                Based on your latest health report ({latestDate})
               </p>
             </div>
           </div>
