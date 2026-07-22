@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateN8nJwtAsync } from "@/lib/jwt"
 
-async function fetchWithTimeout(url: string, options: RequestInit, timeout = 30000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit, timeout = 20000): Promise<Response> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 
@@ -16,18 +16,28 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout = 300
   }
 }
 
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
   let lastError: Error | null = null
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetchWithTimeout(url, options, 30000)
+      const response = await fetchWithTimeout(url, options, 20000)
+
+      // Only retry on transient upstream errors (502/503/504). Any other
+      // response (including a slow 200) is returned immediately so we never
+      // multiply the wait time by retrying a request that already succeeded.
+      if (attempt < maxRetries && [502, 503, 504].includes(response.status)) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 500))
+        continue
+      }
+
       return response
     } catch (error) {
+      // Network failure or timeout (AbortError) — retry.
       lastError = error instanceof Error ? error : new Error("Unknown error")
 
       if (attempt < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 1000))
+        await new Promise((resolve) => setTimeout(resolve, attempt * 500))
       }
     }
   }

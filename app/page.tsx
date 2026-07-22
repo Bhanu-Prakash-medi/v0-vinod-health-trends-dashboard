@@ -363,10 +363,18 @@ export default function HealthDashboard() {
     sendHotjarEvent(HOTJAR_EVENTS_NAME.HEALTH_TRENDS_HOTJAR, {})
   }, [])
 
+  const hasLoadedRef = useRef(false)
+
   useEffect(() => {
     let isMounted = true
 
     async function loadBeneficiariesData() {
+      // Guard against duplicate/concurrent initial loads (e.g. Strict Mode
+      // double-invoke or effect re-runs), which would otherwise fire multiple
+      // simultaneous beneficiaries requests and overwhelm the backend.
+      if (hasLoadedRef.current) return
+      hasLoadedRef.current = true
+
       try {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
@@ -444,6 +452,8 @@ export default function HealthDashboard() {
         })
       } catch (err) {
         trackHealthTrendsEvent("Failed to Login")
+        // Allow a subsequent retry to re-run the initial load.
+        hasLoadedRef.current = false
         if (isMounted) {
           if (err instanceof Error && err.message === "UNAUTHORIZED") {
             setGlobalError({ type: "UNAUTHORIZED", message: "Please login to access the health trends" })
