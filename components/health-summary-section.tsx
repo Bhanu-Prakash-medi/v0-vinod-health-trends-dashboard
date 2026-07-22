@@ -144,36 +144,39 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
     return null
   }
 
+  // Build a precise comparison key: normalize the clinical name, then strip
+  // everything except alphanumerics so spacing/punctuation differences
+  // ("Non-HDL" vs "Non HDL") match, while distinct tests ("Hb" vs "HbA1c")
+  // never collide.
+  const comparisonKey = (name: string): string => normalizeParamName(name).replace(/[^a-z0-9]/g, "")
+
   // Build the canonical, deduplicated parameter list for a category.
   // This SAME list is used both for the out-of-range count on the card and
   // for the detail dialog, so the numbers always match.
   const getDisplayParams = (categoryName: string, params: any[]): any[] => {
     const categoryKey = getCategoryKey(categoryName)
-    const seenNames = new Set<string>()
+    const seenKeys = new Set<string>()
     const result: any[] = []
 
-    // For overlapping categories, restrict to Digital Twin's allowed list.
-    const allowedParams =
-      categoryKey && digitalTwinParamLists[categoryKey] ? digitalTwinParamLists[categoryKey] : null
+    // For overlapping categories, restrict to Digital Twin's allowed list
+    // using exact normalized-key matching (no loose substring matching).
+    const allowedKeys =
+      categoryKey && digitalTwinParamLists[categoryKey]
+        ? new Set(digitalTwinParamLists[categoryKey].map((a) => comparisonKey(a)))
+        : null
 
     for (const param of params) {
       const paramName = param.name || param.metric_name || ""
       if (!paramName) continue
 
-      if (allowedParams) {
-        const isAllowed = allowedParams.some(
-          (allowed) =>
-            allowed.toLowerCase() === paramName.toLowerCase() ||
-            paramName.toLowerCase().includes(allowed.toLowerCase()) ||
-            allowed.toLowerCase().includes(paramName.toLowerCase()),
-        )
-        if (!isAllowed) continue
-      }
+      const key = comparisonKey(paramName)
+      if (!key) continue
 
-      // Deduplicate using normalized names (same as Digital Twin)
-      const normalizedName = normalizeParamName(paramName)
-      if (seenNames.has(normalizedName)) continue
-      seenNames.add(normalizedName)
+      if (allowedKeys && !allowedKeys.has(key)) continue
+
+      // Deduplicate identical tests
+      if (seenKeys.has(key)) continue
+      seenKeys.add(key)
 
       result.push(param)
     }
