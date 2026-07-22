@@ -1,6 +1,6 @@
 "use client"
 
-import { Folder, Star, FileText, X, Clock } from "lucide-react"
+import { Folder, Star, FileText, X, Clock, ChevronDown } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 
@@ -32,6 +32,7 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
   const [showPdfViewer, setShowPdfViewer] = useState(false)
   const [selectedReportIndex, setSelectedReportIndex] = useState(0)
   const [highlightLatest, setHighlightLatest] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   useEffect(() => {
     const handleScrollToLatest = () => {
@@ -164,9 +165,9 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
         </div>
       </div>
 
-      {/* Report Cards - Show all reports */}
+      {/* Report Cards - Show 3 by default, expand to show all */}
       <div className="flex flex-col gap-4">
-        {reports.map((report: any, index: number) => (
+        {(isExpanded ? reports : reports.slice(0, 3)).map((report: any, index: number) => (
           <Card
             key={index}
             id={isLatestReport(report.tag) ? "latest-report-card" : undefined}
@@ -227,6 +228,23 @@ export default function TestReportsSection({ patientData }: TestReportsSectionPr
           </Card>
         ))}
       </div>
+
+      {/* View More / View Less toggle */}
+      {reports.length > 3 && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            className="flex items-center gap-1 text-sm font-medium text-[#156ddc] transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc] rounded"
+            aria-expanded={isExpanded}
+          >
+            {isExpanded ? "View less" : `View more (${reports.length - 3})`}
+            <ChevronDown
+              className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+      )}
 
       {/* PDF Viewer Modal */}
       {showPdfViewer && reports[selectedReportIndex] && (
