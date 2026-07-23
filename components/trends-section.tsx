@@ -61,10 +61,7 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
     displayedTrends = sortedTrends.slice(0, 3).map((item: any) => {
       const dataPoints = item.data_points || []
 
-      const unit = dataPoints.length > 0 ? dataPoints[0].unit || "" : ""
-      const currentValue = dataPoints.length > 0 ? dataPoints[0].value : 0
-      const previousValue = dataPoints.length > 1 ? dataPoints[1].value : currentValue
-
+      // Sort data chronologically first to find the latest and previous values
       const sortedData = [...dataPoints]
         .map((dp: any) => ({
           timestamp: parseDate(dp.date).getTime(),
@@ -72,6 +69,12 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
           value: dp.value,
         }))
         .sort((a, b) => a.timestamp - b.timestamp)
+
+      // Latest value is the last item after sorting chronologically
+      const currentValue = sortedData.length > 0 ? sortedData[sortedData.length - 1].value : 0
+      const previousValue = sortedData.length > 1 ? sortedData[sortedData.length - 2].value : currentValue
+
+      const unit = dataPoints.length > 0 ? dataPoints[0].unit || "" : ""
 
       return {
         name: item.metric_name,
