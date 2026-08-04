@@ -95,7 +95,7 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
                 How likely are you to recommend Health Trends to a friend or colleague?
               </p>
               <div
-                className="flex flex-wrap items-center gap-1.5 sm:gap-2"
+                className="flex items-center gap-1"
                 role="radiogroup"
                 aria-label="Rate Health Trends from 0 to 10"
               >
@@ -121,7 +121,7 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
                       key={score}
                       type="button"
                       onClick={() => setRating(score)}
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#156ddc] sm:h-9 sm:w-9 ${base} ${
+                      className={`flex aspect-square min-w-0 flex-1 items-center justify-center rounded-full text-xs font-bold transition-all hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#156ddc] ${base} ${
                         isSelected ? `ring-2 ring-offset-1 ${selectedRing}` : "opacity-90 hover:opacity-100"
                       }`}
                       aria-label={`${score} out of 10`}
