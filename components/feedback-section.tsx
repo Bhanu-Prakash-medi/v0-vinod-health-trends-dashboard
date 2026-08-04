@@ -45,7 +45,7 @@ export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSection
     trackHealthTrendsEvent(`feedback_submitted | rating:${rating} | message:${message.trim()}`, vasbenefId)
 
     try {
-      await fetch("/api/health/feedback", {
+      await fetch("https://n8n-swift.medibuddy.in/webhook/health-trends-feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
