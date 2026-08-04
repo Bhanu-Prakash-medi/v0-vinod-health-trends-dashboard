@@ -11,13 +11,15 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 
 interface FeedbackSectionProps {
   vasbenefId?: string | number
+  emailId?: string
 }
 
-export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
+export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSectionProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [rating, setRating] = useState(-1)
   const [message, setMessage] = useState("")
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -33,12 +35,32 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
     return () => window.removeEventListener("open-feedback-form", handleOpenFeedback)
   }, [])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (rating < 0 && message.trim() === "") return
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
 
     trackHealthTrendsEvent(`feedback_submitted | rating:${rating} | message:${message.trim()}`, vasbenefId)
-    setSubmitted(true)
+
+    try {
+      await fetch("/api/health/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: rating >= 0 ? rating : null,
+          feedbackMessage: message.trim(),
+          emailId: emailId || "",
+        }),
+      })
+    } catch (err) {
+      console.log("[v0] Feedback submit failed:", err instanceof Error ? err.message : err)
+    } finally {
+      // Always show the thank-you state so the user experience is not blocked
+      setIsSubmitting(false)
+      setSubmitted(true)
+    }
   }
 
   return (
@@ -155,10 +177,10 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
 
             <Button
               type="submit"
-              disabled={rating < 0 && message.trim() === ""}
+              disabled={(rating < 0 && message.trim() === "") || isSubmitting}
               className="w-full bg-[#156ddc] text-white hover:bg-[#1160c4] disabled:opacity-50 sm:w-auto sm:self-end"
             >
-              Submit Feedback
+              {isSubmitting ? "Submitting..." : "Submit Feedback"}
             </Button>
           </form>
         )}

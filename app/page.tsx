@@ -48,6 +48,7 @@ export default function HealthDashboard() {
   const [isBeneficiariesLoading, setIsBeneficiariesLoading] = useState(true)
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string>("")
   const hasHealthSummaryEventFiredRef = useRef(false)
   const hasTrendsEventFiredRef = useRef(false)
 
@@ -405,6 +406,7 @@ export default function HealthDashboard() {
         }
 
         setBeneficiaries(data.beneficiaries)
+        setUserEmail(data.employee_email || "")
         setSnowplowUserContext(data.mbuserid || null, data.employee_email || null)
 
         // Set self user's vasbenefId for self-only events
@@ -632,7 +634,7 @@ export default function HealthDashboard() {
                 scrollToDate={pendingReportDate}
                 onScrollHandled={() => setPendingReportDate(null)}
               />
-              <FeedbackSection vasbenefId={activeBeneficiary?.rVasBenefId} />
+                <FeedbackSection vasbenefId={activeBeneficiary?.rVasBenefId} emailId={userEmail} />
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
               </div>
