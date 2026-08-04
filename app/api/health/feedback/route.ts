@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const FEEDBACK_WEBHOOK_URL = "https://n8n-swift.medibuddy.in/webhook/health-trends-feedback"
+const FEEDBACK_WEBHOOK_URL = "https://n8n-swift.medibuddy.in/webhook-test/health-trends-feedback"
 
 export async function POST(request: NextRequest) {
   const controller = new AbortController()
