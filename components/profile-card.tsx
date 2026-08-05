@@ -60,7 +60,8 @@ export default function ProfileCard({
   const hasBloodGroup = Boolean(bloodGroup && bloodGroup.trim() && bloodGroup.trim() !== "-")
   const hasHeight = validatedHeight !== "-"
   const hasWeight = validatedWeight !== "-"
-  const hasAbhaId = Boolean(abhaId && abhaId.trim() && abhaId.trim() !== "-")
+  // ABHA ID is intentionally hidden in the profile section even when available.
+  const hasAbhaId = false
   const hasAnyInfo = hasBloodGroup || hasHeight || hasWeight || hasAbhaId
 
   return (
