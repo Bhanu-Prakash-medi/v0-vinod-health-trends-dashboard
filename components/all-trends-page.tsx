@@ -161,11 +161,23 @@ export default function AllTrendsPage({
     return null
   }
 
-  // Case-insensitive substring match: any biomarker whose name contains the
-  // typed text (in whole or in part) is shown.
+  // Fuzzy, case-insensitive matching. A biomarker matches when the typed text
+  // is either a direct substring OR an ordered subsequence of its name, so
+  // partial/skipped letters still work (e.g. "thrxin" -> "Thyroxine").
+  const isSubsequence = (query: string, target: string) => {
+    let qi = 0
+    for (let ti = 0; ti < target.length && qi < query.length; ti++) {
+      if (target[ti] === query[qi]) qi++
+    }
+    return qi === query.length
+  }
+
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredTrends = normalizedQuery
-    ? allTrends.filter((trend) => (trend.name || "").toLowerCase().includes(normalizedQuery))
+    ? allTrends.filter((trend) => {
+        const name = (trend.name || "").toLowerCase()
+        return name.includes(normalizedQuery) || isSubsequence(normalizedQuery, name)
+      })
     : allTrends
 
   return (
