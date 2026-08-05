@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Calendar, FileText, ChevronRight } from "lucide-react"
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Calendar, FileText, ChevronRight, Search, X, SearchX } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -78,6 +78,8 @@ export default function AllTrendsPage({
     reportName: string | null
     reportDate: string | null
   } | null>(null)
+
+  const [searchQuery, setSearchQuery] = useState("")
 
   const labReports = (patientData as any)?.lab_reports || []
 
@@ -159,6 +161,13 @@ export default function AllTrendsPage({
     return null
   }
 
+  // Case-insensitive substring match: any biomarker whose name contains the
+  // typed text (in whole or in part) is shown.
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  const filteredTrends = normalizedQuery
+    ? allTrends.filter((trend) => (trend.name || "").toLowerCase().includes(normalizedQuery))
+    : allTrends
+
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
@@ -171,10 +180,34 @@ export default function AllTrendsPage({
               All Health Trends <span className="text-[#9dabbd]">({allTrends.length})</span>
             </h1>
           </div>
+
+          {/* Biomarker search */}
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9dabbd]" />
+            <input
+              type="text"
+              inputMode="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search biomarkers (e.g. cholesterol, HbA1c)"
+              aria-label="Search biomarkers"
+              className="w-full rounded-xl border border-[#e5e7eb] bg-[#f7f9fa] py-2.5 pl-9 pr-9 text-sm text-[#2e3742] placeholder:text-[#9dabbd] focus:border-[#156ddc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#156ddc]/20"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#eef1f4] hover:text-[#2e3742]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3 p-4">
-        {allTrends.map((trend) => {
+        {filteredTrends.map((trend) => {
           const isImproving = trend.change < 0 && trend.status === "abnormal"
           const isWorsening = trend.change > 0 && trend.status === "abnormal"
           const isStable = Math.abs(trend.changePercent) < 5
@@ -354,6 +387,28 @@ export default function AllTrendsPage({
             </Card>
           )
         })}
+
+        {filteredTrends.length === 0 && (
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#eaf2fe] to-[#e6f7ee]">
+              <SearchX className="h-9 w-9 text-[#156ddc]" />
+            </div>
+            <h3 className="text-base font-semibold text-[#2e3742]">No biomarkers found</h3>
+            <p className="mt-1.5 max-w-[260px] text-pretty text-sm leading-relaxed text-[#9dabbd]">
+              We couldn&apos;t find any trends matching{" "}
+              <span className="font-medium text-[#4d5c6f]">&ldquo;{searchQuery.trim()}&rdquo;</span>. Try a different
+              name like cholesterol, glucose, or vitamin.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchQuery("")}
+              className="mt-5 rounded-full border-[#156ddc] text-[#156ddc] hover:bg-[#eaf2fe] hover:text-[#156ddc]"
+            >
+              Clear search
+            </Button>
+          </div>
+        )}
         </div>
       </div>
 
