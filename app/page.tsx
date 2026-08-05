@@ -15,7 +15,12 @@ import HealthRecommendationsSection from "@/components/health-recommendations-se
 import FeedbackSection from "@/components/feedback-section"
 import AllTrendsPage from "@/components/all-trends-page"
 import EmptyState from "@/components/empty-state"
-import { TopNavigationSkeleton, ProfileCardSkeleton, HealthSummarySkeleton } from "@/components/skeletons"
+import {
+  TopNavigationSkeleton,
+  ProfileCardSkeleton,
+  HealthSummarySkeleton,
+  HealthSummaryCardsSkeleton,
+} from "@/components/skeletons"
 import { initSnowplow, trackHealthTrendsEvent, setSnowplowUserContext, setSelfVasBenefId } from "@/lib/snowplow"
 import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
@@ -515,7 +520,8 @@ export default function HealthDashboard() {
           <TopNavigationSkeleton />
           <div className="space-y-6 px-4 py-6">
             <ProfileCardSkeleton />
-            {/* Don't show HealthSummarySkeleton here - wait for beneficiaries API to confirm dmS_Doc_ID */}
+            {/* Card grid shimmer fills the remaining height while beneficiaries load */}
+            <HealthSummaryCardsSkeleton />
           </div>
           <Footer />
         </div>
