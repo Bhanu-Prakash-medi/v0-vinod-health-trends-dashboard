@@ -1,6 +1,7 @@
 "use client"
 
-import { ArrowLeft } from "lucide-react"
+import { useState } from "react"
+import { ArrowLeft, Search, X, SearchX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
@@ -11,6 +12,8 @@ export default function AllParametersPage({
   patientData,
   onBack,
 }: { patientData: ApiHealthReport; onBack: () => void }) {
+  const [searchQuery, setSearchQuery] = useState("")
+
   const latestLabReport = patientData.lab_reports?.find((report) => report.tag?.toLowerCase().includes("latest"))
   const healthSummaryFromApi = patientData?.health_summary || []
 
@@ -94,6 +97,25 @@ export default function AllParametersPage({
   // Order commonly known parameters first for non-medical users
   const sortedParameters = sortByCommonKnowledge(allParameters)
 
+  // Fuzzy, case-insensitive matching. A parameter matches when the typed text
+  // is either a direct substring OR an ordered subsequence of its name, so
+  // partial/skipped letters still work (e.g. "thrxin" -> "Thyroxine").
+  const isSubsequence = (query: string, target: string) => {
+    let qi = 0
+    for (let ti = 0; ti < target.length && qi < query.length; ti++) {
+      if (target[ti] === query[qi]) qi++
+    }
+    return qi === query.length
+  }
+
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  const filteredParameters = normalizedQuery
+    ? sortedParameters.filter((param) => {
+        const name = (param.name || "").toLowerCase()
+        return name.includes(normalizedQuery) || isSubsequence(normalizedQuery, name)
+      })
+    : sortedParameters
+
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
@@ -106,10 +128,34 @@ export default function AllParametersPage({
               All Parameters <span className="text-[#9dabbd]">({allParameters.length})</span>
             </h1>
           </div>
+
+          {/* Parameter search */}
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9dabbd]" />
+            <input
+              type="text"
+              inputMode="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search parameters (e.g. cholesterol, HbA1c)"
+              aria-label="Search parameters"
+              className="w-full rounded-xl border border-[#e5e7eb] bg-[#f7f9fa] py-2.5 pl-9 pr-9 text-sm text-[#2e3742] placeholder:text-[#9dabbd] focus:border-[#156ddc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#156ddc]/20"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#eef1f4] hover:text-[#2e3742]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3 p-4">
-        {sortedParameters.map((param, index) => (
+        {filteredParameters.map((param, index) => (
           <Card key={index} className="overflow-hidden border border-[#f0f3f5] py-0">
             <div className="p-4 pb-3">
               <div className="flex items-start justify-between">
@@ -165,6 +211,28 @@ export default function AllParametersPage({
             </div>
           </Card>
         ))}
+
+        {filteredParameters.length === 0 && (
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#eaf2fe] to-[#e6f7ee]">
+              <SearchX className="h-9 w-9 text-[#156ddc]" />
+            </div>
+            <h3 className="text-base font-semibold text-[#2e3742]">No parameters found</h3>
+            <p className="mt-1.5 max-w-[260px] text-pretty text-sm leading-relaxed text-[#9dabbd]">
+              We couldn&apos;t find any parameters matching{" "}
+              <span className="font-medium text-[#4d5c6f]">&ldquo;{searchQuery.trim()}&rdquo;</span>. Try a different
+              name like cholesterol, glucose, or vitamin.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchQuery("")}
+              className="mt-5 rounded-full border-[#156ddc] text-[#156ddc] hover:bg-[#eaf2fe] hover:text-[#156ddc]"
+            >
+              Clear search
+            </Button>
+          </div>
+        )}
         </div>
       </div>
     </div>
