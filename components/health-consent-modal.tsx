@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +18,29 @@ interface HealthConsentModalProps {
 
 export default function HealthConsentModal({ open, onAgree }: HealthConsentModalProps) {
   const [isConfirmed, setIsConfirmed] = useState(false)
+  const [hasReachedEnd, setHasReachedEnd] = useState(false)
   const checkboxId = useId()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const updateScrollState = () => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    const reachedEnd = container.scrollTop + container.clientHeight >= container.scrollHeight - 8
+    setHasReachedEnd(reachedEnd)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    setIsConfirmed(false)
+    setHasReachedEnd(false)
+    const frame = requestAnimationFrame(updateScrollState)
+    return () => cancelAnimationFrame(frame)
+  }, [open])
+
+  const handleCheckboxChange = (checked: boolean | 'indeterminate') => {
+    if (!hasReachedEnd) return
+    setIsConfirmed(checked === true)
+  }
 
   return (
     <Dialog open={open}>
@@ -36,7 +58,7 @@ export default function HealthConsentModal({ open, onAgree }: HealthConsentModal
             </DialogDescription>
           </DialogHeader>
 
-          <div className="overflow-y-auto px-6 py-5 font-body text-sm leading-relaxed text-foreground">
+          <div ref={scrollContainerRef} onScroll={updateScrollState} className="min-h-0 flex-1 overflow-y-auto px-6 py-5 font-body text-sm leading-relaxed text-foreground">
             <section aria-labelledby="health-disclaimer-heading" className="space-y-3">
               <h2 id="health-disclaimer-heading" className="font-display text-base font-semibold text-foreground">Disclaimer</h2>
               <p>
@@ -59,18 +81,31 @@ export default function HealthConsentModal({ open, onAgree }: HealthConsentModal
               </ul>
             </section>
 
-            <div className="mt-6 rounded-md border border-border bg-muted p-4">
+          </div>
+
+          <div className="shrink-0 border-t border-border bg-background px-6 py-4">
+            <div className="rounded-md border border-border bg-muted p-4">
               <div className="flex items-start gap-3">
-                <Checkbox id={checkboxId} checked={isConfirmed} onCheckedChange={(checked) => setIsConfirmed(checked === true)} aria-describedby={`${checkboxId}-label`} />
-                <label id={`${checkboxId}-label`} htmlFor={checkboxId} className="cursor-pointer text-sm leading-relaxed text-foreground">
+                <Checkbox
+                  id={checkboxId}
+                  checked={isConfirmed}
+                  disabled={!hasReachedEnd}
+                  onCheckedChange={handleCheckboxChange}
+                  aria-describedby={`${checkboxId}-label`}
+                />
+                <label
+                  id={`${checkboxId}-label`}
+                  htmlFor={checkboxId}
+                  className={hasReachedEnd ? 'cursor-pointer text-sm leading-relaxed text-foreground' : 'cursor-not-allowed text-sm leading-relaxed text-muted-foreground'}
+                >
                   I confirm that I have the necessary consent to upload and manage my own and my family members&apos; health reports.
                 </label>
               </div>
+              {!hasReachedEnd && <p className="mt-2 pl-7 text-xs text-muted-foreground">Scroll to the end to enable confirmation.</p>}
             </div>
-          </div>
-
-          <div className="flex justify-end border-t border-border px-6 py-4">
-            <Button type="button" size="lg" disabled={!isConfirmed} onClick={onAgree}>Agree and continue</Button>
+            <div className="mt-4 flex justify-end">
+              <Button type="button" size="lg" disabled={!isConfirmed} onClick={onAgree}>Agree and continue</Button>
+            </div>
           </div>
         </div>
       </DialogContent>
