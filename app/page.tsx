@@ -102,12 +102,17 @@ export default function HealthDashboard() {
         try {
           const reportDocIds = await fetchBeneficiaryReportDocIds(token, beneficiary.rVasBenefId)
           if (reportDocIds.length > 0) {
-            beneficiary = { ...beneficiary, dmS_Doc_ID: reportDocIds }
-            // Reflect the real report count in the beneficiary tab list and
-            // downstream consumers (trends, report count badge).
+            // Keep the displayed total at least as large as the profile count so
+            // the badge never shrinks; the profile count is shown immediately.
+            const accurateCount = Math.max(beneficiary.reportCount || 0, reportDocIds.length)
+            beneficiary = { ...beneficiary, dmS_Doc_ID: reportDocIds, reportCount: accurateCount }
+            // Reflect the real report doc IDs in the beneficiary list and
+            // downstream consumers (trends, analysis pipeline).
             setBeneficiaries((prev) =>
               prev.map((b) =>
-                b.rVasBenefId === beneficiary.rVasBenefId ? { ...b, dmS_Doc_ID: reportDocIds } : b,
+                b.rVasBenefId === beneficiary.rVasBenefId
+                  ? { ...b, dmS_Doc_ID: reportDocIds, reportCount: accurateCount }
+                  : b,
               ),
             )
           }
@@ -583,10 +588,11 @@ export default function HealthDashboard() {
   const currentProfileData = activeBeneficiary ? beneficiaryReports.get(activeBeneficiary.patientName) : null
   const isReportLoading = currentProfileData?.isLoading ?? true
   const currentBeneficiaryError = activeBeneficiary ? beneficiaryErrors.get(activeBeneficiary.patientName) : undefined
-  const hasRecordsToLoad = (activeBeneficiary?.dmS_Doc_ID?.length || 0) > 0
-  const isHealthSummaryLoading = activeBeneficiary
-    ? (healthSummaryLoading.get(activeBeneficiary.patientName) ?? false)
-    : false
+  // A beneficiary "has records" if the profile reported lab report URLs
+  // (reportCount) OR we already resolved doc IDs. Driven by the profile count so
+  // the loading skeleton shows immediately instead of flashing an empty state.
+  const hasRecordsToLoad =
+    ((activeBeneficiary?.reportCount ?? activeBeneficiary?.dmS_Doc_ID?.length) || 0) > 0
 
   const familyMembers = beneficiaries.map((b) => {
     const report = beneficiaryReports.get(b.patientName)
@@ -635,7 +641,7 @@ export default function HealthDashboard() {
             age={activeBeneficiary?.age || 0}
             gender={activeBeneficiary?.gender || "Unknown"}
             initial={activeMember?.initial || "U"}
-            reportCount={activeBeneficiary?.dmS_Doc_ID?.length || 0}
+            reportCount={activeBeneficiary?.reportCount ?? activeBeneficiary?.dmS_Doc_ID?.length ?? 0}
             profileImage={currentProfileData?.patient_info?.profileImage || "/images/profile-male.svg"}
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
@@ -644,8 +650,11 @@ export default function HealthDashboard() {
             relation={currentProfileData?.patient_info?.relation}
           />
 
-          {hasRecordsToLoad && isHealthSummaryLoading && <HealthSummarySkeleton />}
+          {/* Records exist but reports/summary not yet loaded — show skeleton
+              immediately (no "no records" flash) until data or an error arrives. */}
+          {hasRecordsToLoad && !hasReports && !currentBeneficiaryError && <HealthSummarySkeleton />}
 
+          {/* Genuinely no records for this beneficiary. */}
           {!hasRecordsToLoad && currentBeneficiaryError && (
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
               <div className="mb-3 text-4xl">📋</div>
@@ -654,7 +663,8 @@ export default function HealthDashboard() {
             </div>
           )}
 
-          {hasRecordsToLoad && !isHealthSummaryLoading && currentBeneficiaryError && (
+          {/* Records exist but loading failed — offer a retry. */}
+          {hasRecordsToLoad && !hasReports && currentBeneficiaryError && currentBeneficiaryError.type !== "NO_REPORTS" && (
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
               <div className="mb-3 text-4xl">{currentBeneficiaryError.type === "TIMEOUT" ? "⏱️" : "⚠️"}</div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -670,9 +680,10 @@ export default function HealthDashboard() {
             </div>
           )}
 
-          {!isHealthSummaryLoading && !currentBeneficiaryError && !hasReports && <EmptyState />}
+          {/* Confirmed empty (no records and no records to load). */}
+          {!hasRecordsToLoad && !currentBeneficiaryError && <EmptyState />}
 
-          {!isHealthSummaryLoading && !currentBeneficiaryError && hasReports && currentProfileData && (
+          {!currentBeneficiaryError && hasReports && currentProfileData && (
             <>
               <HealthSummarySection patientData={currentProfileData} />
               <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />

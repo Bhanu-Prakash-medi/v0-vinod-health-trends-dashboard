@@ -8,6 +8,12 @@ export interface Beneficiary {
   rVasBenefId?: string | number
   age?: number
   gender?: string
+  /**
+   * Total number of lab-report records for this beneficiary, taken from the
+   * profile API's `requestIds` (lab report URLs). Shown immediately in the
+   * profile section without waiting for the reports/analysis pipeline.
+   */
+  reportCount?: number
 }
 
 export interface BeneficiariesResponse {
@@ -213,6 +219,8 @@ export async function fetchBeneficiaries(accessToken: string, _pmEntityId = "0")
           getValueCaseInsensitive(b, "rVasBenefId"),
         age: Number.parseInt(String(getValueCaseInsensitive(b, "age") ?? "0"), 10),
         gender: getValueCaseInsensitive(b, "gender") || "Unknown",
+        // Total health records come from the profile's lab report URLs.
+        reportCount: Array.isArray(requestIds) ? requestIds.length : docIds.length,
       }
     }),
     mbuserid,
