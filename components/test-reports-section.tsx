@@ -3,6 +3,7 @@
 import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
+import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 interface TestReportsSectionProps {
   patientData: any
@@ -427,7 +428,12 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                                   const isAbnormal = (param.status || "").toLowerCase() !== "normal"
                                   return (
                                     <tr key={idx} className={`border-b ${isAbnormal ? "bg-[#feeceb]" : ""}`}>
-                                      <td className="p-2 text-xs">{param.metric_name || param.name || ""}</td>
+                                      <td className="p-2 text-xs">
+                                        <span className="inline-flex items-center gap-1">
+                                          {param.metric_name || param.name || ""}
+                                          <BiomarkerInfoButton name={param.metric_name || param.name} />
+                                        </span>
+                                      </td>
                                       <td
                                         className={`text-center p-2 text-xs font-semibold ${isAbnormal ? "text-red-600" : ""}`}
                                       >
@@ -445,7 +451,12 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                                     const isAbnormal = (paramData.status || "").toLowerCase() !== "normal"
                                     return (
                                       <tr key={paramName} className={`border-b ${isAbnormal ? "bg-[#feeceb]" : ""}`}>
-                                        <td className="p-2 text-xs">{paramName}</td>
+                                        <td className="p-2 text-xs">
+                                          <span className="inline-flex items-center gap-1">
+                                            {paramName}
+                                            <BiomarkerInfoButton name={paramName} />
+                                          </span>
+                                        </td>
                                         <td
                                           className={`text-center p-2 text-xs font-semibold ${isAbnormal ? "text-red-600" : ""}`}
                                         >

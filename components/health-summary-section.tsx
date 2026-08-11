@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
+import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 function handleViewLatestReport() {
   window.dispatchEvent(new CustomEvent("scroll-to-latest-report"))
@@ -299,7 +300,10 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
                         className="flex items-center justify-between gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="break-words text-sm font-medium text-[#2e3742]">{param.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="break-words text-sm font-medium text-[#2e3742]">{param.name}</p>
+                            <BiomarkerInfoButton name={param.name} />
+                          </div>
                           {paramRange && (
                             <p className="mt-0.5 break-words text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>
                           )}
