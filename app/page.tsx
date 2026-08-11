@@ -14,6 +14,7 @@ import TestReportsSection from "@/components/test-reports-section"
 import HealthRecommendationsSection from "@/components/health-recommendations-section"
 import FeedbackSection from "@/components/feedback-section"
 import AllTrendsPage from "@/components/all-trends-page"
+import HealthConsentModal from "@/components/health-consent-modal"
 import EmptyState from "@/components/empty-state"
 import {
   TopNavigationSkeleton,
@@ -55,6 +56,7 @@ export default function HealthDashboard() {
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>("")
+  const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState(false)
   const hasHealthSummaryEventFiredRef = useRef(false)
   const hasTrendsEventFiredRef = useRef(false)
 
@@ -552,9 +554,18 @@ export default function HealthDashboard() {
     }
   }
 
+  const consentModal = (
+    <HealthConsentModal
+      open={!hasAcceptedHealthConsent}
+      onAgree={() => setHasAcceptedHealthConsent(true)}
+    />
+  )
+
   if (isBeneficiariesLoading) {
     return (
-      <div className="min-h-screen bg-[#f7f9fa]">
+      <>
+        {consentModal}
+        <div className="min-h-screen bg-[#f7f9fa]">
         <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
           <TopNavigationSkeleton />
           <div className="space-y-6 px-4 py-6">
@@ -565,6 +576,7 @@ export default function HealthDashboard() {
           <Footer />
         </div>
       </div>
+      </>
     )
   }
 
@@ -573,7 +585,9 @@ export default function HealthDashboard() {
     const isTimeout = globalError.type === "TIMEOUT"
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f9fa] p-4">
+      <>
+        {consentModal}
+        <div className="flex min-h-screen items-center justify-center bg-[#f7f9fa] p-4">
         <div className="max-w-md text-center">
           <div className="mb-4 text-6xl">{isUnauthorized ? "🔒" : isTimeout ? "⏱️" : "⚠️"}</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -588,6 +602,7 @@ export default function HealthDashboard() {
           </button>
         </div>
       </div>
+      </>
     )
   }
 
@@ -635,7 +650,9 @@ export default function HealthDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fa]">
+    <>
+      {consentModal}
+      <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
         <TopNavigation
           familyMembers={familyMembers}
@@ -712,6 +729,7 @@ export default function HealthDashboard() {
         </div>
         <Footer />
       </div>
-    </div>
+      </div>
+    </>
   )
 }
