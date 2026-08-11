@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { MessageSquarePlus, Star, CheckCircle2, X } from "lucide-react"
+import { MessageSquarePlus, CheckCircle2, X } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,14 +11,15 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 
 interface FeedbackSectionProps {
   vasbenefId?: string | number
+  emailId?: string
 }
 
-export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
+export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSectionProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [rating, setRating] = useState(0)
-  const [hoverRating, setHoverRating] = useState(0)
+  const [rating, setRating] = useState(-1)
   const [message, setMessage] = useState("")
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -34,12 +35,32 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
     return () => window.removeEventListener("open-feedback-form", handleOpenFeedback)
   }, [])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (rating === 0 && message.trim() === "") return
+    if (rating < 0 && message.trim() === "") return
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
 
     trackHealthTrendsEvent(`feedback_submitted | rating:${rating} | message:${message.trim()}`, vasbenefId)
-    setSubmitted(true)
+
+    try {
+      await fetch(" https://n8n-swift.medibuddy.in/webhook/health-trends-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: rating >= 0 ? rating : null,
+          feedbackMessage: message.trim(),
+          emailId: emailId || "",
+        }),
+      })
+    } catch (err) {
+      console.log("[v0] Feedback submit failed:", err instanceof Error ? err.message : err)
+    } finally {
+      // Always show the thank-you state so the user experience is not blocked
+      setIsSubmitting(false)
+      setSubmitted(true)
+    }
   }
 
   return (
@@ -71,8 +92,7 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
               type="button"
               onClick={() => {
                 setIsFormOpen(false)
-                setRating(0)
-                setHoverRating(0)
+                setRating(-1)
                 setMessage("")
               }}
               className="flex h-7 w-7 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
@@ -91,31 +111,53 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* Star rating */}
+            {/* 0-10 rating scale */}
             <div>
-              <p className="mb-2 text-xs font-medium text-[#2e3742]">How would you rate this feature?</p>
-              <div className="flex items-center gap-1" role="radiogroup" aria-label="Rate this feature">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    className="rounded p-0.5 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
-                    aria-label={`${star} star${star > 1 ? "s" : ""}`}
-                    aria-checked={rating === star}
-                    role="radio"
-                  >
-                    <Star
-                      className={`h-6 w-6 transition-colors ${
-                        star <= (hoverRating || rating)
-                          ? "fill-[#f5a623] text-[#f5a623]"
-                          : "fill-transparent text-[#c9d2dc]"
+              <p className="mb-2 text-xs font-medium text-[#2e3742]">
+                How likely are you to recommend Health Trends to a friend or colleague?
+              </p>
+              <div
+                className="flex items-center gap-1"
+                role="radiogroup"
+                aria-label="Rate Health Trends from 0 to 10"
+              >
+                {Array.from({ length: 11 }, (_, score) => {
+                  // NPS color groups: 0-6 detractors, 7-8 passives, 9-10 promoters
+                  const group = score <= 6 ? "detractor" : score <= 8 ? "passive" : "promoter"
+                  const base =
+                    group === "detractor"
+                      ? "bg-[#f3c9c9] text-[#de3d31]"
+                      : group === "passive"
+                        ? "bg-[#ece6b3] text-[#c07f1a]"
+                        : "bg-[#d9f0c0] text-[#459f49]"
+                  const selectedRing =
+                    group === "detractor"
+                      ? "ring-[#de3d31]"
+                      : group === "passive"
+                        ? "ring-[#c07f1a]"
+                        : "ring-[#459f49]"
+                  const isSelected = rating === score
+
+                  return (
+                    <button
+                      key={score}
+                      type="button"
+                      onClick={() => setRating(score)}
+                      className={`flex aspect-square min-w-0 flex-1 items-center justify-center rounded-full text-xs font-bold transition-all hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#156ddc] ${base} ${
+                        isSelected ? `ring-2 ring-offset-1 ${selectedRing}` : "opacity-90 hover:opacity-100"
                       }`}
-                    />
-                  </button>
-                ))}
+                      aria-label={`${score} out of 10`}
+                      aria-checked={isSelected}
+                      role="radio"
+                    >
+                      {score}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="mt-1.5 flex justify-between text-[10px] text-[#9dabbd]">
+                <span>Not likely</span>
+                <span>Very likely</span>
               </div>
             </div>
 
@@ -135,10 +177,10 @@ export default function FeedbackSection({ vasbenefId }: FeedbackSectionProps) {
 
             <Button
               type="submit"
-              disabled={rating === 0 && message.trim() === ""}
+              disabled={(rating < 0 && message.trim() === "") || isSubmitting}
               className="w-full bg-[#156ddc] text-white hover:bg-[#1160c4] disabled:opacity-50 sm:w-auto sm:self-end"
             >
-              Submit Feedback
+              {isSubmitting ? "Submitting..." : "Submit Feedback"}
             </Button>
           </form>
         )}

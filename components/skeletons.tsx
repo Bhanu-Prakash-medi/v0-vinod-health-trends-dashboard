@@ -64,6 +64,38 @@ export function ProfileCardSkeleton() {
   )
 }
 
+export function HealthSummaryCardsSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {/* Section header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded bg-gray-200" />
+          <div>
+            <div className="mb-2 h-5 w-36 rounded bg-gray-200" />
+            <div className="h-3 w-28 rounded bg-gray-200" />
+          </div>
+        </div>
+        <div className="h-4 w-24 rounded bg-gray-200" />
+      </div>
+
+      {/* Category cards grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
+            <div className="mb-4 h-10 w-10 rounded-xl bg-gray-200" />
+            <div className="mb-3 h-4 w-20 rounded bg-gray-200" />
+            <div className="flex items-center gap-1.5">
+              <div className="h-4 w-4 rounded-full bg-gray-200" />
+              <div className="h-3 w-16 rounded bg-gray-200" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function HealthSummarySkeleton() {
   return (
     <section className="min-h-[50vh] flex items-center justify-center">

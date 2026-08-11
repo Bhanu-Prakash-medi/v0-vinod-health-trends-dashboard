@@ -1,6 +1,20 @@
 "use client"
 
-import { Sparkles, Info, HeartPulse, Apple, Dumbbell, Droplet, Moon, Stethoscope } from "lucide-react"
+import {
+  Sparkles,
+  Info,
+  HeartPulse,
+  Apple,
+  Dumbbell,
+  Droplet,
+  Moon,
+  Stethoscope,
+  Pill,
+  FlaskConical,
+  Video,
+  Building2,
+  ArrowUpRight,
+} from "lucide-react"
 import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
 
@@ -8,11 +22,44 @@ interface HealthRecommendationsSectionProps {
   patientData: ApiHealthReport
 }
 
+type ServiceKey = "meds" | "labs" | "online" | "clinic"
+
+interface ServiceLink {
+  label: string
+  url: string
+  icon: React.ReactNode
+}
+
+// MediBuddy service deep links mapped to each recommendation type.
+const SERVICE_LINKS: Record<ServiceKey, ServiceLink> = {
+  meds: {
+    label: "Order Medicines",
+    url: "https://link.medibuddy.app/oSfU4N9VUTb",
+    icon: <Pill className="h-3.5 w-3.5" />,
+  },
+  labs: {
+    label: "Book Lab Test",
+    url: "https://link.medibuddy.app/9MklPn1XUTb",
+    icon: <FlaskConical className="h-3.5 w-3.5" />,
+  },
+  online: {
+    label: "Online Consultation",
+    url: "https://link.medibuddy.app/HzamqTgYUTb",
+    icon: <Video className="h-3.5 w-3.5" />,
+  },
+  clinic: {
+    label: "In-Clinic Consultation",
+    url: "https://link.medibuddy.app/PaUI0RVZUTb",
+    icon: <Building2 className="h-3.5 w-3.5" />,
+  },
+}
+
 interface Recommendation {
   id: string
   title: string
   description: string
   icon: React.ReactNode
+  services?: ServiceKey[]
 }
 
 function isAbnormal(status: string | undefined): boolean {
@@ -39,6 +86,7 @@ const categoryRecommendations: Record<string, Recommendation> = {
     description:
       "Some heart-related markers are out of range. Reduce saturated fats and fried foods, add more fiber-rich vegetables, and aim for 30 minutes of brisk walking most days.",
     icon: <HeartPulse className="h-5 w-5" />,
+    services: ["labs", "online", "clinic"],
   },
   liver: {
     id: "liver",
@@ -46,6 +94,7 @@ const categoryRecommendations: Record<string, Recommendation> = {
     description:
       "Liver markers need attention. Limit alcohol, avoid processed and high-sugar foods, and stay hydrated to help your liver function better.",
     icon: <Apple className="h-5 w-5" />,
+    services: ["labs", "online"],
   },
   kidney: {
     id: "kidney",
@@ -53,6 +102,7 @@ const categoryRecommendations: Record<string, Recommendation> = {
     description:
       "Kidney-related values are slightly off. Stay well hydrated, moderate your salt and protein intake, and monitor your blood pressure regularly.",
     icon: <Droplet className="h-5 w-5" />,
+    services: ["labs", "online", "clinic"],
   },
   sugar: {
     id: "sugar",
@@ -60,6 +110,7 @@ const categoryRecommendations: Record<string, Recommendation> = {
     description:
       "Your sugar levels are outside the normal range. Cut back on refined carbs and sugary drinks, eat balanced meals, and stay physically active.",
     icon: <Apple className="h-5 w-5" />,
+    services: ["labs", "meds", "online"],
   },
   thyroid: {
     id: "thyroid",
@@ -67,6 +118,7 @@ const categoryRecommendations: Record<string, Recommendation> = {
     description:
       "Thyroid markers are out of range. Maintain a consistent routine, follow up with your physician, and ensure adequate iodine and selenium in your diet.",
     icon: <Stethoscope className="h-5 w-5" />,
+    services: ["labs", "meds", "online"],
   },
   vitamins: {
     id: "vitamins",
@@ -74,6 +126,7 @@ const categoryRecommendations: Record<string, Recommendation> = {
     description:
       "Certain vitamins or minerals are low. Consider sunlight exposure for Vitamin D, a nutrient-rich diet, and discuss supplements with your doctor.",
     icon: <Sparkles className="h-5 w-5" />,
+    services: ["meds", "labs", "online"],
   },
   blood: {
     id: "blood",
@@ -81,6 +134,7 @@ const categoryRecommendations: Record<string, Recommendation> = {
     description:
       "Some blood parameters are out of range. Include iron and B12-rich foods, stay hydrated, and get proper rest to support healthy blood counts.",
     icon: <Droplet className="h-5 w-5" />,
+    services: ["labs", "online"],
   },
   general: {
     id: "general",
@@ -88,6 +142,7 @@ const categoryRecommendations: Record<string, Recommendation> = {
     description:
       "A few markers need attention. Focus on a balanced diet, regular exercise, and consistent sleep to improve your overall wellbeing.",
     icon: <Dumbbell className="h-5 w-5" />,
+    services: ["labs", "online"],
   },
 }
 
@@ -162,9 +217,30 @@ export default function HealthRecommendationsSection({ patientData }: HealthReco
         {recommendations.map((rec) => (
           <Card key={rec.id} className="flex items-start gap-3 border border-[#f0f3f5] p-4 shadow-sm">
             <div className="rounded-lg bg-gray-50 p-2 text-[#156ddc]">{rec.icon}</div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <h3 className="text-sm font-medium text-[#2e3742]">{rec.title}</h3>
               <p className="mt-1 text-xs leading-relaxed text-[#5a6977]">{rec.description}</p>
+
+              {rec.services && rec.services.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {rec.services.map((key) => {
+                    const service = SERVICE_LINKS[key]
+                    return (
+                      <a
+                        key={key}
+                        href={service.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-3 py-1.5 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+                      >
+                        {service.icon}
+                        {service.label}
+                        <ArrowUpRight className="h-3 w-3 opacity-70" />
+                      </a>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </Card>
         ))}
