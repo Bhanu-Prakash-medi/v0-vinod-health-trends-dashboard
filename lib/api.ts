@@ -133,13 +133,6 @@ function getValueCaseInsensitive(obj: any, key: string): any {
 }
 
 /**
- * Base URL for the Health Trends backend. Uses HTTPS (required when called from
- * an HTTPS page) — the backend supports it and returns CORS headers for
- * whitelisted origins.
- */
-const HEALTHTRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
-
-/**
  * The report `file` URLs returned by the backend are pre-signed S3 links whose
  * path contains the report's dms_doc_id as a UUID path segment, e.g.
  * `.../072026/cb424e70-85d3-11f1-9547-633da02d1de8/PHLB123.pdf`. The analysis
@@ -163,7 +156,7 @@ export function extractDmsDocIdFromFileUrl(fileUrl?: string): string | null {
  * the new profile endpoint.
  */
 export async function fetchBeneficiaries(accessToken: string, _pmEntityId = "0"): Promise<BeneficiariesResponse> {
-  const response = await fetch(`${HEALTHTRENDS_BACKEND}/beneficiary/profile`, {
+  const response = await fetch("/api/health/profile", {
     method: "GET",
     headers: {
       accesstoken: accessToken,
@@ -236,7 +229,7 @@ export async function fetchBeneficiaryReportDocIds(
   accessToken: string,
   vasBenifId: string | number,
 ): Promise<string[]> {
-  const response = await fetch(`${HEALTHTRENDS_BACKEND}/beneficiary/${vasBenifId}/reports`, {
+  const response = await fetch(`/api/health/reports/${vasBenifId}`, {
     method: "GET",
     headers: {
       accesstoken: accessToken,
