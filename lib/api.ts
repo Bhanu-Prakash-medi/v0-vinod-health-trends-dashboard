@@ -133,24 +133,56 @@ function getValueCaseInsensitive(obj: any, key: string): any {
 }
 
 /**
- * Fetch beneficiaries from API
+ * Base URL for the Health Trends backend. Uses HTTPS (required when called from
+ * an HTTPS page) — the backend supports it and returns CORS headers for
+ * whitelisted origins.
  */
-export async function fetchBeneficiaries(accessToken: string, pmEntityId = "0"): Promise<BeneficiariesResponse> {
-  const response = await fetch("/api/health/beneficiaries", {
+const HEALTHTRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
+
+/**
+ * The report `file` URLs returned by the backend are pre-signed S3 links whose
+ * path contains the report's dms_doc_id as a UUID path segment, e.g.
+ * `.../072026/cb424e70-85d3-11f1-9547-633da02d1de8/PHLB123.pdf`. The analysis
+ * pipeline is keyed on this dms_doc_id, so we extract it from the URL.
+ */
+const DMS_DOC_ID_REGEX = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/
+
+export function extractDmsDocIdFromFileUrl(fileUrl?: string): string | null {
+  if (!fileUrl || typeof fileUrl !== "string") return null
+  const match = fileUrl.match(DMS_DOC_ID_REGEX)
+  return match ? match[0] : null
+}
+
+/**
+ * Fetch the family/beneficiary profile from the new backend and map it to the
+ * shape the app expects. The profile only reliably includes report links for
+ * the Self beneficiary; each beneficiary's authoritative report list is fetched
+ * on demand via `fetchBeneficiaryReportDocIds`.
+ *
+ * NOTE: `pmEntityId` is retained for call-site compatibility but is unused by
+ * the new profile endpoint.
+ */
+export async function fetchBeneficiaries(accessToken: string, _pmEntityId = "0"): Promise<BeneficiariesResponse> {
+  const response = await fetch(`${HEALTHTRENDS_BACKEND}/beneficiary/profile`, {
     method: "GET",
     headers: {
       accesstoken: accessToken,
-      pmEntityId: pmEntityId,
     },
   })
 
+  if (response.status === 401) {
+    throw new Error("UNAUTHORIZED")
+  }
   if (!response.ok) {
     throw new Error(`Beneficiaries API request failed: ${response.status}`)
   }
 
   const data = await response.json()
 
-  const responseObj = getValueCaseInsensitive(data, "response")
+  // The profile endpoint returns an array: [{ userId, email, beneficiaries: [...] }]
+  const root = Array.isArray(data) ? data[0] : data
+
+  const responseObj = getValueCaseInsensitive(root, "response")
   if (responseObj) {
     const statusCode = getValueCaseInsensitive(responseObj, "statuscode")
     if (statusCode === "401" || statusCode === 401) {
@@ -158,25 +190,83 @@ export async function fetchBeneficiaries(accessToken: string, pmEntityId = "0"):
     }
   }
 
-  const beneficiaries = getValueCaseInsensitive(data, "beneficiaries") || []
-  const mbuserid = getValueCaseInsensitive(data, "userId") || getValueCaseInsensitive(data, "userid") || getValueCaseInsensitive(data, "mbuserid") || ""
-  const employee_email = getValueCaseInsensitive(data, "email") || getValueCaseInsensitive(data, "employee_email") || ""
+  const beneficiaries = getValueCaseInsensitive(root, "beneficiaries") || []
+  const mbuserid =
+    getValueCaseInsensitive(root, "userId") ||
+    getValueCaseInsensitive(root, "userid") ||
+    getValueCaseInsensitive(root, "mbuserid") ||
+    ""
+  const employee_email =
+    getValueCaseInsensitive(root, "email") || getValueCaseInsensitive(root, "employee_email") || ""
 
   return {
-    beneficiaries: beneficiaries.map((b: any) => ({
-      patientName: getValueCaseInsensitive(b, "patientName") || getValueCaseInsensitive(b, "patientname") || "Unknown",
-      relation: getValueCaseInsensitive(b, "relation") || "Unknown",
-      visitType: getValueCaseInsensitive(b, "visitType") || getValueCaseInsensitive(b, "visittype") || "",
-      dmS_Doc_ID: getValueCaseInsensitive(b, "dmS_Doc_ID") || getValueCaseInsensitive(b, "dms_doc_id") || [],
-      latestDmsDocIds:
-        getValueCaseInsensitive(b, "latestDmsDocIds") || getValueCaseInsensitive(b, "latestdmsdocids") || [],
-      rVasBenefId: getValueCaseInsensitive(b, "rVasBenefId") || getValueCaseInsensitive(b, "rvasbenefid"),
-      age: Number.parseInt(getValueCaseInsensitive(b, "age") || "0", 10),
-      gender: getValueCaseInsensitive(b, "gender") || "Unknown",
-    })),
+    beneficiaries: beneficiaries.map((b: any) => {
+      const requestIds = getValueCaseInsensitive(b, "requestIds") || getValueCaseInsensitive(b, "requestids") || []
+      const docIds: string[] = Array.isArray(requestIds)
+        ? requestIds
+            .map((r: any) => extractDmsDocIdFromFileUrl(getValueCaseInsensitive(r, "file")))
+            .filter((id: string | null): id is string => Boolean(id))
+        : []
+
+      return {
+        patientName: getValueCaseInsensitive(b, "name") || getValueCaseInsensitive(b, "patientName") || "Unknown",
+        relation: getValueCaseInsensitive(b, "relation") || "Unknown",
+        visitType: "",
+        dmS_Doc_ID: docIds,
+        latestDmsDocIds: [],
+        rVasBenefId:
+          getValueCaseInsensitive(b, "vasBenifId") ??
+          getValueCaseInsensitive(b, "vasbenifid") ??
+          getValueCaseInsensitive(b, "rVasBenefId"),
+        age: Number.parseInt(String(getValueCaseInsensitive(b, "age") ?? "0"), 10),
+        gender: getValueCaseInsensitive(b, "gender") || "Unknown",
+      }
+    }),
     mbuserid,
     employee_email,
   }
+}
+
+/**
+ * Fetch a single beneficiary's report list (by vasBenifId) from the new backend
+ * and return the extracted dms_doc_ids. This is the authoritative per-beneficiary
+ * report source; the profile endpoint only populates Self.
+ */
+export async function fetchBeneficiaryReportDocIds(
+  accessToken: string,
+  vasBenifId: string | number,
+): Promise<string[]> {
+  const response = await fetch(`${HEALTHTRENDS_BACKEND}/beneficiary/${vasBenifId}/reports`, {
+    method: "GET",
+    headers: {
+      accesstoken: accessToken,
+    },
+  })
+
+  if (response.status === 401) {
+    throw new Error("UNAUTHORIZED")
+  }
+  if (!response.ok) {
+    // 403 (vasBenifId not owned) or other errors: treat as no reports available.
+    return []
+  }
+
+  const data = await response.json()
+  const reports = Array.isArray(data)
+    ? data
+    : getValueCaseInsensitive(data, "requestIds") ||
+      getValueCaseInsensitive(data, "reports") ||
+      getValueCaseInsensitive(data, "data") ||
+      []
+
+  if (!Array.isArray(reports)) return []
+
+  const docIds = reports
+    .map((r: any) => extractDmsDocIdFromFileUrl(getValueCaseInsensitive(r, "file")))
+    .filter((id: string | null): id is string => Boolean(id))
+
+  // De-duplicate while preserving order.
+  return Array.from(new Set(docIds))
 }
 
 /**

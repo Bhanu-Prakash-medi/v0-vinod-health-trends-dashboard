@@ -26,6 +26,7 @@ import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
 import {
   fetchBeneficiaries,
+  fetchBeneficiaryReportDocIds,
   fetchReportAnalysis,
   fetchTrends,
   createInitialProfileFromBeneficiary,
@@ -92,6 +93,32 @@ export default function HealthDashboard() {
         newMap.delete(beneficiary.patientName)
         return newMap
       })
+
+      // Fetch this beneficiary's authoritative report list (dms_doc_ids) from the
+      // new reports API using their vasBenifId. The profile endpoint only
+      // populates Self's reports, so every beneficiary's real report set comes
+      // from here. Falls back to any doc IDs already present from the profile.
+      if (beneficiary.rVasBenefId !== undefined && beneficiary.rVasBenefId !== null && beneficiary.rVasBenefId !== "") {
+        try {
+          const reportDocIds = await fetchBeneficiaryReportDocIds(token, beneficiary.rVasBenefId)
+          if (reportDocIds.length > 0) {
+            beneficiary = { ...beneficiary, dmS_Doc_ID: reportDocIds }
+            // Reflect the real report count in the beneficiary tab list and
+            // downstream consumers (trends, report count badge).
+            setBeneficiaries((prev) =>
+              prev.map((b) =>
+                b.rVasBenefId === beneficiary.rVasBenefId ? { ...b, dmS_Doc_ID: reportDocIds } : b,
+              ),
+            )
+          }
+        } catch (reportErr) {
+          if (reportErr instanceof Error && reportErr.message === "UNAUTHORIZED") {
+            setGlobalError({ type: "UNAUTHORIZED", message: "Please login to access the health trends" })
+            return
+          }
+          // Otherwise fall back to the profile-provided doc IDs (if any).
+        }
+      }
 
       const hasRecords = (beneficiary.dmS_Doc_ID?.length || 0) > 0
 
