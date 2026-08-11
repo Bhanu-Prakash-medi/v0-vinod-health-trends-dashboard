@@ -129,6 +129,9 @@ export default function HealthDashboard() {
         )
         const latestDocIds = sortedRequests.length > 0 ? [sortedRequests[0].requestId] : []
         const requestDateById = new Map(reportRequests.map((r) => [r.requestId, r.date]))
+        // Original report PDF URL per requestId (from the beneficiary reports API),
+        // used to offer an "download original report" action in Test Reports.
+        const requestFileById = new Map(reportRequests.map((r) => [r.requestId, r.file || ""]))
 
         if (allDocIds.length === 0) {
           setBeneficiaryErrors((prev) => {
@@ -243,6 +246,7 @@ export default function HealthDashboard() {
               mbUserId,
               docId,
               requestDateById.get(docId),
+              requestFileById.get(docId),
             )
             // Update UI incrementally as each report comes in
             updateWithPartialData(report, docId)

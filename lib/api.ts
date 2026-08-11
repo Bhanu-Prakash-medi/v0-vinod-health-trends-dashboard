@@ -83,6 +83,8 @@ export interface LabReport {
   file_name?: string
   tag?: string
   parameters?: any[]
+  /** Original report PDF URL from the beneficiary reports API (for download). */
+  file?: string
 }
 
 export interface TrendsResponse {
@@ -108,6 +110,8 @@ export interface ApiHealthReport {
     date: string
     parameters: Record<string, any>
     fullfilmentDate?: string
+    /** Original report PDF URL from the beneficiary reports API (for download). */
+    file?: string
   }>
   health_summary: HealthSummaryItem[]
   trend_analysis?: TrendAnalysisItem[]
@@ -894,7 +898,7 @@ export async function fetchTrends(
  * ApiHealthReport shape consumed by the UI. The response is fully analyzed and
  * synchronous — no polling required.
  */
-export function transformReportDetails(data: any, fallbackDate?: string): ApiHealthReport {
+export function transformReportDetails(data: any, fallbackDate?: string, fileUrl?: string): ApiHealthReport {
   const status = (getValueCaseInsensitive(data, "status") || "").toString()
   if (status.toLowerCase() === "failed") {
     throw new Error("DOCUMENT_FAILED")
@@ -992,6 +996,7 @@ export function transformReportDetails(data: any, fallbackDate?: string): ApiHea
         date: fullfilmentDate || new Date().toLocaleDateString(),
         parameters: transformedParameters,
         fullfilmentDate,
+        file: fileUrl || "",
       },
     ],
     health_summary: healthSummary,
@@ -1008,6 +1013,7 @@ export async function fetchReportDetailsAsHealthReport(
   mbUserId: string | number,
   requestId: string | number,
   reportDate?: string,
+  fileUrl?: string,
 ): Promise<ApiHealthReport> {
   await fetchReportsThrottle.acquire()
   try {
@@ -1033,7 +1039,7 @@ export async function fetchReportDetailsAsHealthReport(
       }
 
       const data = await response.json()
-      return transformReportDetails(data, reportDate)
+      return transformReportDetails(data, reportDate, fileUrl)
     })
   } finally {
     fetchReportsThrottle.release()
@@ -1061,13 +1067,14 @@ function parseNumericValue(value: any): number | null {
  * parameters become time-series data points grouped by metric name.
  */
 export function buildTrendsFromReports(
-  reportEntries: Array<{ name?: string; date?: string; fullfilmentDate?: string; parameters?: Record<string, any> }>,
+  reportEntries: Array<{ name?: string; date?: string; fullfilmentDate?: string; parameters?: Record<string, any>; file?: string }>,
 ): TrendsResponse {
   const entries = (reportEntries || [])
     .map((e) => ({
       name: e.name || "Lab Report",
       date: e.fullfilmentDate || e.date || "",
       parameters: e.parameters || {},
+      file: e.file || "",
     }))
     .filter((e) => e.date)
     // Ascending by date so data_points read oldest -> newest.
@@ -1140,6 +1147,7 @@ export function buildTrendsFromReports(
     .map((e) => ({
       report_name: [e.name || "Lab Report"],
       report_date: e.date,
+      file: e.file || "",
       parameters: Object.entries(e.parameters).map(([name, raw]) => {
         const p = raw as any
         return {
@@ -1236,7 +1244,7 @@ export function mergeReportsKeepLatest(
     .filter((r) => r && r.parameters && Object.keys(r.parameters).length > 0)
 
   // Group reports by fullfilmentDate and merge their parameters
-  const reportsByDate = new Map<string, { name: string; date: string; parameters: Record<string, any>; fullfilmentDate?: string }>()
+  const reportsByDate = new Map<string, { name: string; date: string; parameters: Record<string, any>; fullfilmentDate?: string; file?: string }>()
   
   for (const report of allReportsRaw) {
     const dateKey = report.fullfilmentDate || report.date || "unknown"
@@ -1249,8 +1257,11 @@ export function mergeReportsKeepLatest(
         date: report.date,
         parameters: { ...report.parameters },
         fullfilmentDate: report.fullfilmentDate,
+        file: report.file || "",
       })
     } else {
+      // Keep the first non-empty file URL for this date
+      if (!existing.file && report.file) existing.file = report.file
       // Merge parameters from this report into existing
       // Add new parameters that don't exist yet
       for (const [paramName, paramValue] of Object.entries(report.parameters)) {

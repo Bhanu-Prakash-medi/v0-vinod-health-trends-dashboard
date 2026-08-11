@@ -1,6 +1,6 @@
 "use client"
 
-import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle } from "lucide-react"
+import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle, Download } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
@@ -138,6 +138,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
         report_names: getReportNames(lr.report_name),
         lab_name: lr.lab_name || "",
         file_name: lr.file_name || "",
+        file: lr.file || "",
         tag: lr.tag || "",
         parameters,
       }
@@ -157,6 +158,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
       report_names: getReportNames(report.name),
       lab_name: report.lab_name || "",
       file_name: report.file_name || "",
+      file: report.file || "",
       tag: index === 0 ? "Latest_report" : "Historical Report",
       parameters: report.parameters || {},
     }))
@@ -165,6 +167,22 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
   const handleReportClick = (index: number) => {
     setSelectedReportIndex(index)
     setShowPdfViewer(true)
+  }
+
+  // Download the original report PDF using the pre-signed URL from the
+  // beneficiary reports API. Opens in a new tab (cross-origin S3 URLs ignore
+  // the anchor `download` attribute, so a new tab reliably triggers the PDF).
+  const handleDownloadReport = (e: React.MouseEvent, fileUrl: string, fileName: string) => {
+    e.stopPropagation()
+    if (!fileUrl) return
+    const link = document.createElement("a")
+    link.href = fileUrl
+    link.download = fileName || "report.pdf"
+    link.target = "_blank"
+    link.rel = "noopener noreferrer"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const isLatestReport = (tag: string) => {
@@ -290,13 +308,32 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
               <div className="my-3 border-t border-[#f0f3f5]" />
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-[#9dabbd]" />
+                <div className="flex min-w-0 items-center gap-2">
+                  <FileText className="h-4 w-4 shrink-0 text-[#9dabbd]" />
                   <p className="max-w-[200px] truncate text-xs text-[#9dabbd]">
                     {report.file_name || `Medibuddy_Report_${(report.date || "").replace(/\//g, "_")}.pdf`}
                   </p>
                 </div>
-                <span className="text-xs text-[#9dabbd]">{report.date}</span>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-xs text-[#9dabbd]">{report.date}</span>
+                  {report.file && (
+                    <button
+                      type="button"
+                      onClick={(e) =>
+                        handleDownloadReport(
+                          e,
+                          report.file,
+                          report.file_name || `Medibuddy_Report_${(report.date || "").replace(/\//g, "_")}.pdf`,
+                        )
+                      }
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+                      aria-label="Download original report"
+                      title="Download original report"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
