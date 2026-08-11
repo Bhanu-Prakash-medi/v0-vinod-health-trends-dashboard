@@ -26,9 +26,9 @@ import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
 import {
   fetchBeneficiaries,
-  fetchBeneficiaryReportDocIds,
-  fetchReportAnalysis,
-  fetchTrends,
+  fetchBeneficiaryReportRequests,
+  fetchReportDetailsAsHealthReport,
+  buildTrendsFromReports,
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
@@ -58,31 +58,20 @@ export default function HealthDashboard() {
   const hasHealthSummaryEventFiredRef = useRef(false)
   const hasTrendsEventFiredRef = useRef(false)
 
-  const loadBeneficiaryTrends = useCallback(async (beneficiary: Beneficiary, token: string) => {
+  // Build trend analysis + lab reports client-side from the analyzed reports
+  // (each report's parameters become time-series points). This replaces the old
+  // n8n trends API — trends are derived from the same report-details responses.
+  const attachTrendsToReport = useCallback((report: ApiHealthReport): ApiHealthReport => {
     try {
-      const allDocIds = beneficiary.dmS_Doc_ID || []
-      if (allDocIds.length === 0) return
-
-      const trendsData = await fetchTrends(token, allDocIds, beneficiary.rVasBenefId)
-
-      setBeneficiaryReports((prev) => {
-        const newMap = new Map(prev)
-        const existingReport = newMap.get(beneficiary.patientName)
-        if (existingReport) {
-          newMap.set(beneficiary.patientName, {
-            ...existingReport,
-            trend_analysis: trendsData.trend_analysis,
-            lab_reports: trendsData.lab_reports,
-          })
-        }
-        return newMap
-      })
-      if (!hasTrendsEventFiredRef.current) {
+      const { trend_analysis, lab_reports } = buildTrendsFromReports(report.reports || [])
+      if (!hasTrendsEventFiredRef.current && trend_analysis.length > 0) {
         hasTrendsEventFiredRef.current = true
         trackHealthTrendsEvent("Trends Graphs Loaded")
       }
-    } catch (err) {
-      // Silently handle trends loading errors - trends are non-critical
+      return { ...report, trend_analysis, lab_reports }
+    } catch {
+      // Trends are non-critical; return the report unchanged on failure.
+      return report
     }
   }, [])
 
@@ -94,24 +83,27 @@ export default function HealthDashboard() {
         return newMap
       })
 
-      // Fetch this beneficiary's authoritative report list (dms_doc_ids) from the
-      // new reports API using their vasBenifId. The profile endpoint only
-      // populates Self's reports, so every beneficiary's real report set comes
-      // from here. Falls back to any doc IDs already present from the profile.
+      // Fetch this beneficiary's authoritative report references
+      // ({ requestId, date, file }) from the reports API using their vasBenifId.
+      // The profile endpoint only populates Self, so every beneficiary's real
+      // report set comes from here. Falls back to profile-provided requests.
+      let reportRequests = beneficiary.reportRequests || []
       if (beneficiary.rVasBenefId !== undefined && beneficiary.rVasBenefId !== null && beneficiary.rVasBenefId !== "") {
         try {
-          const reportDocIds = await fetchBeneficiaryReportDocIds(token, beneficiary.rVasBenefId)
-          if (reportDocIds.length > 0) {
+          const fetched = await fetchBeneficiaryReportRequests(token, beneficiary.rVasBenefId)
+          if (fetched.length > 0) {
+            reportRequests = fetched
+            const docIds = fetched.map((r) => r.requestId)
             // Keep the displayed total at least as large as the profile count so
             // the badge never shrinks; the profile count is shown immediately.
-            const accurateCount = Math.max(beneficiary.reportCount || 0, reportDocIds.length)
-            beneficiary = { ...beneficiary, dmS_Doc_ID: reportDocIds, reportCount: accurateCount }
-            // Reflect the real report doc IDs in the beneficiary list and
-            // downstream consumers (trends, analysis pipeline).
+            const accurateCount = Math.max(beneficiary.reportCount || 0, fetched.length)
+            beneficiary = { ...beneficiary, reportRequests: fetched, dmS_Doc_ID: docIds, reportCount: accurateCount }
+            // Reflect the real report references in the beneficiary list and
+            // downstream consumers (trends, health summary).
             setBeneficiaries((prev) =>
               prev.map((b) =>
                 b.rVasBenefId === beneficiary.rVasBenefId
-                  ? { ...b, dmS_Doc_ID: reportDocIds, reportCount: accurateCount }
+                  ? { ...b, reportRequests: fetched, dmS_Doc_ID: docIds, reportCount: accurateCount }
                   : b,
               ),
             )
@@ -121,15 +113,22 @@ export default function HealthDashboard() {
             setGlobalError({ type: "UNAUTHORIZED", message: "Please login to access the health trends" })
             return
           }
-          // Otherwise fall back to the profile-provided doc IDs (if any).
+          // Otherwise fall back to the profile-provided report requests (if any).
         }
       }
 
-      const hasRecords = (beneficiary.dmS_Doc_ID?.length || 0) > 0
+      // mbUserId (account user id) is required by the report-details API.
+      const mbUserId = beneficiary.userId ?? ""
 
       try {
-        const allDocIds = beneficiary.dmS_Doc_ID || []
-        const latestDocIds = beneficiary.latestDmsDocIds || []
+        // Report identifiers are requestIds. The latest report (by date) drives
+        // the health summary / digital twin; all reports feed the trends.
+        const allDocIds = reportRequests.map((r) => r.requestId)
+        const sortedRequests = [...reportRequests].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        )
+        const latestDocIds = sortedRequests.length > 0 ? [sortedRequests[0].requestId] : []
+        const requestDateById = new Map(reportRequests.map((r) => [r.requestId, r.date]))
 
         if (allDocIds.length === 0) {
           setBeneficiaryErrors((prev) => {
@@ -161,7 +160,6 @@ export default function HealthDashboard() {
         const loadedLatestDocIds = new Set<string>()
         const failedDocIds = new Set<string>()
         let hasDisplayedPartialData = false
-        let hasTrendsBeenTriggered = false
         let hasLoaderBeenShown = false
 
 
@@ -206,7 +204,9 @@ export default function HealthDashboard() {
             hasDisplayedPartialData = true
 
             // Merge all loaded reports, but only use effective latest docs for health summary/digital twin
-            const mergedReport = mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap)
+            const mergedReport = attachTrendsToReport(
+              mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
+            )
             mergedReport.patient_info.relation = beneficiary.relation
 
             setBeneficiaryReports((prev) => {
@@ -234,9 +234,16 @@ export default function HealthDashboard() {
         // Launch all report fetches asynchronously
         const reportPromises = allDocIds.map(async (docId) => {
           try {
-            // Show loader after the first API call is triggered (confirms user has dmS_Doc_ID)
+            // Show loader after the first API call is triggered (confirms records exist)
             showLoaderOnFirstApiCall()
-            const report = await fetchReportAnalysis(token, docId, beneficiary.rVasBenefId)
+            // Fetch the fully analyzed report for this requestId from the new
+            // report-details API (synchronous — no polling).
+            const report = await fetchReportDetailsAsHealthReport(
+              token,
+              mbUserId,
+              docId,
+              requestDateById.get(docId),
+            )
             // Update UI incrementally as each report comes in
             updateWithPartialData(report, docId)
             return { status: "fulfilled" as const, value: report, docId }
@@ -269,7 +276,9 @@ export default function HealthDashboard() {
 
             // If a latest doc failed, re-merge with remaining successful reports using updated effective IDs
             if (isFailed && loadedReports.length > 0) {
-              const mergedReport = mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap)
+              const mergedReport = attachTrendsToReport(
+                mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
+              )
               mergedReport.patient_info.relation = beneficiary.relation
               setBeneficiaryReports((prev) => {
                 const newMap = new Map(prev)
