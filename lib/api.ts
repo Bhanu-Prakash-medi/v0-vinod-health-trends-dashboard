@@ -1141,13 +1141,16 @@ export function buildTrendsFromReports(
   }
 
   // One lab report entry per analyzed report (used to label trend data points by date).
+  // Newest first for display; the first entry is the latest report, tagged so the
+  // Test Reports section can mark it and "View latest report" can scroll to it.
   const lab_reports: LabReport[] = entries
     .slice()
     .reverse() // newest first for display
-    .map((e) => ({
+    .map((e, index) => ({
       report_name: [e.name || "Lab Report"],
       report_date: e.date,
       file: e.file || "",
+      tag: index === 0 ? "Latest_report" : "Historical Report",
       parameters: Object.entries(e.parameters).map(([name, raw]) => {
         const p = raw as any
         return {
