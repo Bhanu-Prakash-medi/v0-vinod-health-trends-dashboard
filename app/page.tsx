@@ -310,7 +310,10 @@ export default function HealthDashboard() {
           }
         }
         const effectiveLatestDocIdsFinal = getEffectiveLatestDocIds()
-        const mergedReport = mergeReportsKeepLatest(successfulReports, effectiveLatestDocIdsFinal, finalReportDocIdMap)
+        // Build trends from all successful reports (client-side) and attach them.
+        const mergedReport = attachTrendsToReport(
+          mergeReportsKeepLatest(successfulReports, effectiveLatestDocIdsFinal, finalReportDocIdMap),
+        )
         mergedReport.isLoading = false
         mergedReport.patient_info.relation = beneficiary.relation
 
@@ -332,16 +335,7 @@ export default function HealthDashboard() {
           hasHealthSummaryEventFiredRef.current = true
           trackHealthTrendsEvent("Health Summary Loaded")
         }
-
-        // Trigger trends API after all reports are processed (regardless of individual failures)
-        // Trends uses allDocIds from beneficiary directly, not report analysis results
-        await loadBeneficiaryTrends(beneficiary, token)
       } catch (err) {
-        // Even if report loading fails, still try to load trends for this beneficiary
-        // Trends API is independent and may still return useful data
-        loadBeneficiaryTrends(beneficiary, token).catch(() => { })
-
-
         const errorMessage = err instanceof Error ? err.message : String(err)
 
         let errorInfo: BeneficiaryError
@@ -387,7 +381,7 @@ export default function HealthDashboard() {
         })
       }
     },
-    [loadBeneficiaryTrends],
+    [attachTrendsToReport],
   )
 
   const retryLoadReport = useCallback(
@@ -427,7 +421,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "be"
+        const DEBUG_TOKEN = "4842600c250d4e0ca620c2dab4495cf6"
 
         let cookieToken: string | null = null
         try {
