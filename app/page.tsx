@@ -237,8 +237,16 @@ export default function HealthDashboard() {
           }
         }
 
+        // Fetch the latest report(s) first so the health summary, health score
+        // and digital twin (which only need the latest report) render as early
+        // as possible, before the remaining historical reports finish loading.
+        const orderedDocIds = [
+          ...latestDocIds.filter((id) => allDocIds.includes(id)),
+          ...allDocIds.filter((id) => !latestDocIds.includes(id)),
+        ]
+
         // Launch all report fetches asynchronously
-        const reportPromises = allDocIds.map(async (docId) => {
+        const reportPromises = orderedDocIds.map(async (docId) => {
           try {
             // Show loader after the first API call is triggered (confirms records exist)
             showLoaderOnFirstApiCall()
@@ -504,17 +512,21 @@ export default function HealthDashboard() {
 
         setIsBeneficiariesLoading(false)
 
-        // Load self beneficiary first and await completion (reports + trends)
-        // before starting others, to ensure self profile gets full priority
+        // Kick off Self first so its report-list and report-details requests
+        // enter the (throttled) queue ahead of the others and get priority —
+        // but do NOT await it. Other family members start loading immediately
+        // in the background too, so switching to any beneficiary shows progress
+        // right away instead of waiting for Self to fully finish. The global
+        // fetch throttle keeps the backend from being overwhelmed.
         const selfBeneficiary = sortedBeneficiaries[0]
         if (selfBeneficiary) {
-          await loadBeneficiaryReport(selfBeneficiary, token)
           if (selfBeneficiary.dmS_Doc_ID.length == 0) {
             trackHealthTrendsEvent("No Reports Available")
           }
+          loadBeneficiaryReport(selfBeneficiary, token)
         }
 
-        // Then load remaining beneficiaries concurrently
+        // Then load remaining beneficiaries concurrently in the background.
         sortedBeneficiaries.slice(1).forEach((b) => {
           loadBeneficiaryReport(b, token)
         })
