@@ -472,8 +472,10 @@ export async function checkReportAnalysisStatus(
 }
 
 /**
- * Retry helper with incremental backoff
- * Retries up to maxRetries times with increasing delay (2s, 4s, 8s)
+ * Retry helper with incremental backoff.
+ * A retrying call keeps holding its throttle slot, so long backoffs stall the
+ * whole batch. Uses short delays (0.4s, 0.8s, 1.6s) since the backend normally
+ * responds in <1.5s — a real outage still surfaces quickly.
  */
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: Error | null = null
@@ -487,7 +489,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
         throw lastError
       }
       if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt + 1) * 1000 // 2s, 4s, 8s
+        const delay = Math.pow(2, attempt) * 400 // 0.4s, 0.8s, 1.6s
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
@@ -525,7 +527,10 @@ function createThrottle(maxConcurrent: number) {
   return { acquire, release }
 }
 
-const fetchReportsThrottle = createThrottle(3)
+// Report-details is fetched once per report; the Self user can have 30+ reports.
+// A concurrency of 3 forced ~10+ sequential rounds (~15s to finish trends / all
+// parameters). 8 keeps the backend comfortable while cutting rounds by ~2.5x.
+const fetchReportsThrottle = createThrottle(8)
 const trendsThrottle = createThrottle(2)
 
 /**
