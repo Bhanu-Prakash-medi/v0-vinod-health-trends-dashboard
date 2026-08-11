@@ -15,6 +15,7 @@ import HealthRecommendationsSection from "@/components/health-recommendations-se
 import FeedbackSection from "@/components/feedback-section"
 import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
+import HealthScoreSection from "@/components/health-score-section"
 import EmptyState from "@/components/empty-state"
 import {
   TopNavigationSkeleton,
@@ -709,6 +710,7 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && currentProfileData && (
             <>
+              <HealthScoreSection patientData={currentProfileData} />
               <HealthSummarySection patientData={currentProfileData} />
               <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
