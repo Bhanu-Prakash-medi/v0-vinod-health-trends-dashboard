@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
+import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 export default function AllParametersPage({
   patientData,
@@ -159,8 +160,9 @@ export default function AllParametersPage({
           <Card key={index} className="overflow-hidden border border-[#f0f3f5] py-0">
             <div className="p-4 pb-3">
               <div className="flex items-start justify-between">
-                <div className="flex-1">
+                <div className="flex flex-1 items-center gap-2">
                   <h3 className="text-sm font-medium text-[#2e3742]">{param.name}</h3>
+                  <BiomarkerInfoButton name={param.name} />
                 </div>
 
                 <div

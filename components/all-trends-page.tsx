@@ -9,6 +9,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { getTrendData } from "@/lib/health-utils"
 import type { ApiHealthReport } from "@/lib/api"
 import { getParameterPriority } from "@/lib/parameterPriority"
+import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 // Helper function to parse dates from various formats
 const parseDate = (dateStr: string): Date => {
@@ -265,6 +266,7 @@ export default function AllTrendsPage({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-semibold text-[#2e3742]">{trend.name}</h3>
+                    <BiomarkerInfoButton name={trend.name} />
                     <div
                       className={`flex h-6 w-6 items-center justify-center rounded-full ${
                         isImproving ? "bg-green-50" : isWorsening ? "bg-red-50" : isStable ? "bg-gray-50" : "bg-gray-50"
@@ -427,7 +429,10 @@ export default function AllTrendsPage({
       <Dialog open={!!selectedPoint} onOpenChange={(open) => !open && setSelectedPoint(null)}>
         <DialogContent className="w-[calc(100%-2rem)] max-w-[340px] gap-0 overflow-hidden p-0">
           <DialogHeader className="border-b border-[#f0f3f5] px-4 py-3">
-            <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedPoint?.name}</DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedPoint?.name}</DialogTitle>
+              <BiomarkerInfoButton name={selectedPoint?.name} />
+            </div>
           </DialogHeader>
           {selectedPoint && (
             <div className="flex flex-col gap-3 p-4">
