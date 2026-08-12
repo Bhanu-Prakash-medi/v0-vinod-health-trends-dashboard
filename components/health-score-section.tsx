@@ -240,7 +240,7 @@ export default function HealthScoreSection({
         {/* ---- DONUT ---- */}
         {view === "donut" && (
           <div className="flex flex-col items-center">
-            <svg viewBox="0 0 220 220" className="h-auto w-full max-w-[240px]" role="img" aria-label={`Risk score ${score} out of 10, ${label}`}>
+            <svg viewBox="-40 -34 340 288" className="h-auto w-full max-w-[280px]" role="img" aria-label={`Risk score ${score} out of 10, ${label}. MediBuddy average ${benchmark ? benchmark.avgScore : "unavailable"}.`}>
               {/* Colored risk zones (green / yellow / red) forming the ring.
                   The zone the user currently falls in is highlighted (thicker,
                   full opacity); the rest are dimmed. */}
@@ -258,25 +258,42 @@ export default function HealthScoreSection({
                 )
               })}
 
-              {/* "You" score marker on the ring */}
+              {/* Benchmark ("Avg") marker on the ring with score label */}
+              {benchmark &&
+                (() => {
+                  const a = -90 + (benchmark.avgScore / GAUGE_MAX) * 360
+                  const inner = polarPoint(110, 110, 74, a)
+                  const outer = polarPoint(110, 110, 102, a)
+                  const lbl = polarPoint(110, 110, 116, a)
+                  const anchor = lbl.x > 112 ? "start" : lbl.x < 108 ? "end" : "middle"
+                  return (
+                    <>
+                      <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="#2e3742" strokeWidth="3" strokeLinecap="round" />
+                      <text x={lbl.x} y={lbl.y} textAnchor={anchor} dominantBaseline="middle" className="fill-[#4d5c6f] text-[11px] font-semibold">
+                        Avg {benchmark.avgScore}
+                      </text>
+                    </>
+                  )
+                })()}
+
+              {/* "You" score marker on the ring — high-contrast so it stands out on any zone */}
               {(() => {
-                const p = polarPoint(110, 110, 88, -90 + (displayScore / GAUGE_MAX) * 360)
+                const a = -90 + (displayScore / GAUGE_MAX) * 360
+                const p = polarPoint(110, 110, 88, a)
+                const lbl = polarPoint(110, 110, 122, a)
+                const anchor = lbl.x > 112 ? "start" : lbl.x < 108 ? "end" : "middle"
                 return (
                   <>
-                    <circle cx={p.x} cy={p.y} r="9" fill="#ffffff" stroke={color} strokeWidth="4" />
+                    {/* white halo + dark core */}
+                    <circle cx={p.x} cy={p.y} r="10" fill="#ffffff" />
+                    <circle cx={p.x} cy={p.y} r="7" fill="#2e3742" />
+                    <circle cx={p.x} cy={p.y} r="3" fill="#ffffff" />
+                    <text x={lbl.x} y={lbl.y} textAnchor={anchor} dominantBaseline="middle" className="fill-[#2e3742] text-[11px] font-bold">
+                      You {formatScore(score)}
+                    </text>
                   </>
                 )
               })()}
-
-              {/* Benchmark ("Avg") marker on the ring — labeled via the legend below */}
-              {benchmark &&
-                (() => {
-                  const inner = polarPoint(110, 110, 74, -90 + (benchmark.avgScore / GAUGE_MAX) * 360)
-                  const outer = polarPoint(110, 110, 102, -90 + (benchmark.avgScore / GAUGE_MAX) * 360)
-                  return (
-                    <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="#2e3742" strokeWidth="3" strokeLinecap="round" />
-                  )
-                })()}
 
               {/* Center readout (overall score) */}
               <text x="110" y="100" textAnchor="middle" className="fill-[#2e3742] text-[40px] font-bold">
@@ -289,13 +306,13 @@ export default function HealthScoreSection({
             {/* Legend */}
             <div className="mt-2 flex items-center gap-3">
               <span className="flex items-center gap-1 text-[10px] font-medium text-[#4d5c6f]">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-                You
+                <span className="h-2.5 w-2.5 rounded-full border-2 border-[#2e3742] bg-white" />
+                You {formatScore(score)}
               </span>
               {benchmark && (
                 <span className="flex items-center gap-1 text-[10px] font-medium text-[#4d5c6f]">
                   <span className="h-2.5 w-0.5 bg-[#2e3742]" />
-                  MediBuddy avg
+                  MediBuddy avg {benchmark.avgScore}
                 </span>
               )}
             </div>
