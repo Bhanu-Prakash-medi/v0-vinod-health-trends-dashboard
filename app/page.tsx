@@ -725,7 +725,16 @@ export default function HealthDashboard() {
             age={activeBeneficiary?.age || 0}
             gender={activeBeneficiary?.gender || "Unknown"}
             initial={activeMember?.initial || "U"}
-            reportCount={activeBeneficiary?.reportCount ?? activeBeneficiary?.dmS_Doc_ID?.length ?? 0}
+            reportCount={
+              // Use the same deduplicated source the Test Reports section renders
+              // from (lab_reports) so the profile count matches the number of
+              // reports actually shown. Fall back to the raw request/doc-id count
+              // only while reports are still loading (lab_reports not yet present).
+              currentProfileData?.lab_reports?.length ||
+              activeBeneficiary?.reportCount ||
+              activeBeneficiary?.dmS_Doc_ID?.length ||
+              0
+            }
             profileImage={currentProfileData?.patient_info?.profileImage || "/images/profile-male.svg"}
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
