@@ -8,6 +8,9 @@ interface ProfileCardProps {
   gender: string
   initial: string
   reportCount: number
+  /** True while reports are still loading/deduplicating — shows a placeholder
+   *  instead of an intermediate count so the number doesn't flicker (12 -> 5 -> 3). */
+  countLoading?: boolean
   profileImage: string
   bloodGroup?: string
   height?: string
@@ -22,6 +25,7 @@ export default function ProfileCard({
   gender,
   initial,
   reportCount,
+  countLoading = false,
   profileImage,
   relation,
 }: ProfileCardProps) {
@@ -74,8 +78,18 @@ export default function ProfileCard({
               </span>
             </div>
             <div className="mt-1 flex items-center gap-1 text-[10px] text-[#4d5c6f]">
-              <span className="font-bold text-[#2e3742]">{reportCount}</span> Health{" "}
-              {reportCount === 1 ? "Record" : "Records"}
+              {countLoading ? (
+                <>
+                  <span className="inline-block h-3 w-5 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
+                  <span>Health Records</span>
+                  <span className="sr-only">Loading records</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-bold text-[#2e3742]">{reportCount}</span> Health{" "}
+                  {reportCount === 1 ? "Record" : "Records"}
+                </>
+              )}
             </div>
           </div>
         </div>

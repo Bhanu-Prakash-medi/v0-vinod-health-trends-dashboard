@@ -150,16 +150,10 @@ export default function HealthScoreSection({
     </div>
   )
 
-  // Loading state while the risk score resolves.
+  // While the risk score resolves, render nothing (no loading flash). The
+  // section only appears once a real score is available.
   if (riskEnabled && riskLoading && !riskData) {
-    return (
-      <section aria-label="Health score" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
-        {header}
-        <div className="flex h-40 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e5eaf0] border-t-[#156ddc]" />
-        </div>
-      </section>
-    )
+    return null
   }
 
   // ---- Primary: risk-based UI with view styles + benchmark ----

@@ -735,15 +735,16 @@ export default function HealthDashboard() {
             gender={activeBeneficiary?.gender || "Unknown"}
             initial={activeMember?.initial || "U"}
             reportCount={
-              // Use the same deduplicated source the Test Reports section renders
-              // from (lab_reports) so the profile count matches the number of
-              // reports actually shown. Fall back to the raw request/doc-id count
-              // only while reports are still loading (lab_reports not yet present).
+              // Show ONLY the final deduplicated count (lab_reports), matching
+              // the Test Reports section. While reports are still resolving the
+              // count is hidden (see countLoading) so the user never sees the
+              // intermediate filtering values (e.g. 12 -> 5 -> 3).
               currentProfileData?.lab_reports?.length ||
               activeBeneficiary?.reportCount ||
               activeBeneficiary?.dmS_Doc_ID?.length ||
               0
             }
+            countLoading={(hasRecordsToLoad || isLazyPending) && !isLoadComplete}
             profileImage={currentProfileData?.patient_info?.profileImage || ""}
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
