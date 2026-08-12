@@ -8,7 +8,6 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import ReportProblemButton from "@/components/report-problem-button"
 
 export default function AllParametersSection({
   patientData,
@@ -121,21 +120,18 @@ export default function AllParametersSection({
             All Parameters <span className="text-[#9dabbd]">({allParameters.length})</span>
           </h2>
         </div>
-        <div className="flex items-center gap-1">
-          <ReportProblemButton section="All Parameters" vasbenefId={vasbenefId} />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              trackHealthTrendsEvent("All Parameters - See All", vasbenefId)
-              onViewAll?.()
-            }}
-            className="flex items-center gap-1 text-xs font-medium text-[#156ddc] hover:bg-transparent hover:text-[#156ddc]/80"
-          >
-            See All
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            trackHealthTrendsEvent("All Parameters - See All", vasbenefId)
+            onViewAll?.()
+          }}
+          className="flex items-center gap-1 text-xs font-medium text-[#156ddc] hover:bg-transparent hover:text-[#156ddc]/80"
+        >
+          See All
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Parameter Cards */}

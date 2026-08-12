@@ -17,18 +17,26 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 
 interface ReportProblemButtonProps {
   /** Human-readable name of the section the report is about (e.g. "Health Summary"). */
-  section: string
+  section?: string
   vasbenefId?: string | number
   emailId?: string
+  /** Render as a floating action button pinned to the bottom of the screen. */
+  floating?: boolean
 }
 
 /**
- * Compact "Report a problem" control shown in section headers. Opens a dialog
- * where the user describes an issue with that section. On submit it tracks the
- * report via Snowplow and posts to the shared health-trends feedback webhook,
- * tagged with the originating section so reports can be triaged per feature.
+ * "Report a problem" control. Opens a dialog where the user describes an issue.
+ * On submit it tracks the report via Snowplow and posts to the shared
+ * health-trends feedback webhook, tagged with the originating section so reports
+ * can be triaged. Renders either inline (default) or as a floating action button
+ * (`floating`) pinned to the bottom-right of the app column.
  */
-export default function ReportProblemButton({ section, vasbenefId, emailId }: ReportProblemButtonProps) {
+export default function ReportProblemButton({
+  section = "Health Dashboard",
+  vasbenefId,
+  emailId,
+  floating = false,
+}: ReportProblemButtonProps) {
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState("")
   const [submitted, setSubmitted] = useState(false)
@@ -76,14 +84,25 @@ export default function ReportProblemButton({ section, vasbenefId, emailId }: Re
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogTrigger asChild>
-        <button
-          type="button"
-          className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-[#9dabbd] transition-colors hover:bg-[#fdeceb] hover:text-[#de3d31] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#de3d31]"
-          aria-label={`Report a problem with ${section}`}
-        >
-          <Flag className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Report a problem</span>
-        </button>
+        {floating ? (
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-full bg-[#de3d31] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#de3d31]/30 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#de3d31] focus-visible:ring-offset-2"
+            aria-label="Report a problem"
+          >
+            <Flag className="h-4 w-4" />
+            <span>Report a problem</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-[#9dabbd] transition-colors hover:bg-[#fdeceb] hover:text-[#de3d31] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#de3d31]"
+            aria-label={`Report a problem with ${section}`}
+          >
+            <Flag className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Report a problem</span>
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

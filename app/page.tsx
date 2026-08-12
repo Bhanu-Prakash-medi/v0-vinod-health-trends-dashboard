@@ -17,6 +17,7 @@ import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
 import HealthScoreSection from "@/components/health-score-section"
 import EmptyState from "@/components/empty-state"
+import ReportProblemButton from "@/components/report-problem-button"
 import {
   TopNavigationSkeleton,
   ProfileCardSkeleton,
@@ -714,6 +715,12 @@ export default function HealthDashboard() {
   return (
     <>
       {consentModal}
+      {/* Floating "Report a problem" button pinned to the bottom of the app column. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 pb-5">
+        <div className="pointer-events-auto">
+          <ReportProblemButton floating vasbenefId={activeBeneficiary?.rVasBenefId} emailId={userEmail} />
+        </div>
+      </div>
       <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
         <TopNavigation

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import useSWR from "swr"
 import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus } from "lucide-react"
-import ReportProblemButton from "@/components/report-problem-button"
 
 interface HealthScoreSectionProps {
   patientData: any
@@ -57,6 +56,12 @@ function riskColor(score: number) {
   if (score <= 3.33) return "#16a34a"
   if (score <= 6.66) return "#f59e0b"
   return "#dc2626"
+}
+
+// Show the score exactly as computed — no rounding. Only strips floating-point
+// noise so a value like 0.9950000001 renders as "0.995".
+function formatScore(n: number) {
+  return String(Number.parseFloat(n.toFixed(6)))
 }
 
 interface RiskScoreResponse {
@@ -161,12 +166,9 @@ export default function HealthScoreSection({
   }, [activeScore])
 
   const header = (
-    <div className="mb-3 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
-        <Activity className="h-5 w-5 text-[#156ddc]" />
-        <h2 className="text-base font-semibold text-[#2e3742]">Health Score</h2>
-      </div>
-      <ReportProblemButton section="Health Score" vasbenefId={vasbenefId} />
+    <div className="mb-3 flex items-center gap-2">
+      <Activity className="h-5 w-5 text-[#156ddc]" />
+      <h2 className="text-base font-semibold text-[#2e3742]">Health Score</h2>
     </div>
   )
 
@@ -250,7 +252,7 @@ export default function HealthScoreSection({
                 })()}
               {/* Center readout */}
               <text x="110" y="98" textAnchor="middle" className="fill-[#2e3742] text-[40px] font-bold">
-                {score.toFixed(1)}
+                {formatScore(score)}
               </text>
               <text x="110" y="120" textAnchor="middle" className="fill-[#9dabbd] text-[13px] font-medium">
                 out of 10
@@ -266,7 +268,7 @@ export default function HealthScoreSection({
         {view === "scale" && (
           <div className="px-1 pt-2">
             <div className="mb-2 flex items-end justify-between">
-              <span className="text-3xl font-bold leading-none text-[#2e3742]">{score.toFixed(1)}</span>
+              <span className="text-3xl font-bold leading-none text-[#2e3742]">{formatScore(score)}</span>
               <span className="rounded-pill px-2.5 py-0.5 text-xs font-semibold" style={{ color, backgroundColor: `${color}1a` }}>
                 {label}
               </span>
@@ -313,7 +315,7 @@ export default function HealthScoreSection({
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className="font-medium text-[#2e3742]">You</span>
                 <span className="font-semibold" style={{ color }}>
-                  {score.toFixed(1)} / 10
+                  {formatScore(score)} / 10
                 </span>
               </div>
               <div className="h-6 w-full overflow-hidden rounded-md bg-[#f0f3f5]">

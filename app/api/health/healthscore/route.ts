@@ -85,8 +85,10 @@ export async function POST(request: NextRequest) {
     )
     const latest = scored[0]
     const rawScore = Number(latest.overallRiskScore)
-    // Scale the 0-1 risk score to 0-10.
-    const score = Math.round(rawScore * 10 * 100) / 100
+    // Scale the 0-1 risk score to 0-10 WITHOUT rounding — show the exact value.
+    // parseFloat(toFixed(6)) only strips floating-point multiplication noise
+    // (e.g. 0.9950000000001 -> 0.995); it does not round meaningful digits.
+    const score = Number.parseFloat((rawScore * 10).toFixed(6))
 
     return NextResponse.json(
       {

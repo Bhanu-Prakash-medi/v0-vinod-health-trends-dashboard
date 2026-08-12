@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import ReportProblemButton from "@/components/report-problem-button"
 
 function handleViewLatestReport() {
   window.dispatchEvent(new CustomEvent("scroll-to-latest-report"))
@@ -227,16 +226,13 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <ReportProblemButton section="Health Summary" vasbenefId={vasbenefId} />
-            <button
-              onClick={handleViewLatestReport}
-              className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
-            >
-              View latest report
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <button
+            onClick={handleViewLatestReport}
+            className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
+          >
+            View latest report
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Cards Grid - from API health_summary */}
