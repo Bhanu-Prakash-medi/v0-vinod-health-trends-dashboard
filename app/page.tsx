@@ -134,8 +134,10 @@ export default function HealthDashboard() {
         }
       }
 
-      // mbUserId (account user id) is required by the report-details API.
-      const mbUserId = beneficiary.userId ?? ""
+      // The report-details API is scoped by the beneficiary's vasBenefId
+      // (the backend no longer accepts the account mbUserId). Fall back to
+      // userId only if rVasBenefId is somehow missing.
+      const reportVasBenefId = beneficiary.rVasBenefId ?? beneficiary.userId ?? ""
 
       try {
         // Report identifiers are requestIds. The latest report (by date) drives
@@ -268,7 +270,7 @@ export default function HealthDashboard() {
             // report-details API (synchronous — no polling).
             const report = await fetchReportDetailsAsHealthReport(
               token,
-              mbUserId,
+              reportVasBenefId,
               docId,
               requestDateById.get(docId),
               requestFileById.get(docId),

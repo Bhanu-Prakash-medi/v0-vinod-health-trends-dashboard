@@ -1011,11 +1011,12 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
 
 /**
  * Fetch and transform a single analyzed report from POST /health/reports.
- * `mbUserId` is the account user id; `requestId` identifies the report.
+ * `vasBenefId` is the beneficiary id (the report-details endpoint is scoped by
+ * vasBenefId, not the account mbUserId); `requestId` identifies the report.
  */
 export async function fetchReportDetailsAsHealthReport(
   accessToken: string,
-  mbUserId: string | number,
+  vasBenefId: string | number,
   requestId: string | number,
   reportDate?: string,
   fileUrl?: string,
@@ -1029,7 +1030,7 @@ export async function fetchReportDetailsAsHealthReport(
           "Content-Type": "application/json",
           ...(accessToken ? { accesstoken: accessToken } : {}),
         },
-        body: JSON.stringify({ mbUserId, requestId }),
+        body: JSON.stringify({ vasBenefId, requestId }),
       })
 
       if (response.status === 401) {
