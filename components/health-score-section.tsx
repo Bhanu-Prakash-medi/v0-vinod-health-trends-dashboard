@@ -123,7 +123,8 @@ export default function HealthScoreSection({
 
   const [view, setView] = useState<ViewStyle>("scale")
 
-  // Animate the active score from 0 on mount / change.
+  // Animate the active score from 0. Replays on score change AND on view change
+  // so each visualization (donut / scale / graph) fills in when it's shown.
   const activeScore = hasRisk ? (riskScore as number) : 0
   const [displayScore, setDisplayScore] = useState(0)
   const animRef = useRef<number | undefined>(undefined)
@@ -131,6 +132,7 @@ export default function HealthScoreSection({
     const target = activeScore
     const start = performance.now()
     const duration = 900
+    setDisplayScore(0)
     const animate = (now: number) => {
       const t = Math.min(1, (now - start) / duration)
       const eased = 1 - Math.pow(1 - t, 3)
@@ -141,7 +143,7 @@ export default function HealthScoreSection({
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current)
     }
-  }, [activeScore])
+  }, [activeScore, view])
 
   const header = (
     <div className="mb-3 flex items-center gap-2">
@@ -171,6 +173,11 @@ export default function HealthScoreSection({
     const avgZoneIndex = benchmark
       ? RISK_ZONES.findIndex((z, i) => benchmark.avgScore >= z.from && (benchmark.avgScore < z.to || i === RISK_ZONES.length - 1))
       : -1
+    // Eased 0 -> 1 animation progress derived from the animated displayScore,
+    // reused to fill the donut ring, count up the center number, and grow the
+    // benchmark bar in sync so the whole view feels "built up".
+    const progress = score > 0 ? Math.min(1, displayScore / score) : 1
+    const displayAvg = benchmark ? benchmark.avgScore * progress : 0
 
     return (
       <section aria-label="Health risk score" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
@@ -228,10 +235,21 @@ export default function HealthScoreSection({
                 )
               })}
 
+              {/* Animated fill arc — sweeps from 0 up to the score in the risk color */}
+              {displayScore > 0.02 && (
+                <path
+                  d={donutArc(110, 110, 88, 0, displayScore)}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="20"
+                  strokeLinecap="round"
+                />
+              )}
+
               {/* Benchmark ("Avg") marker on the ring with score label */}
               {benchmark &&
                 (() => {
-                  const a = -90 + (benchmark.avgScore / GAUGE_MAX) * 360
+                  const a = -90 + (displayAvg / GAUGE_MAX) * 360
                   const inner = polarPoint(110, 110, 74, a)
                   const outer = polarPoint(110, 110, 102, a)
                   const lbl = polarPoint(110, 110, 116, a)
@@ -265,9 +283,9 @@ export default function HealthScoreSection({
                 )
               })()}
 
-              {/* Center readout (overall score) */}
+              {/* Center readout (overall score) — counts up during the fill */}
               <text x="110" y="100" textAnchor="middle" className="fill-[#2e3742] text-[40px] font-bold">
-                {formatScore(score)}
+                {formatScore(displayScore)}
               </text>
               <text x="110" y="122" textAnchor="middle" className="fill-[#9dabbd] text-[13px] font-medium">
                 out of 10
@@ -343,7 +361,7 @@ export default function HealthScoreSection({
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className="font-medium text-[#2e3742]">You</span>
                 <span className="font-semibold" style={{ color }}>
-                  {formatScore(score)} / 10
+                  {formatScore(displayScore)} / 10
                 </span>
               </div>
               <div className="relative h-6 w-full overflow-hidden rounded-md">
@@ -389,7 +407,7 @@ export default function HealthScoreSection({
                   </div>
                   <div
                     className="absolute inset-y-0 left-0 rounded-md"
-                    style={{ width: `${(benchmark.avgScore / GAUGE_MAX) * 100}%`, backgroundColor: riskColor(benchmark.avgScore) }}
+                    style={{ width: `${(displayAvg / GAUGE_MAX) * 100}%`, backgroundColor: riskColor(benchmark.avgScore) }}
                   />
                 </div>
               </div>
