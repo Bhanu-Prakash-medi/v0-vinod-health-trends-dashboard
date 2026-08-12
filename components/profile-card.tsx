@@ -25,6 +25,14 @@ export default function ProfileCard({
   profileImage,
   relation,
 }: ProfileCardProps) {
+  // Pick the avatar strictly from gender, tolerating "Female"/"F"/"male"/"m"
+  // etc. Only a female value yields the female avatar; everything else (male,
+  // unknown, empty) falls back to the male avatar. A real resolved profileImage
+  // still takes precedence over this.
+  const normalizedGender = (gender || "").trim().toLowerCase()
+  const isFemale = normalizedGender === "female" || normalizedGender === "f"
+  const genderAvatar = isFemale ? "/images/profile-female.svg" : "/images/profile-male.svg"
+
   return (
     <div className="relative overflow-hidden rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
       {/* Header Section: Avatar + Info */}
@@ -46,10 +54,7 @@ export default function ProfileCard({
               />
             </svg>
             <Avatar className="absolute left-1/2 top-1/2 h-[42px] w-[42px] -translate-x-1/2 -translate-y-1/2">
-              <AvatarImage 
-                src={profileImage || (gender?.toLowerCase() === "female" ? "/images/profile-female.svg" : "/images/profile-male.svg")} 
-                alt={name} 
-              />
+              <AvatarImage src={profileImage || genderAvatar} alt={name} />
               <AvatarFallback className="bg-[#156ddc] text-sm font-semibold text-white">{initial}</AvatarFallback>
             </Avatar>
             <div className="absolute -right-1 -top-1 rounded-full bg-[#156ddc] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">

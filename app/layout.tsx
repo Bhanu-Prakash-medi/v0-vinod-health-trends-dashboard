@@ -13,15 +13,10 @@ export const metadata: Metadata = {
     "Track your health metrics, view test reports, and monitor your body with interactive 3D muscle analysis",
   generator: "v0.app",
   icons: {
+    // Use only the lightweight scalable SVG favicon. The PNG variants
+    // (icon-light-32x32.png / icon-dark-32x32.png) were slow to load and are no
+    // longer referenced.
     icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
       {
         url: "/icon.svg",
         type: "image/svg+xml",
