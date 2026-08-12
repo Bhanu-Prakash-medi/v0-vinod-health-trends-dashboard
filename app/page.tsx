@@ -666,6 +666,18 @@ export default function HealthDashboard() {
   const activeMember = familyMembers[activeBeneficiaryIndex]
   const hasReports = (currentProfileData?.reports?.length || 0) > 0
   const hasTrends = (currentProfileData?.trend_analysis?.length || 0) > 0
+  // A report-details response can come back "Completed" but empty (report_data
+  // null, parameters [], health_summary []). In that case hasReports is still
+  // true, so guard on whether there is any actually usable data before rendering
+  // the data sections — otherwise show a fallback instead of blank sections.
+  const hasUsableData =
+    (currentProfileData?.health_summary?.length || 0) > 0 ||
+    (currentProfileData?.reports?.some((r) => Object.keys(r.parameters || {}).length > 0) ?? false)
+  // True while this beneficiary's reports are still being fetched/merged — used
+  // to avoid flashing the empty-report fallback mid-load.
+  const isSummaryLoading = activeBeneficiary
+    ? (healthSummaryLoading.get(activeBeneficiary.patientName) ?? false)
+    : false
 
   if (showAllTrends && currentProfileData) {
     return (
@@ -711,7 +723,10 @@ export default function HealthDashboard() {
 
           {/* Records exist but reports/summary not yet loaded — show skeleton
               immediately (no "no records" flash) until data or an error arrives. */}
-          {(hasRecordsToLoad || isLazyPending) && !hasReports && !currentBeneficiaryError && <HealthSummarySkeleton />}
+          {((hasRecordsToLoad || isLazyPending) && !hasReports && !currentBeneficiaryError) ||
+            (hasReports && !hasUsableData && isSummaryLoading && !currentBeneficiaryError) ? (
+            <HealthSummarySkeleton />
+          ) : null}
 
           {/* Genuinely no records for this beneficiary. */}
           {!hasRecordsToLoad && currentBeneficiaryError && (
@@ -742,7 +757,20 @@ export default function HealthDashboard() {
           {/* Confirmed empty (no records and no records to load). */}
           {!hasRecordsToLoad && !isLazyPending && !currentBeneficiaryError && <EmptyState />}
 
-          {!currentBeneficiaryError && hasReports && currentProfileData && (
+          {/* Report(s) resolved but the analysis came back empty (report_data
+              null, no parameters, no health summary) — show a fallback instead
+              of blank sections. */}
+          {!currentBeneficiaryError && hasReports && !hasUsableData && !isSummaryLoading && (
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
+              <div className="mb-3 text-4xl">📄</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Report Details Unavailable</h3>
+              <p className="text-gray-600 text-sm">
+                {"We couldn't extract health insights from this report yet. It may still be processing or in a format we can't read. Please check back later."}
+              </p>
+            </div>
+          )}
+
+          {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
               <HealthScoreSection patientData={currentProfileData} />
               <HealthSummarySection patientData={currentProfileData} />
