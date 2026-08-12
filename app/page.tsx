@@ -50,6 +50,12 @@ export default function HealthDashboard() {
   const [beneficiaryReports, setBeneficiaryReports] = useState<Map<string, ApiHealthReport>>(new Map())
   const [beneficiaryErrors, setBeneficiaryErrors] = useState<Map<string, BeneficiaryError>>(new Map())
   const [healthSummaryLoading, setHealthSummaryLoading] = useState<Map<string, boolean>>(new Map())
+  // Beneficiaries whose report load has fully settled. Needed because the reports
+  // map is pre-seeded with an empty placeholder, so "not loaded yet" and "loaded
+  // but empty" look identical by data alone. This flag flips true only once the
+  // load finishes, letting us show the empty-report fallback instead of an
+  // endless skeleton when the analysis comes back with no usable data.
+  const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
   const [pendingReportDate, setPendingReportDate] = useState<string | null>(null)
@@ -351,6 +357,14 @@ export default function HealthDashboard() {
           const newMap = new Map(prev)
           newMap.set(beneficiary.patientName, false)
           return newMap
+        })
+
+        // Mark this beneficiary's load as fully settled so the UI can decide
+        // between showing data and showing the empty-report fallback.
+        setCompletedBeneficiaries((prev) => {
+          const next = new Set(prev)
+          next.add(beneficiary.patientName)
+          return next
         })
 
         // Fire Health Summary Loaded once (self user only) after all reports are merged
@@ -673,11 +687,10 @@ export default function HealthDashboard() {
   const hasUsableData =
     (currentProfileData?.health_summary?.length || 0) > 0 ||
     (currentProfileData?.reports?.some((r) => Object.keys(r.parameters || {}).length > 0) ?? false)
-  // True while this beneficiary's reports are still being fetched/merged — used
-  // to avoid flashing the empty-report fallback mid-load.
-  const isSummaryLoading = activeBeneficiary
-    ? (healthSummaryLoading.get(activeBeneficiary.patientName) ?? false)
-    : false
+  // Whether this beneficiary's report load has fully settled (see the
+  // completedBeneficiaries state comment). Used to distinguish "still loading"
+  // from "loaded but the analysis returned no usable data".
+  const isLoadComplete = activeBeneficiary ? completedBeneficiaries.has(activeBeneficiary.patientName) : false
 
   if (showAllTrends && currentProfileData) {
     return (
@@ -721,12 +734,12 @@ export default function HealthDashboard() {
             relation={currentProfileData?.patient_info?.relation}
           />
 
-          {/* Records exist but reports/summary not yet loaded — show skeleton
-              immediately (no "no records" flash) until data or an error arrives. */}
-          {((hasRecordsToLoad || isLazyPending) && !hasReports && !currentBeneficiaryError) ||
-            (hasReports && !hasUsableData && isSummaryLoading && !currentBeneficiaryError) ? (
+          {/* Records exist but the load hasn't settled yet — show skeleton
+              immediately (no "no records" flash) until data, a fallback, or an
+              error arrives. */}
+          {!currentBeneficiaryError && !hasUsableData && !isLoadComplete && (hasRecordsToLoad || isLazyPending) && (
             <HealthSummarySkeleton />
-          ) : null}
+          )}
 
           {/* Genuinely no records for this beneficiary. */}
           {!hasRecordsToLoad && currentBeneficiaryError && (
@@ -759,8 +772,8 @@ export default function HealthDashboard() {
 
           {/* Report(s) resolved but the analysis came back empty (report_data
               null, no parameters, no health summary) — show a fallback instead
-              of blank sections. */}
-          {!currentBeneficiaryError && hasReports && !hasUsableData && !isSummaryLoading && (
+              of blank sections or an endless skeleton. */}
+          {!currentBeneficiaryError && hasRecordsToLoad && isLoadComplete && !hasUsableData && (
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
               <div className="mb-3 text-4xl">📄</div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Report Details Unavailable</h3>
