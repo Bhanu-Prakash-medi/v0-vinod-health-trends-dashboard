@@ -30,14 +30,22 @@ export async function GET(request: NextRequest) {
 
     const text = await response.text()
 
-    let data
-    try {
-      data = JSON.parse(text)
-    } catch {
-      return NextResponse.json({ error: "Invalid response from API", details: text }, { status: 502 })
+    // Pass the upstream body straight through instead of JSON.parse-ing and then
+    // re-serializing with NextResponse.json — that round-trip added avoidable
+    // latency/CPU on every profile load. We only validate JSON on an error status
+    // so a malformed/HTML error page still surfaces a clear 502.
+    if (!response.ok) {
+      try {
+        JSON.parse(text)
+      } catch {
+        return NextResponse.json({ error: "Invalid response from API", details: text }, { status: 502 })
+      }
     }
 
-    return NextResponse.json(data, { status: response.status })
+    return new NextResponse(text, {
+      status: response.status,
+      headers: { "content-type": "application/json" },
+    })
   } catch (error) {
     const isAbort = error instanceof Error && error.name === "AbortError"
     return NextResponse.json(

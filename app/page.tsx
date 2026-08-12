@@ -61,6 +61,13 @@ export default function HealthDashboard() {
   const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState(true)
   const hasHealthSummaryEventFiredRef = useRef(false)
   const hasTrendsEventFiredRef = useRef(false)
+  // Tracks which beneficiaries have already had their reports requested, so a
+  // beneficiary's reports are fetched only once (on first selection). Self is
+  // loaded eagerly; everyone else is loaded lazily when the user selects them.
+  const requestedBeneficiariesRef = useRef<Set<string>>(new Set())
+  // Beneficiaries whose lazy load is in-flight — used to show the loading
+  // skeleton immediately on selection instead of flashing an empty state.
+  const [lazyPending, setLazyPending] = useState<Set<string>>(new Set())
 
   // Build trend analysis + lab reports client-side from the analyzed reports
   // (each report's parameters become time-series points). This replaces the old
@@ -513,24 +520,19 @@ export default function HealthDashboard() {
 
         setIsBeneficiariesLoading(false)
 
-        // Kick off Self first so its report-list and report-details requests
-        // enter the (throttled) queue ahead of the others and get priority —
-        // but do NOT await it. Other family members start loading immediately
-        // in the background too, so switching to any beneficiary shows progress
-        // right away instead of waiting for Self to fully finish. The global
-        // fetch throttle keeps the backend from being overwhelmed.
+        // Load ONLY the Self beneficiary eagerly on initial load. Other family
+        // members are loaded lazily the first time the user selects them (see
+        // handleBeneficiaryChange). This keeps the initial load lean — fewer
+        // concurrent report requests competing for connections means the profile
+        // and Self's data appear noticeably faster.
         const selfBeneficiary = sortedBeneficiaries[0]
         if (selfBeneficiary) {
           if (selfBeneficiary.dmS_Doc_ID.length == 0) {
             trackHealthTrendsEvent("No Reports Available")
           }
+          requestedBeneficiariesRef.current.add(selfBeneficiary.patientName)
           loadBeneficiaryReport(selfBeneficiary, token)
         }
-
-        // Then load remaining beneficiaries concurrently in the background.
-        sortedBeneficiaries.slice(1).forEach((b) => {
-          loadBeneficiaryReport(b, token)
-        })
       } catch (err) {
         trackHealthTrendsEvent("Failed to Login")
         // Allow a subsequent retry to re-run the initial load.
@@ -563,8 +565,23 @@ export default function HealthDashboard() {
 
   const handleBeneficiaryChange = (name: string) => {
     const index = beneficiaries.findIndex((b) => b.patientName === name)
-    if (index !== -1) {
-      setActiveBeneficiaryIndex(index)
+    if (index === -1) return
+    setActiveBeneficiaryIndex(index)
+
+    // Lazily load this beneficiary's reports the first time they are selected.
+    const beneficiary = beneficiaries[index]
+    if (beneficiary && accessToken && !requestedBeneficiariesRef.current.has(beneficiary.patientName)) {
+      requestedBeneficiariesRef.current.add(beneficiary.patientName)
+      // Show the skeleton right away, then clear the pending flag once the load
+      // settles (real data or an error takes over the gating from there).
+      setLazyPending((prev) => new Set(prev).add(beneficiary.patientName))
+      loadBeneficiaryReport(beneficiary, accessToken).finally(() => {
+        setLazyPending((prev) => {
+          const next = new Set(prev)
+          next.delete(beneficiary.patientName)
+          return next
+        })
+      })
     }
   }
 
@@ -629,6 +646,10 @@ export default function HealthDashboard() {
   // the loading skeleton shows immediately instead of flashing an empty state.
   const hasRecordsToLoad =
     ((activeBeneficiary?.reportCount ?? activeBeneficiary?.dmS_Doc_ID?.length) || 0) > 0
+  // True while a lazily-selected beneficiary's reports are still being fetched
+  // (their profile report count may be 0 until the reports API responds), so we
+  // show the skeleton instead of momentarily flashing the empty state.
+  const isLazyPending = activeBeneficiary ? lazyPending.has(activeBeneficiary.patientName) : false
 
   const familyMembers = beneficiaries.map((b) => {
     const report = beneficiaryReports.get(b.patientName)
@@ -690,7 +711,7 @@ export default function HealthDashboard() {
 
           {/* Records exist but reports/summary not yet loaded — show skeleton
               immediately (no "no records" flash) until data or an error arrives. */}
-          {hasRecordsToLoad && !hasReports && !currentBeneficiaryError && <HealthSummarySkeleton />}
+          {(hasRecordsToLoad || isLazyPending) && !hasReports && !currentBeneficiaryError && <HealthSummarySkeleton />}
 
           {/* Genuinely no records for this beneficiary. */}
           {!hasRecordsToLoad && currentBeneficiaryError && (
@@ -719,7 +740,7 @@ export default function HealthDashboard() {
           )}
 
           {/* Confirmed empty (no records and no records to load). */}
-          {!hasRecordsToLoad && !currentBeneficiaryError && <EmptyState />}
+          {!hasRecordsToLoad && !isLazyPending && !currentBeneficiaryError && <EmptyState />}
 
           {!currentBeneficiaryError && hasReports && currentProfileData && (
             <>
