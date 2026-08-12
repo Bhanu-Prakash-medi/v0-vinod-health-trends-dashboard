@@ -796,7 +796,12 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-              <HealthScoreSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
+              <HealthScoreSection
+                patientData={currentProfileData}
+                vasbenefId={activeBeneficiary?.rVasBenefId}
+                requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
+                accessToken={accessToken}
+              />
               <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
