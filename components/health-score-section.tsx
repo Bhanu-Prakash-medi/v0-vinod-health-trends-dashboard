@@ -200,6 +200,14 @@ export default function HealthScoreSection({
     const color = riskColor(score)
     const label = riskData!.riskLevel || "—"
     const diff = benchmark ? Math.round((score - benchmark.avgScore) * 100) / 100 : null
+    // The risk zone the user currently falls in — highlighted in the donut & graph.
+    const activeZoneIndex = RISK_ZONES.findIndex(
+      (z, i) => score >= z.from && (score < z.to || i === RISK_ZONES.length - 1),
+    )
+    // The zone the MediBuddy average falls in.
+    const avgZoneIndex = benchmark
+      ? RISK_ZONES.findIndex((z, i) => benchmark.avgScore >= z.from && (benchmark.avgScore < z.to || i === RISK_ZONES.length - 1))
+      : -1
 
     return (
       <section aria-label="Health risk score" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
@@ -233,17 +241,22 @@ export default function HealthScoreSection({
         {view === "donut" && (
           <div className="flex flex-col items-center">
             <svg viewBox="0 0 220 220" className="h-auto w-full max-w-[240px]" role="img" aria-label={`Risk score ${score} out of 10, ${label}`}>
-              {/* Colored risk zones (green / yellow / red) forming the ring */}
-              {RISK_ZONES.map((z) => (
-                <path
-                  key={z.from}
-                  d={donutArc(110, 110, 88, z.from, z.to)}
-                  fill="none"
-                  stroke={z.color}
-                  strokeWidth="16"
-                  opacity="0.35"
-                />
-              ))}
+              {/* Colored risk zones (green / yellow / red) forming the ring.
+                  The zone the user currently falls in is highlighted (thicker,
+                  full opacity); the rest are dimmed. */}
+              {RISK_ZONES.map((z, i) => {
+                const isActive = i === activeZoneIndex
+                return (
+                  <path
+                    key={z.from}
+                    d={donutArc(110, 110, 88, z.from, z.to)}
+                    fill="none"
+                    stroke={z.color}
+                    strokeWidth={isActive ? 20 : 14}
+                    opacity={isActive ? 1 : 0.25}
+                  />
+                )
+              })}
 
               {/* "You" score marker on the ring */}
               {(() => {
@@ -347,12 +360,16 @@ export default function HealthScoreSection({
                 </span>
               </div>
               <div className="relative h-6 w-full overflow-hidden rounded-md">
-                {/* Green/yellow/red zone track */}
+                {/* Green/yellow/red zone track — active zone highlighted */}
                 <div className="absolute inset-0 flex">
-                  {RISK_ZONES.map((z) => (
+                  {RISK_ZONES.map((z, i) => (
                     <div
                       key={z.from}
-                      style={{ width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`, backgroundColor: z.color, opacity: 0.18 }}
+                      style={{
+                        width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`,
+                        backgroundColor: z.color,
+                        opacity: i === activeZoneIndex ? 0.45 : 0.12,
+                      }}
                     />
                   ))}
                 </div>
@@ -372,10 +389,14 @@ export default function HealthScoreSection({
                 </div>
                 <div className="relative h-6 w-full overflow-hidden rounded-md">
                   <div className="absolute inset-0 flex">
-                    {RISK_ZONES.map((z) => (
+                    {RISK_ZONES.map((z, i) => (
                       <div
                         key={z.from}
-                        style={{ width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`, backgroundColor: z.color, opacity: 0.18 }}
+                        style={{
+                          width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`,
+                          backgroundColor: z.color,
+                          opacity: i === avgZoneIndex ? 0.45 : 0.12,
+                        }}
                       />
                     ))}
                   </div>
