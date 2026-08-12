@@ -735,10 +735,6 @@ export default function HealthDashboard() {
               activeBeneficiary?.dmS_Doc_ID?.length ||
               0
             }
-            {/* Pass only a resolved profile image; do NOT default to the male
-                image here — that truthy fallback previously overrode the
-                gender-based image in ProfileCard, showing a male avatar for
-                female beneficiaries. Let ProfileCard derive from gender instead. */}
             profileImage={currentProfileData?.patient_info?.profileImage || ""}
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
