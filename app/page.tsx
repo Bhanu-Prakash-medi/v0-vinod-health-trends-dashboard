@@ -57,7 +57,8 @@ export default function HealthDashboard() {
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>("")
-  const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState(false)
+  // Consent form temporarily hidden. To re-enable, set the initial value back to false.
+  const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState(true)
   const hasHealthSummaryEventFiredRef = useRef(false)
   const hasTrendsEventFiredRef = useRef(false)
 
