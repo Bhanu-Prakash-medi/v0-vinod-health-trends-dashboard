@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Activity } from "lucide-react"
+import ReportProblemButton from "@/components/report-problem-button"
 
 interface HealthScoreSectionProps {
   patientData: any
+  vasbenefId?: string | number
 }
 
 const GAUGE_MIN = 0
@@ -47,7 +49,7 @@ function scoreMeta(score: number) {
   return { label: "Needs attention", color: "#dc2626" }
 }
 
-export default function HealthScoreSection({ patientData }: HealthScoreSectionProps) {
+export default function HealthScoreSection({ patientData, vasbenefId }: HealthScoreSectionProps) {
   // Derive a 0-10 score from the ratio of in-range to total biomarkers across
   // all health-summary categories. Duplicate biomarker names are collapsed so
   // overlapping categories don't skew the ratio.
@@ -101,9 +103,12 @@ export default function HealthScoreSection({ patientData }: HealthScoreSectionPr
 
   return (
     <section aria-label="Health score" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <Activity className="h-5 w-5 text-[#156ddc]" />
-        <h2 className="text-base font-semibold text-[#2e3742]">Health Score</h2>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Activity className="h-5 w-5 text-[#156ddc]" />
+          <h2 className="text-base font-semibold text-[#2e3742]">Health Score</h2>
+        </div>
+        <ReportProblemButton section="Health Score" vasbenefId={vasbenefId} />
       </div>
 
       <div className="flex flex-col items-center">

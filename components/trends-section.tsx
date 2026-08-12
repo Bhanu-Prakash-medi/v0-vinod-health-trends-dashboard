@@ -8,6 +8,7 @@ import { getTrendData } from "@/lib/health-utils"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { getParameterPriority } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import ReportProblemButton from "@/components/report-problem-button"
 
 interface TrendsSectionProps {
   onViewAll?: () => void
@@ -124,18 +125,21 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
           <TrendingUp className="h-6 w-6 text-[#000000]" />
           <h2 className="text-base font-semibold text-[#2e3742]">Health Trends</h2>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            trackHealthTrendsEvent("Trends Graphs - See All", vasbenefId)
-            onViewAll?.()
-          }}
-          className="flex items-center gap-1 text-xs font-medium text-[#156ddc] hover:bg-transparent hover:text-[#156ddc]/80"
-        >
-          See All
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <ReportProblemButton section="Health Trends" vasbenefId={vasbenefId} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              trackHealthTrendsEvent("Trends Graphs - See All", vasbenefId)
+              onViewAll?.()
+            }}
+            className="flex items-center gap-1 text-xs font-medium text-[#156ddc] hover:bg-transparent hover:text-[#156ddc]/80"
+          >
+            See All
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Trend Cards - Original Design */}

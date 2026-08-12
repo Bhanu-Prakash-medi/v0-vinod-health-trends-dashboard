@@ -794,8 +794,8 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-              <HealthScoreSection patientData={currentProfileData} />
-              <HealthSummarySection patientData={currentProfileData} />
+              <HealthScoreSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
+              <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && <TrendsSection onViewAll={() => setShowAllTrends(true)} patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />}

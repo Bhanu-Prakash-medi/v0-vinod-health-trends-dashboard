@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import ReportProblemButton from "@/components/report-problem-button"
 
 function handleViewLatestReport() {
   window.dispatchEvent(new CustomEvent("scroll-to-latest-report"))
@@ -30,6 +31,7 @@ function formatSummaryDate(raw: string): string {
 
 interface HealthSummarySectionProps {
   patientData: any
+  vasbenefId?: string | number
 }
 
 const categoryIcons: Record<string, any> = {
@@ -67,7 +69,7 @@ const getIconForCategory = (category: string) => {
   return categoryIcons.default
 }
 
-export default function HealthSummarySection({ patientData }: HealthSummarySectionProps) {
+export default function HealthSummarySection({ patientData, vasbenefId }: HealthSummarySectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<{ name: string; parameters: any[] } | null>(null)
   const latestDate = patientData?.latestReportDate || patientData?.reports?.[0]?.date || ""
 
@@ -225,13 +227,16 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
               </p>
             </div>
           </div>
-          <button
-            onClick={handleViewLatestReport}
-            className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
-          >
-            View latest report
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <ReportProblemButton section="Health Summary" vasbenefId={vasbenefId} />
+            <button
+              onClick={handleViewLatestReport}
+              className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
+            >
+              View latest report
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Cards Grid - from API health_summary */}
