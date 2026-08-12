@@ -52,6 +52,36 @@ function getReportNames(reportName: any): string[] {
   return ["Lab Report"]
 }
 
+interface NormalizedParam {
+  name: string
+  value: string
+  unit: string
+  range: string
+  isAbnormal: boolean
+}
+
+// The report `parameters` come in two shapes: an array of metric objects or a
+// keyed object. Flatten both into a single list so the report view can render
+// one responsive layout (stacked cards on mobile, table on desktop).
+function normalizeParameters(parameters: any): NormalizedParam[] {
+  if (!parameters) return []
+  const toParam = (name: string, value: any, unit: any, range: any, status: any): NormalizedParam => ({
+    name,
+    value: value != null ? String(value) : "",
+    unit: unit != null ? String(unit) : "",
+    range: range != null ? String(range) : "",
+    isAbnormal: (status || "").toLowerCase() !== "normal",
+  })
+  if (Array.isArray(parameters)) {
+    return parameters.map((p: any) =>
+      toParam(p.metric_name || p.name || "", p.value ?? p.result, p.unit ?? p.units, p.normal_range ?? p.range, p.status),
+    )
+  }
+  return Object.entries(parameters).map(([name, data]: [string, any]) =>
+    toParam(name, data?.result, data?.units, data?.range, data?.status),
+  )
+}
+
 export default function TestReportsSection({ patientData, scrollToDate, onScrollHandled }: TestReportsSectionProps) {
   const [showPdfViewer, setShowPdfViewer] = useState(false)
   const [selectedReportIndex, setSelectedReportIndex] = useState(0)
@@ -360,27 +390,48 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
       {/* PDF Viewer Modal */}
       {showPdfViewer && reports[selectedReportIndex] && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 sm:items-center sm:p-4"
           onClick={() => setShowPdfViewer(false)}
         >
           <div
-            className="relative w-full max-w-4xl h-[90vh] bg-white rounded-lg overflow-hidden shadow-2xl"
+            className="relative flex h-full w-full max-w-4xl flex-col bg-white shadow-2xl sm:h-[90vh] sm:rounded-lg sm:overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#f0f3f5] p-4 bg-white">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-[#156ddc]" />
-                <h3 className="text-sm font-semibold text-[#2e3742]">
+            <div className="flex items-center justify-between gap-2 border-b border-[#f0f3f5] p-3 bg-white sm:p-4">
+              <div className="flex min-w-0 items-center gap-2">
+                <FileText className="h-5 w-5 shrink-0 text-[#156ddc]" />
+                <h3 className="truncate text-sm font-semibold text-[#2e3742]">
                   Lab Report - {reports[selectedReportIndex].date}
                 </h3>
               </div>
-              <button
-                onClick={() => setShowPdfViewer(false)}
-                className="rounded-full p-2 hover:bg-[#f0f3f5] transition-colors"
-              >
-                <X className="h-5 w-5 text-[#4d5c6f]" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                {reports[selectedReportIndex].file && (
+                  <button
+                    onClick={(e) =>
+                      handleDownloadReport(
+                        e,
+                        reports[selectedReportIndex].file,
+                        reports[selectedReportIndex].file_name ||
+                          `Medibuddy_Report_${(reports[selectedReportIndex].date || "").replace(/\//g, "_")}.pdf`,
+                      )
+                    }
+                    className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+                    aria-label="Download original report"
+                    title="Download original report"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline">Download</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowPdfViewer(false)}
+                  className="rounded-full p-2 hover:bg-[#f0f3f5] transition-colors"
+                  aria-label="Close report"
+                >
+                  <X className="h-5 w-5 text-[#4d5c6f]" />
+                </button>
+              </div>
             </div>
 
             {/* System-generated disclaimer */}
@@ -404,11 +455,11 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
             </div>
 
             {/* PDF Content */}
-            <div className="h-[calc(90vh-113px)] overflow-auto bg-[#f5f5f5] p-6">
-              <div className="bg-white rounded-lg p-8 max-w-3xl mx-auto shadow-sm">
+            <div className="flex-1 overflow-auto bg-[#f5f5f5] p-3 sm:p-6">
+              <div className="bg-white rounded-lg p-4 sm:p-8 max-w-3xl mx-auto shadow-sm">
                 {/* Lab Report Header */}
                 <div className="border-b-2 border-[#156ddc] pb-4 mb-6">
-                  <h1 className="text-2xl font-bold text-[#156ddc] mb-2">MEDIBUDDY LAB REPORT</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#156ddc] mb-2">MEDIBUDDY LAB REPORT</h1>
                   <div className="space-y-1">
                     {reports[selectedReportIndex].report_names.map((name: string, nameIndex: number) => (
                       <p key={nameIndex} className="text-sm text-[#4d5c6f]">
@@ -443,13 +494,41 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                 </div>
 
                 {/* Test Results Summary */}
-                {reports[selectedReportIndex].parameters &&
-                  (Array.isArray(reports[selectedReportIndex].parameters)
-                    ? reports[selectedReportIndex].parameters.length > 0
-                    : Object.keys(reports[selectedReportIndex].parameters).length > 0) && (
+                {(() => {
+                  const params = normalizeParameters(reports[selectedReportIndex].parameters)
+                  if (params.length === 0) return null
+                  return (
                     <div className="space-y-4">
-                      <h2 className="text-lg font-bold text-[#2e3742] border-b pb-2">Test Results</h2>
-                      <div className="overflow-x-auto">
+                      <h2 className="text-base sm:text-lg font-bold text-[#2e3742] border-b pb-2">Test Results</h2>
+
+                      {/* Mobile: stacked cards (avoids horizontal table overflow) */}
+                      <div className="space-y-2 sm:hidden">
+                        {params.map((p, idx) => (
+                          <div
+                            key={idx}
+                            className={`rounded-lg border p-3 ${p.isAbnormal ? "border-[#f5c6c2] bg-[#feeceb]" : "border-[#f0f3f5] bg-[#f9fafb]"}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="inline-flex min-w-0 items-center gap-1 text-xs font-medium text-[#2e3742]">
+                                <span className="break-words">{p.name}</span>
+                                <BiomarkerInfoButton name={p.name} />
+                              </span>
+                              <span
+                                className={`shrink-0 whitespace-nowrap text-sm font-semibold ${p.isAbnormal ? "text-red-600" : "text-[#2e3742]"}`}
+                              >
+                                {p.value}
+                                {p.unit ? ` ${p.unit}` : ""}
+                              </span>
+                            </div>
+                            {p.range ? (
+                              <p className="mt-1 text-[11px] text-[#9dabbd]">Normal range: {p.range}</p>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Desktop: full table */}
+                      <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead className="bg-[#f9fafb]">
                             <tr>
@@ -460,56 +539,29 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                             </tr>
                           </thead>
                           <tbody>
-                            {Array.isArray(reports[selectedReportIndex].parameters)
-                              ? reports[selectedReportIndex].parameters.map((param: any, idx: number) => {
-                                  const isAbnormal = (param.status || "").toLowerCase() !== "normal"
-                                  return (
-                                    <tr key={idx} className={`border-b ${isAbnormal ? "bg-[#feeceb]" : ""}`}>
-                                      <td className="p-2 text-xs">
-                                        <span className="inline-flex items-center gap-1">
-                                          {param.metric_name || param.name || ""}
-                                          <BiomarkerInfoButton name={param.metric_name || param.name} />
-                                        </span>
-                                      </td>
-                                      <td
-                                        className={`text-center p-2 text-xs font-semibold ${isAbnormal ? "text-red-600" : ""}`}
-                                      >
-                                        {param.value || param.result || ""}
-                                      </td>
-                                      <td className="text-center p-2 text-xs">{param.unit || param.units || ""}</td>
-                                      <td className="text-center p-2 text-xs">
-                                        {param.normal_range || param.range || ""}
-                                      </td>
-                                    </tr>
-                                  )
-                                })
-                              : Object.entries(reports[selectedReportIndex].parameters).map(
-                                  ([paramName, paramData]: [string, any]) => {
-                                    const isAbnormal = (paramData.status || "").toLowerCase() !== "normal"
-                                    return (
-                                      <tr key={paramName} className={`border-b ${isAbnormal ? "bg-[#feeceb]" : ""}`}>
-                                        <td className="p-2 text-xs">
-                                          <span className="inline-flex items-center gap-1">
-                                            {paramName}
-                                            <BiomarkerInfoButton name={paramName} />
-                                          </span>
-                                        </td>
-                                        <td
-                                          className={`text-center p-2 text-xs font-semibold ${isAbnormal ? "text-red-600" : ""}`}
-                                        >
-                                          {paramData.result}
-                                        </td>
-                                        <td className="text-center p-2 text-xs">{paramData.units}</td>
-                                        <td className="text-center p-2 text-xs">{paramData.range}</td>
-                                      </tr>
-                                    )
-                                  },
-                                )}
+                            {params.map((p, idx) => (
+                              <tr key={idx} className={`border-b ${p.isAbnormal ? "bg-[#feeceb]" : ""}`}>
+                                <td className="p-2 text-xs">
+                                  <span className="inline-flex items-center gap-1">
+                                    {p.name}
+                                    <BiomarkerInfoButton name={p.name} />
+                                  </span>
+                                </td>
+                                <td
+                                  className={`text-center p-2 text-xs font-semibold ${p.isAbnormal ? "text-red-600" : ""}`}
+                                >
+                                  {p.value}
+                                </td>
+                                <td className="text-center p-2 text-xs">{p.unit}</td>
+                                <td className="text-center p-2 text-xs">{p.range}</td>
+                              </tr>
+                            ))}
                           </tbody>
                         </table>
                       </div>
                     </div>
-                  )}
+                  )
+                })()}
 
                 {/* Footer Note */}
                 <div className="mt-8 pt-4 border-t border-[#f0f3f5]">
