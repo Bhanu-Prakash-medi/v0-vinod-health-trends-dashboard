@@ -58,10 +58,10 @@ function riskColor(score: number) {
   return "#dc2626"
 }
 
-// Show the score exactly as computed — no rounding. Only strips floating-point
-// noise so a value like 0.9950000001 renders as "0.995".
+// Show the score to one decimal place, TRUNCATED (not rounded) so a value like
+// 0.995798 renders as "0.9" rather than "1.0".
 function formatScore(n: number) {
-  return String(Number.parseFloat(n.toFixed(6)))
+  return (Math.trunc(n * 10) / 10).toFixed(1)
 }
 
 interface RiskScoreResponse {
