@@ -14,7 +14,10 @@ import TestReportsSection from "@/components/test-reports-section"
 import HealthRecommendationsSection from "@/components/health-recommendations-section"
 import FeedbackSection from "@/components/feedback-section"
 import AllTrendsPage from "@/components/all-trends-page"
+import HealthConsentModal from "@/components/health-consent-modal"
+import HealthScoreSection from "@/components/health-score-section"
 import EmptyState from "@/components/empty-state"
+import ReportProblemButton from "@/components/report-problem-button"
 import {
   TopNavigationSkeleton,
   ProfileCardSkeleton,
@@ -26,8 +29,9 @@ import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
 import {
   fetchBeneficiaries,
-  fetchReportAnalysis,
-  fetchTrends,
+  fetchBeneficiaryReportRequests,
+  fetchReportDetailsAsHealthReport,
+  buildTrendsFromReports,
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
@@ -47,6 +51,12 @@ export default function HealthDashboard() {
   const [beneficiaryReports, setBeneficiaryReports] = useState<Map<string, ApiHealthReport>>(new Map())
   const [beneficiaryErrors, setBeneficiaryErrors] = useState<Map<string, BeneficiaryError>>(new Map())
   const [healthSummaryLoading, setHealthSummaryLoading] = useState<Map<string, boolean>>(new Map())
+  // Beneficiaries whose report load has fully settled. Needed because the reports
+  // map is pre-seeded with an empty placeholder, so "not loaded yet" and "loaded
+  // but empty" look identical by data alone. This flag flips true only once the
+  // load finishes, letting us show the empty-report fallback instead of an
+  // endless skeleton when the analysis comes back with no usable data.
+  const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
   const [pendingReportDate, setPendingReportDate] = useState<string | null>(null)
@@ -54,34 +64,32 @@ export default function HealthDashboard() {
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>("")
+  // Consent form temporarily hidden. To re-enable, set the initial value back to false.
+  const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState(true)
   const hasHealthSummaryEventFiredRef = useRef(false)
   const hasTrendsEventFiredRef = useRef(false)
+  // Tracks which beneficiaries have already had their reports requested, so a
+  // beneficiary's reports are fetched only once (on first selection). Self is
+  // loaded eagerly; everyone else is loaded lazily when the user selects them.
+  const requestedBeneficiariesRef = useRef<Set<string>>(new Set())
+  // Beneficiaries whose lazy load is in-flight — used to show the loading
+  // skeleton immediately on selection instead of flashing an empty state.
+  const [lazyPending, setLazyPending] = useState<Set<string>>(new Set())
 
-  const loadBeneficiaryTrends = useCallback(async (beneficiary: Beneficiary, token: string) => {
+  // Build trend analysis + lab reports client-side from the analyzed reports
+  // (each report's parameters become time-series points). This replaces the old
+  // n8n trends API — trends are derived from the same report-details responses.
+  const attachTrendsToReport = useCallback((report: ApiHealthReport): ApiHealthReport => {
     try {
-      const allDocIds = beneficiary.dmS_Doc_ID || []
-      if (allDocIds.length === 0) return
-
-      const trendsData = await fetchTrends(token, allDocIds, beneficiary.rVasBenefId)
-
-      setBeneficiaryReports((prev) => {
-        const newMap = new Map(prev)
-        const existingReport = newMap.get(beneficiary.patientName)
-        if (existingReport) {
-          newMap.set(beneficiary.patientName, {
-            ...existingReport,
-            trend_analysis: trendsData.trend_analysis,
-            lab_reports: trendsData.lab_reports,
-          })
-        }
-        return newMap
-      })
-      if (!hasTrendsEventFiredRef.current) {
+      const { trend_analysis, lab_reports } = buildTrendsFromReports(report.reports || [])
+      if (!hasTrendsEventFiredRef.current && trend_analysis.length > 0) {
         hasTrendsEventFiredRef.current = true
         trackHealthTrendsEvent("Trends Graphs Loaded")
       }
-    } catch (err) {
-      // Silently handle trends loading errors - trends are non-critical
+      return { ...report, trend_analysis, lab_reports }
+    } catch {
+      // Trends are non-critical; return the report unchanged on failure.
+      return report
     }
   }, [])
 
@@ -93,11 +101,57 @@ export default function HealthDashboard() {
         return newMap
       })
 
-      const hasRecords = (beneficiary.dmS_Doc_ID?.length || 0) > 0
+      // Fetch this beneficiary's authoritative report references
+      // ({ requestId, date, file }) from the reports API using their vasBenifId.
+      // The profile endpoint only populates Self, so every beneficiary's real
+      // report set comes from here. Falls back to profile-provided requests.
+      let reportRequests = beneficiary.reportRequests || []
+      if (beneficiary.rVasBenefId !== undefined && beneficiary.rVasBenefId !== null && beneficiary.rVasBenefId !== "") {
+        try {
+          const fetched = await fetchBeneficiaryReportRequests(token, beneficiary.rVasBenefId)
+          if (fetched.length > 0) {
+            reportRequests = fetched
+            const docIds = fetched.map((r) => r.requestId)
+            // Keep the displayed total at least as large as the profile count so
+            // the badge never shrinks; the profile count is shown immediately.
+            const accurateCount = Math.max(beneficiary.reportCount || 0, fetched.length)
+            beneficiary = { ...beneficiary, reportRequests: fetched, dmS_Doc_ID: docIds, reportCount: accurateCount }
+            // Reflect the real report references in the beneficiary list and
+            // downstream consumers (trends, health summary).
+            setBeneficiaries((prev) =>
+              prev.map((b) =>
+                b.rVasBenefId === beneficiary.rVasBenefId
+                  ? { ...b, reportRequests: fetched, dmS_Doc_ID: docIds, reportCount: accurateCount }
+                  : b,
+              ),
+            )
+          }
+        } catch (reportErr) {
+          if (reportErr instanceof Error && reportErr.message === "UNAUTHORIZED") {
+            setGlobalError({ type: "UNAUTHORIZED", message: "Please login to access the health trends" })
+            return
+          }
+          // Otherwise fall back to the profile-provided report requests (if any).
+        }
+      }
+
+      // The report-details API is scoped by the beneficiary's vasBenefId
+      // (the backend no longer accepts the account mbUserId). Fall back to
+      // userId only if rVasBenefId is somehow missing.
+      const reportVasBenefId = beneficiary.rVasBenefId ?? beneficiary.userId ?? ""
 
       try {
-        const allDocIds = beneficiary.dmS_Doc_ID || []
-        const latestDocIds = beneficiary.latestDmsDocIds || []
+        // Report identifiers are requestIds. The latest report (by date) drives
+        // the health summary / digital twin; all reports feed the trends.
+        const allDocIds = reportRequests.map((r) => r.requestId)
+        const sortedRequests = [...reportRequests].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        )
+        const latestDocIds = sortedRequests.length > 0 ? [sortedRequests[0].requestId] : []
+        const requestDateById = new Map(reportRequests.map((r) => [r.requestId, r.date]))
+        // Original report PDF URL per requestId (from the beneficiary reports API),
+        // used to offer an "download original report" action in Test Reports.
+        const requestFileById = new Map(reportRequests.map((r) => [r.requestId, r.file || ""]))
 
         if (allDocIds.length === 0) {
           setBeneficiaryErrors((prev) => {
@@ -129,7 +183,6 @@ export default function HealthDashboard() {
         const loadedLatestDocIds = new Set<string>()
         const failedDocIds = new Set<string>()
         let hasDisplayedPartialData = false
-        let hasTrendsBeenTriggered = false
         let hasLoaderBeenShown = false
 
 
@@ -174,7 +227,9 @@ export default function HealthDashboard() {
             hasDisplayedPartialData = true
 
             // Merge all loaded reports, but only use effective latest docs for health summary/digital twin
-            const mergedReport = mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap)
+            const mergedReport = attachTrendsToReport(
+              mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
+            )
             mergedReport.patient_info.relation = beneficiary.relation
 
             setBeneficiaryReports((prev) => {
@@ -199,12 +254,28 @@ export default function HealthDashboard() {
           }
         }
 
+        // Fetch the latest report(s) first so the health summary, health score
+        // and digital twin (which only need the latest report) render as early
+        // as possible, before the remaining historical reports finish loading.
+        const orderedDocIds = [
+          ...latestDocIds.filter((id) => allDocIds.includes(id)),
+          ...allDocIds.filter((id) => !latestDocIds.includes(id)),
+        ]
+
         // Launch all report fetches asynchronously
-        const reportPromises = allDocIds.map(async (docId) => {
+        const reportPromises = orderedDocIds.map(async (docId) => {
           try {
-            // Show loader after the first API call is triggered (confirms user has dmS_Doc_ID)
+            // Show loader after the first API call is triggered (confirms records exist)
             showLoaderOnFirstApiCall()
-            const report = await fetchReportAnalysis(token, docId, beneficiary.rVasBenefId)
+            // Fetch the fully analyzed report for this requestId from the new
+            // report-details API (synchronous — no polling).
+            const report = await fetchReportDetailsAsHealthReport(
+              token,
+              reportVasBenefId,
+              docId,
+              requestDateById.get(docId),
+              requestFileById.get(docId),
+            )
             // Update UI incrementally as each report comes in
             updateWithPartialData(report, docId)
             return { status: "fulfilled" as const, value: report, docId }
@@ -237,7 +308,9 @@ export default function HealthDashboard() {
 
             // If a latest doc failed, re-merge with remaining successful reports using updated effective IDs
             if (isFailed && loadedReports.length > 0) {
-              const mergedReport = mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap)
+              const mergedReport = attachTrendsToReport(
+                mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
+              )
               mergedReport.patient_info.relation = beneficiary.relation
               setBeneficiaryReports((prev) => {
                 const newMap = new Map(prev)
@@ -269,7 +342,10 @@ export default function HealthDashboard() {
           }
         }
         const effectiveLatestDocIdsFinal = getEffectiveLatestDocIds()
-        const mergedReport = mergeReportsKeepLatest(successfulReports, effectiveLatestDocIdsFinal, finalReportDocIdMap)
+        // Build trends from all successful reports (client-side) and attach them.
+        const mergedReport = attachTrendsToReport(
+          mergeReportsKeepLatest(successfulReports, effectiveLatestDocIdsFinal, finalReportDocIdMap),
+        )
         mergedReport.isLoading = false
         mergedReport.patient_info.relation = beneficiary.relation
 
@@ -286,21 +362,20 @@ export default function HealthDashboard() {
           return newMap
         })
 
+        // Mark this beneficiary's load as fully settled so the UI can decide
+        // between showing data and showing the empty-report fallback.
+        setCompletedBeneficiaries((prev) => {
+          const next = new Set(prev)
+          next.add(beneficiary.patientName)
+          return next
+        })
+
         // Fire Health Summary Loaded once (self user only) after all reports are merged
         if (!hasHealthSummaryEventFiredRef.current) {
           hasHealthSummaryEventFiredRef.current = true
           trackHealthTrendsEvent("Health Summary Loaded")
         }
-
-        // Trigger trends API after all reports are processed (regardless of individual failures)
-        // Trends uses allDocIds from beneficiary directly, not report analysis results
-        await loadBeneficiaryTrends(beneficiary, token)
       } catch (err) {
-        // Even if report loading fails, still try to load trends for this beneficiary
-        // Trends API is independent and may still return useful data
-        loadBeneficiaryTrends(beneficiary, token).catch(() => { })
-
-
         const errorMessage = err instanceof Error ? err.message : String(err)
 
         let errorInfo: BeneficiaryError
@@ -346,7 +421,7 @@ export default function HealthDashboard() {
         })
       }
     },
-    [loadBeneficiaryTrends],
+    [attachTrendsToReport],
   )
 
   const retryLoadReport = useCallback(
@@ -386,7 +461,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "4842600c250d4e0ca620c2dab4495cf6"
+        const DEBUG_TOKEN = "6fe8dd1eafc845f8a6b7ed65cc11f8c8"
 
         let cookieToken: string | null = null
         try {
@@ -462,20 +537,19 @@ export default function HealthDashboard() {
 
         setIsBeneficiariesLoading(false)
 
-        // Load self beneficiary first and await completion (reports + trends)
-        // before starting others, to ensure self profile gets full priority
+        // Load ONLY the Self beneficiary eagerly on initial load. Other family
+        // members are loaded lazily the first time the user selects them (see
+        // handleBeneficiaryChange). This keeps the initial load lean — fewer
+        // concurrent report requests competing for connections means the profile
+        // and Self's data appear noticeably faster.
         const selfBeneficiary = sortedBeneficiaries[0]
         if (selfBeneficiary) {
-          await loadBeneficiaryReport(selfBeneficiary, token)
           if (selfBeneficiary.dmS_Doc_ID.length == 0) {
             trackHealthTrendsEvent("No Reports Available")
           }
+          requestedBeneficiariesRef.current.add(selfBeneficiary.patientName)
+          loadBeneficiaryReport(selfBeneficiary, token)
         }
-
-        // Then load remaining beneficiaries concurrently
-        sortedBeneficiaries.slice(1).forEach((b) => {
-          loadBeneficiaryReport(b, token)
-        })
       } catch (err) {
         trackHealthTrendsEvent("Failed to Login")
         // Allow a subsequent retry to re-run the initial load.
@@ -508,14 +582,38 @@ export default function HealthDashboard() {
 
   const handleBeneficiaryChange = (name: string) => {
     const index = beneficiaries.findIndex((b) => b.patientName === name)
-    if (index !== -1) {
-      setActiveBeneficiaryIndex(index)
+    if (index === -1) return
+    setActiveBeneficiaryIndex(index)
+
+    // Lazily load this beneficiary's reports the first time they are selected.
+    const beneficiary = beneficiaries[index]
+    if (beneficiary && accessToken && !requestedBeneficiariesRef.current.has(beneficiary.patientName)) {
+      requestedBeneficiariesRef.current.add(beneficiary.patientName)
+      // Show the skeleton right away, then clear the pending flag once the load
+      // settles (real data or an error takes over the gating from there).
+      setLazyPending((prev) => new Set(prev).add(beneficiary.patientName))
+      loadBeneficiaryReport(beneficiary, accessToken).finally(() => {
+        setLazyPending((prev) => {
+          const next = new Set(prev)
+          next.delete(beneficiary.patientName)
+          return next
+        })
+      })
     }
   }
 
+  const consentModal = (
+    <HealthConsentModal
+      open={!hasAcceptedHealthConsent}
+      onAgree={() => setHasAcceptedHealthConsent(true)}
+    />
+  )
+
   if (isBeneficiariesLoading) {
     return (
-      <div className="min-h-screen bg-[#f7f9fa]">
+      <>
+        {consentModal}
+        <div className="min-h-screen bg-[#f7f9fa]">
         <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
           <TopNavigationSkeleton />
           <div className="space-y-6 px-4 py-6">
@@ -526,6 +624,7 @@ export default function HealthDashboard() {
           <Footer />
         </div>
       </div>
+      </>
     )
   }
 
@@ -534,7 +633,9 @@ export default function HealthDashboard() {
     const isTimeout = globalError.type === "TIMEOUT"
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f9fa] p-4">
+      <>
+        {consentModal}
+        <div className="flex min-h-screen items-center justify-center bg-[#f7f9fa] p-4">
         <div className="max-w-md text-center">
           <div className="mb-4 text-6xl">{isUnauthorized ? "🔒" : isTimeout ? "⏱️" : "⚠️"}</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -549,6 +650,7 @@ export default function HealthDashboard() {
           </button>
         </div>
       </div>
+      </>
     )
   }
 
@@ -556,10 +658,15 @@ export default function HealthDashboard() {
   const currentProfileData = activeBeneficiary ? beneficiaryReports.get(activeBeneficiary.patientName) : null
   const isReportLoading = currentProfileData?.isLoading ?? true
   const currentBeneficiaryError = activeBeneficiary ? beneficiaryErrors.get(activeBeneficiary.patientName) : undefined
-  const hasRecordsToLoad = (activeBeneficiary?.dmS_Doc_ID?.length || 0) > 0
-  const isHealthSummaryLoading = activeBeneficiary
-    ? (healthSummaryLoading.get(activeBeneficiary.patientName) ?? false)
-    : false
+  // A beneficiary "has records" if the profile reported lab report URLs
+  // (reportCount) OR we already resolved doc IDs. Driven by the profile count so
+  // the loading skeleton shows immediately instead of flashing an empty state.
+  const hasRecordsToLoad =
+    ((activeBeneficiary?.reportCount ?? activeBeneficiary?.dmS_Doc_ID?.length) || 0) > 0
+  // True while a lazily-selected beneficiary's reports are still being fetched
+  // (their profile report count may be 0 until the reports API responds), so we
+  // show the skeleton instead of momentarily flashing the empty state.
+  const isLazyPending = activeBeneficiary ? lazyPending.has(activeBeneficiary.patientName) : false
 
   const familyMembers = beneficiaries.map((b) => {
     const report = beneficiaryReports.get(b.patientName)
@@ -576,6 +683,17 @@ export default function HealthDashboard() {
   const activeMember = familyMembers[activeBeneficiaryIndex]
   const hasReports = (currentProfileData?.reports?.length || 0) > 0
   const hasTrends = (currentProfileData?.trend_analysis?.length || 0) > 0
+  // A report-details response can come back "Completed" but empty (report_data
+  // null, parameters [], health_summary []). In that case hasReports is still
+  // true, so guard on whether there is any actually usable data before rendering
+  // the data sections — otherwise show a fallback instead of blank sections.
+  const hasUsableData =
+    (currentProfileData?.health_summary?.length || 0) > 0 ||
+    (currentProfileData?.reports?.some((r) => Object.keys(r.parameters || {}).length > 0) ?? false)
+  // Whether this beneficiary's report load has fully settled (see the
+  // completedBeneficiaries state comment). Used to distinguish "still loading"
+  // from "loaded but the analysis returned no usable data".
+  const isLoadComplete = activeBeneficiary ? completedBeneficiaries.has(activeBeneficiary.patientName) : false
 
   if (showAllTrends && currentProfileData) {
     return (
@@ -595,7 +713,15 @@ export default function HealthDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fa]">
+    <>
+      {consentModal}
+      {/* Floating "Report a problem" button pinned to the bottom of the app column. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 pb-5">
+        <div className="pointer-events-auto">
+          <ReportProblemButton floating vasbenefId={activeBeneficiary?.rVasBenefId} emailId={userEmail} />
+        </div>
+      </div>
+      <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
         <TopNavigation
           familyMembers={familyMembers}
@@ -608,8 +734,18 @@ export default function HealthDashboard() {
             age={activeBeneficiary?.age || 0}
             gender={activeBeneficiary?.gender || "Unknown"}
             initial={activeMember?.initial || "U"}
-            reportCount={activeBeneficiary?.dmS_Doc_ID?.length || 0}
-            profileImage={currentProfileData?.patient_info?.profileImage || "/images/profile-male.svg"}
+            reportCount={
+              // Show ONLY the final deduplicated count (lab_reports), matching
+              // the Test Reports section. While reports are still resolving the
+              // count is hidden (see countLoading) so the user never sees the
+              // intermediate filtering values (e.g. 12 -> 5 -> 3).
+              currentProfileData?.lab_reports?.length ||
+              activeBeneficiary?.reportCount ||
+              activeBeneficiary?.dmS_Doc_ID?.length ||
+              0
+            }
+            countLoading={(hasRecordsToLoad || isLazyPending) && !isLoadComplete}
+            profileImage={currentProfileData?.patient_info?.profileImage || ""}
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
             weight={currentProfileData?.patient_info?.weight}
@@ -617,8 +753,14 @@ export default function HealthDashboard() {
             relation={currentProfileData?.patient_info?.relation}
           />
 
-          {hasRecordsToLoad && isHealthSummaryLoading && <HealthSummarySkeleton />}
+          {/* Records exist but the load hasn't settled yet — show skeleton
+              immediately (no "no records" flash) until data, a fallback, or an
+              error arrives. */}
+          {!currentBeneficiaryError && !hasUsableData && !isLoadComplete && (hasRecordsToLoad || isLazyPending) && (
+            <HealthSummarySkeleton />
+          )}
 
+          {/* Genuinely no records for this beneficiary. */}
           {!hasRecordsToLoad && currentBeneficiaryError && (
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
               <div className="mb-3 text-4xl">📋</div>
@@ -627,7 +769,8 @@ export default function HealthDashboard() {
             </div>
           )}
 
-          {hasRecordsToLoad && !isHealthSummaryLoading && currentBeneficiaryError && (
+          {/* Records exist but loading failed — offer a retry. */}
+          {hasRecordsToLoad && !hasReports && currentBeneficiaryError && currentBeneficiaryError.type !== "NO_REPORTS" && (
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
               <div className="mb-3 text-4xl">{currentBeneficiaryError.type === "TIMEOUT" ? "⏱️" : "⚠️"}</div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -643,11 +786,31 @@ export default function HealthDashboard() {
             </div>
           )}
 
-          {!isHealthSummaryLoading && !currentBeneficiaryError && !hasReports && <EmptyState />}
+          {/* Confirmed empty (no records and no records to load). */}
+          {!hasRecordsToLoad && !isLazyPending && !currentBeneficiaryError && <EmptyState />}
 
-          {!isHealthSummaryLoading && !currentBeneficiaryError && hasReports && currentProfileData && (
+          {/* Report(s) resolved but the analysis came back empty (report_data
+              null, no parameters, no health summary) — show a fallback instead
+              of blank sections or an endless skeleton. */}
+          {!currentBeneficiaryError && hasRecordsToLoad && isLoadComplete && !hasUsableData && (
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
+              <div className="mb-3 text-4xl">📄</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Report Details Unavailable</h3>
+              <p className="text-gray-600 text-sm">
+                {"We couldn't extract health insights from this report yet. It may still be processing or in a format we can't read. Please check back later."}
+              </p>
+            </div>
+          )}
+
+          {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-              <HealthSummarySection patientData={currentProfileData} />
+              <HealthScoreSection
+                patientData={currentProfileData}
+                vasbenefId={activeBeneficiary?.rVasBenefId}
+                requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
+                accessToken={accessToken}
+              />
+              <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && <TrendsSection onViewAll={() => setShowAllTrends(true)} patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />}
@@ -667,6 +830,7 @@ export default function HealthDashboard() {
         </div>
         <Footer />
       </div>
-    </div>
+      </div>
+    </>
   )
 }

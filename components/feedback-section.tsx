@@ -14,13 +14,54 @@ interface FeedbackSectionProps {
   emailId?: string
 }
 
+interface FeedbackOptionSet {
+  band: string
+  prompt: string
+  options: string[]
+}
+
 export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSectionProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [rating, setRating] = useState(-1)
   const [message, setMessage] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [optionSet, setOptionSet] = useState<FeedbackOptionSet | null>(null)
+  const [optionsLoading, setOptionsLoading] = useState(false)
+  const [selectedReasons, setSelectedReasons] = useState<string[]>([])
   const sectionRef = useRef<HTMLElement>(null)
+
+  // Fetch the rating-band options from the server whenever a rating is picked.
+  // The option catalog is server-only, so it is never exposed in the bundle.
+  useEffect(() => {
+    if (rating < 0) {
+      setOptionSet(null)
+      setSelectedReasons([])
+      return
+    }
+    let cancelled = false
+    setOptionsLoading(true)
+    setSelectedReasons([])
+    fetch(`/api/feedback/options?rating=${rating}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) setOptionSet(data)
+      })
+      .catch((err) => {
+        console.log("[v0] Feedback options fetch failed:", err instanceof Error ? err.message : err)
+        if (!cancelled) setOptionSet(null)
+      })
+      .finally(() => {
+        if (!cancelled) setOptionsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [rating])
+
+  const toggleReason = (reason: string) => {
+    setSelectedReasons((prev) => (prev.includes(reason) ? prev.filter((r) => r !== reason) : [...prev, reason]))
+  }
 
   useEffect(() => {
     const handleOpenFeedback = () => {
@@ -37,12 +78,15 @@ export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSection
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (rating < 0 && message.trim() === "") return
+    if (rating < 0 && message.trim() === "" && selectedReasons.length === 0) return
     if (isSubmitting) return
 
     setIsSubmitting(true)
 
-    trackHealthTrendsEvent(`feedback_submitted | rating:${rating} | message:${message.trim()}`, vasbenefId)
+    trackHealthTrendsEvent(
+      `feedback_submitted | rating:${rating} | reasons:${selectedReasons.join("; ")} | message:${message.trim()}`,
+      vasbenefId,
+    )
 
     try {
       await fetch(" https://n8n-swift.medibuddy.in/webhook/health-trends-feedback", {
@@ -50,6 +94,7 @@ export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSection
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rating: rating >= 0 ? rating : null,
+          selectedReasons,
           feedbackMessage: message.trim(),
           emailId: emailId || "",
         }),
@@ -94,6 +139,8 @@ export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSection
                 setIsFormOpen(false)
                 setRating(-1)
                 setMessage("")
+                setSelectedReasons([])
+                setOptionSet(null)
               }}
               className="flex h-7 w-7 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
               aria-label="Close feedback form"
@@ -161,6 +208,42 @@ export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSection
               </div>
             </div>
 
+            {/* Rating-based multi-select reasons */}
+            {rating >= 0 && (
+              <div>
+                {optionsLoading ? (
+                  <div className="flex items-center gap-2 py-1 text-xs text-[#9dabbd]">
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#e5eaf0] border-t-[#156ddc]" />
+                    Loading options...
+                  </div>
+                ) : optionSet ? (
+                  <>
+                    <p className="mb-2 text-xs font-medium text-[#2e3742]">{optionSet.prompt}</p>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label={optionSet.prompt}>
+                      {optionSet.options.map((option) => {
+                        const isSelected = selectedReasons.includes(option)
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => toggleReason(option)}
+                            aria-pressed={isSelected}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#156ddc] ${
+                              isSelected
+                                ? "border-[#156ddc] bg-[#156ddc] text-white"
+                                : "border-[#e2e8ef] bg-white text-[#4d5c6f] hover:border-[#156ddc] hover:text-[#156ddc]"
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            )}
+
             {/* Message */}
             <div>
               <label htmlFor="feedback-message" className="mb-2 block text-xs font-medium text-[#2e3742]">
@@ -177,7 +260,7 @@ export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSection
 
             <Button
               type="submit"
-              disabled={(rating < 0 && message.trim() === "") || isSubmitting}
+              disabled={(rating < 0 && message.trim() === "" && selectedReasons.length === 0) || isSubmitting}
               className="w-full bg-[#156ddc] text-white hover:bg-[#1160c4] disabled:opacity-50 sm:w-auto sm:self-end"
             >
               {isSubmitting ? "Submitting..." : "Submit Feedback"}

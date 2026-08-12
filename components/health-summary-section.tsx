@@ -5,13 +5,32 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
+import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 function handleViewLatestReport() {
   window.dispatchEvent(new CustomEvent("scroll-to-latest-report"))
 }
 
+// Format the latest report date into a readable "12 Dec 2025" label.
+// Handles ISO strings, dd/mm/yyyy, and already-formatted values gracefully.
+function formatSummaryDate(raw: string): string {
+  if (!raw) return ""
+  let date = new Date(raw)
+  if (isNaN(date.getTime())) {
+    const parts = raw.split(/[/-]/).map((p) => p.trim())
+    if (parts.length === 3) {
+      const [a, b, c] = parts
+      // Assume dd/mm/yyyy when the first segment isn't a 4-digit year
+      date = a.length === 4 ? new Date(`${a}-${b}-${c}`) : new Date(`${c}-${b}-${a}`)
+    }
+  }
+  if (isNaN(date.getTime())) return raw
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+}
+
 interface HealthSummarySectionProps {
   patientData: any
+  vasbenefId?: string | number
 }
 
 const categoryIcons: Record<string, any> = {
@@ -49,7 +68,7 @@ const getIconForCategory = (category: string) => {
   return categoryIcons.default
 }
 
-export default function HealthSummarySection({ patientData }: HealthSummarySectionProps) {
+export default function HealthSummarySection({ patientData, vasbenefId }: HealthSummarySectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<{ name: string; parameters: any[] } | null>(null)
   const latestDate = patientData?.latestReportDate || patientData?.reports?.[0]?.date || ""
 
@@ -195,19 +214,21 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
       <section>
         {/* Header */}
         <div className="mb-4 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Activity className="h-6 w-6 text-[#000000]" />
-            <div>
+          <div className="flex min-w-0 items-center gap-2">
+            <Activity className="h-6 w-6 shrink-0 text-[#000000]" />
+            <div className="min-w-0">
               <h2 className="text-base font-semibold text-[#2e3742]">Health Summary</h2>
-              <p className="flex items-center gap-1 text-xs text-[#9dabbd]">
-                <Info className="h-3 w-3 shrink-0 text-[#9dabbd]" />
-                Based on your latest health report
+              <p className="flex items-start gap-1 text-xs text-[#9dabbd]">
+                <Info className="mt-0.5 h-3 w-3 shrink-0 text-[#9dabbd]" />
+                <span className="text-pretty">
+                  Based on your latest health report{formatSummaryDate(latestDate) ? ` (${formatSummaryDate(latestDate)})` : ""}
+                </span>
               </p>
             </div>
           </div>
           <button
             onClick={handleViewLatestReport}
-            className="flex items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
+            className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
           >
             View latest report
             <ChevronRight className="h-3.5 w-3.5" />
@@ -299,7 +320,10 @@ export default function HealthSummarySection({ patientData }: HealthSummarySecti
                         className="flex items-center justify-between gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="break-words text-sm font-medium text-[#2e3742]">{param.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="break-words text-sm font-medium text-[#2e3742]">{param.name}</p>
+                            <BiomarkerInfoButton name={param.name} />
+                          </div>
                           {paramRange && (
                             <p className="mt-0.5 break-words text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>
                           )}

@@ -1,13 +1,28 @@
 "use client"
 
 import { useState } from "react"
+import useSWR from "swr"
 import { Info } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { getBiomarkerExplanation } from "@/lib/biomarker-explanations"
+
+interface BiomarkerExplanation {
+  title: string
+  description: string
+}
 
 interface BiomarkerInfoButtonProps {
   name?: string | null
   className?: string
+}
+
+// Resolves a biomarker explanation from the server-only lookup API. The full
+// dataset never reaches the client; we request one name at a time and SWR
+// dedupes/caches identical names across every info button on the page.
+const fetcher = async (url: string): Promise<BiomarkerExplanation | null> => {
+  const res = await fetch(url)
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.explanation ?? null
 }
 
 /**
@@ -17,7 +32,13 @@ interface BiomarkerInfoButtonProps {
 export default function BiomarkerInfoButton({ name, className }: BiomarkerInfoButtonProps) {
   const [open, setOpen] = useState(false)
 
-  const explanation = getBiomarkerExplanation(name)
+  const key = name && name.trim() ? `/api/biomarker-explanation?name=${encodeURIComponent(name)}` : null
+  const { data: explanation } = useSWR<BiomarkerExplanation | null>(key, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 24 * 60 * 60 * 1000,
+  })
+
+  // Nothing to show until (and unless) a confident match resolves.
   if (!explanation) return null
 
   return (

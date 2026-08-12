@@ -1,0 +1,1022 @@
+[
+  {
+    "parameter": "Ejection Result",
+    "explanation": "Indicates the result related to the heart's pumping/ejection function, usually associated with the percentage of blood pumped out of the ventricle."
+  },
+  {
+    "parameter": "2D Echo (Remark)",
+    "explanation": "Doctor's qualitative observation or interpretation from a 2D echocardiogram."
+  },
+  {
+    "parameter": "2D Echo (Result)",
+    "explanation": "Overall result/findings of the 2D echocardiogram."
+  },
+  {
+    "parameter": "Ejection Fraction",
+    "explanation": "Percentage of blood pumped out of the left ventricle with each heartbeat. It is an important measure of heart pumping function."
+  },
+  {
+    "parameter": "2 D Echo",
+    "explanation": "Two-dimensional echocardiography used to visualize heart chambers, valves, walls and pumping function."
+  },
+  {
+    "parameter": "Cardiac Stress Test",
+    "explanation": "Evaluates how the heart performs under increased workload, generally during exercise."
+  },
+  {
+    "parameter": "Cardiologist Consultation",
+    "explanation": "Clinical consultation with a cardiologist; not a biomarker."
+  },
+  {
+    "parameter": "ECG (Remark)",
+    "explanation": "Physician's interpretation or comments on an ECG."
+  },
+  {
+    "parameter": "Heart Rate (Result)",
+    "explanation": "Heart rate obtained from the ECG/report."
+  },
+  {
+    "parameter": "Heart Rate (BPM)",
+    "explanation": "Number of heartbeats per minute."
+  },
+  {
+    "parameter": "ECG Report",
+    "explanation": "Report generated from an electrocardiogram recording the heart's electrical activity."
+  },
+  {
+    "parameter": "Axis",
+    "explanation": "Direction of the heart's electrical activity on an ECG, usually referring to the QRS electrical axis."
+  },
+  {
+    "parameter": "ECG (Result)",
+    "explanation": "Findings/result obtained from an electrocardiogram."
+  },
+  {
+    "parameter": "Electrocardiogram (ECG)",
+    "explanation": "Test that records the electrical activity and rhythm of the heart."
+  },
+  {
+    "parameter": "Echo cardiography",
+    "explanation": "Echocardiography uses ultrasound to assess the structure and function of the heart."
+  },
+  {
+    "parameter": "Echocardiogram",
+    "explanation": "Ultrasound imaging of the heart used to evaluate chambers, valves, wall motion and pumping function."
+  },
+  {
+    "parameter": "TMT Heart Rate T (Result)",
+    "explanation": "Heart rate recorded at a particular stage/time during a treadmill test."
+  },
+  {
+    "parameter": "TMT Heart Rate (BPM)",
+    "explanation": "Heart rate measured during a treadmill stress test."
+  },
+  {
+    "parameter": "TMT (Result)",
+    "explanation": "Overall result of the treadmill stress test."
+  },
+  {
+    "parameter": "TMT (Remark)",
+    "explanation": "Physician's interpretation/comments on the treadmill test."
+  },
+  {
+    "parameter": "Tread Mill Test (TMT)",
+    "explanation": "Exercise stress test used to evaluate cardiac response to physical exertion."
+  },
+  {
+    "parameter": "METs",
+    "explanation": "Metabolic equivalents; estimate of exercise capacity or workload achieved during a stress test."
+  },
+  {
+    "parameter": "TMECG",
+    "explanation": "Treadmill ECG/stress ECG, combining exercise testing with continuous ECG monitoring."
+  },
+  {
+    "parameter": "2D-Echo",
+    "explanation": "Two-dimensional ultrasound examination of the heart."
+  },
+  {
+    "parameter": "Mentzer Score",
+    "explanation": "Calculated using MCV and RBC count; commonly used as an aid in differentiating iron-deficiency anemia from thalassemia trait."
+  },
+  {
+    "parameter": "Eosinophils",
+    "explanation": "White blood cells involved particularly in allergic responses and defense against certain parasites."
+  },
+  {
+    "parameter": "RDW",
+    "explanation": "Red Cell Distribution Width; measures variation in the size of red blood cells."
+  },
+  {
+    "parameter": "Lymphocytes",
+    "explanation": "White blood cells involved in immune defense, including antibody production and cellular immunity."
+  },
+  {
+    "parameter": "Monocytes",
+    "explanation": "White blood cells involved in immune defense and removal of damaged or foreign material."
+  },
+  {
+    "parameter": "Peripheral Smear",
+    "explanation": "Microscopic examination of blood cells to assess their appearance, size, shape and distribution."
+  },
+  {
+    "parameter": "RBC Morphology",
+    "explanation": "Describes the size, shape and appearance of red blood cells."
+  },
+  {
+    "parameter": "WBC Morphology",
+    "explanation": "Describes the appearance and characteristics of white blood cells."
+  },
+  {
+    "parameter": "Basophils",
+    "explanation": "White blood cells involved in allergic and inflammatory responses."
+  },
+  {
+    "parameter": "MPV",
+    "explanation": "Mean Platelet Volume; average size of circulating platelets and an indicator related to platelet production/activity."
+  },
+  {
+    "parameter": "Haematocrit (PCV)",
+    "explanation": "Percentage of blood volume occupied by red blood cells."
+  },
+  {
+    "parameter": "MCH",
+    "explanation": "Mean Corpuscular Hemoglobin; average amount of hemoglobin contained in one red blood cell."
+  },
+  {
+    "parameter": "MCV",
+    "explanation": "Mean Corpuscular Volume; average size/volume of red blood cells."
+  },
+  {
+    "parameter": "RBC Count",
+    "explanation": "Number of red blood cells in a given volume of blood."
+  },
+  {
+    "parameter": "Haemoglobin",
+    "explanation": "Protein in red blood cells that carries oxygen from the lungs to tissues."
+  },
+  {
+    "parameter": "Neutrophils",
+    "explanation": "White blood cells that provide an important first-line defense against bacterial and other infections."
+  },
+  {
+    "parameter": "WBC Count",
+    "explanation": "Total number of white blood cells in the blood."
+  },
+  {
+    "parameter": "Platelet Count",
+    "explanation": "Number of platelets in the blood; platelets are important for blood clotting."
+  },
+  {
+    "parameter": "MCHC",
+    "explanation": "Mean Corpuscular Hemoglobin Concentration; average concentration of hemoglobin within red blood cells."
+  },
+  {
+    "parameter": "ESR",
+    "explanation": "Erythrocyte Sedimentation Rate; nonspecific marker that can increase with inflammation or certain other conditions."
+  },
+  {
+    "parameter": "Absolute Neutrophils Count",
+    "explanation": "Absolute number of neutrophils in the blood."
+  },
+  {
+    "parameter": "Absolute Lymphocyte Count",
+    "explanation": "Absolute number of lymphocytes in the blood."
+  },
+  {
+    "parameter": "Absolute Eosinophils Count",
+    "explanation": "Absolute number of eosinophils in the blood."
+  },
+  {
+    "parameter": "Absolute Monocyte Count",
+    "explanation": "Absolute number of monocytes in the blood."
+  },
+  {
+    "parameter": "Absolute Basophils Count",
+    "explanation": "Absolute number of basophils in the blood."
+  },
+  {
+    "parameter": "Mixed Cells",
+    "explanation": "Usually represents the combined proportion/count of certain less-common white-cell types in automated blood-count reporting."
+  },
+  {
+    "parameter": "PDW",
+    "explanation": "Platelet Distribution Width; reflects variation in platelet size."
+  },
+  {
+    "parameter": "RDW-SD",
+    "explanation": "Standard deviation-based measure of variation in red blood cell size."
+  },
+  {
+    "parameter": "Platelet Crit",
+    "explanation": "Plateletcrit; percentage of blood volume occupied by platelets."
+  },
+  {
+    "parameter": "P-LCR",
+    "explanation": "Platelet Large Cell Ratio; proportion of larger platelets in the circulation."
+  },
+  {
+    "parameter": "RH",
+    "explanation": "Rh blood-group status, generally reported as positive or negative based on the presence of the Rh(D) antigen."
+  },
+  {
+    "parameter": "Blood Group (ABO)",
+    "explanation": "Identifies the person's ABO blood group: A, B, AB or O."
+  },
+  {
+    "parameter": "Clotting Time",
+    "explanation": "Time required for blood to form a clot under specified test conditions."
+  },
+  {
+    "parameter": "Bleeding Time",
+    "explanation": "Historical test assessing the time required for bleeding to stop; relates mainly to platelet function and primary hemostasis."
+  },
+  {
+    "parameter": "PT (Prothrombin Time)",
+    "explanation": "Measures the time required for blood to clot through the extrinsic/common coagulation pathways."
+  },
+  {
+    "parameter": "Prothrombin Time",
+    "explanation": "Same coagulation measurement as PT; used to evaluate clotting and commonly monitor warfarin therapy."
+  },
+  {
+    "parameter": "Serum B12",
+    "explanation": "Measures vitamin B12 concentration, important for red blood cell formation and normal nervous-system function."
+  },
+  {
+    "parameter": "25OH Test (Vitamin D)",
+    "explanation": "Measures 25-hydroxyvitamin D, the main circulating form used to assess vitamin D status."
+  },
+  {
+    "parameter": "Fructosamine",
+    "explanation": "Measures glycated blood proteins and provides an estimate of average blood glucose over roughly the previous 2\u20133 weeks."
+  },
+  {
+    "parameter": "FBS",
+    "explanation": "Fasting Blood Sugar; blood glucose measured after fasting, commonly used for diabetes screening and monitoring."
+  },
+  {
+    "parameter": "RBS",
+    "explanation": "Random Blood Sugar; blood glucose measured at any time regardless of when food was last consumed."
+  },
+  {
+    "parameter": "PPBS",
+    "explanation": "Post-Prandial Blood Sugar; blood glucose measured after a meal, commonly around 2 hours after eating."
+  },
+  {
+    "parameter": "HbA1c",
+    "explanation": "Glycated hemoglobin; reflects average blood glucose over approximately the previous 2\u20133 months."
+  },
+  {
+    "parameter": "OGTT",
+    "explanation": "Oral Glucose Tolerance Test; measures the body's response to a standardized glucose load and is used particularly for diagnosing glucose intolerance/diabetes and gestational diabetes."
+  },
+  {
+    "parameter": "LDL/HDL Ratio",
+    "explanation": "Ratio of LDL cholesterol to HDL cholesterol; provides a comparative view of these two cholesterol fractions."
+  },
+  {
+    "parameter": "Chol/HDL Ratio",
+    "explanation": "Ratio of total cholesterol to HDL cholesterol."
+  },
+  {
+    "parameter": "HDL Cholesterol",
+    "explanation": "High-Density Lipoprotein cholesterol; commonly called \"good cholesterol\" because higher levels are generally associated with lower cardiovascular risk."
+  },
+  {
+    "parameter": "VLDL Cholesterol",
+    "explanation": "Very-Low-Density Lipoprotein cholesterol; primarily transports triglycerides in the blood."
+  },
+  {
+    "parameter": "LDL Cholesterol",
+    "explanation": "Low-Density Lipoprotein cholesterol; elevated levels are associated with increased risk of atherosclerotic cardiovascular disease."
+  },
+  {
+    "parameter": "Total Cholesterol",
+    "explanation": "Total amount of cholesterol in the blood, including cholesterol carried by different lipoproteins."
+  },
+  {
+    "parameter": "Triglycerides",
+    "explanation": "A major type of fat in the blood; elevated levels can contribute to cardiovascular and metabolic risk."
+  },
+  {
+    "parameter": "Apolipoprotein B",
+    "explanation": "Main structural protein of atherogenic lipoprotein particles such as LDL, VLDL and remnants; reflects the number of atherogenic particles."
+  },
+  {
+    "parameter": "Apolipoproteins B",
+    "explanation": "Same marker as Apolipoprotein B; duplicate naming."
+  },
+  {
+    "parameter": "Apolipoproteins A1",
+    "explanation": "Main protein component of HDL particles and involved in reverse cholesterol transport."
+  },
+  {
+    "parameter": "Lipoprotein(a)",
+    "explanation": "LDL-like lipoprotein containing apolipoprotein(a); genetically influenced cardiovascular risk marker."
+  },
+  {
+    "parameter": "GGTP",
+    "explanation": "Gamma-Glutamyl Transferase (GGT); enzyme associated particularly with the liver and biliary system."
+  },
+  {
+    "parameter": "SGPT",
+    "explanation": "Alanine Aminotransferase (ALT); liver enzyme that can increase when liver cells are damaged."
+  },
+  {
+    "parameter": "SGOT",
+    "explanation": "Aspartate Aminotransferase (AST); enzyme found in liver, heart and muscles that may increase with tissue injury."
+  },
+  {
+    "parameter": "Alkaline Phosphatase",
+    "explanation": "Enzyme associated with liver/bile ducts and bone; elevated levels can occur in several liver or bone conditions."
+  },
+  {
+    "parameter": "Bilirubin Total",
+    "explanation": "Total bilirubin in blood, reflecting breakdown of hemoglobin and processing/excretion by the liver."
+  },
+  {
+    "parameter": "Bilirubin Direct",
+    "explanation": "Conjugated bilirubin processed by the liver and generally excreted through bile."
+  },
+  {
+    "parameter": "Bilirubin Indirect",
+    "explanation": "Unconjugated bilirubin formed before liver conjugation."
+  },
+  {
+    "parameter": "Bilirubin",
+    "explanation": "General measurement of bilirubin; may refer to total or a specific fraction depending on the report."
+  },
+  {
+    "parameter": "Serum Albumin",
+    "explanation": "Major protein produced by the liver; helps maintain fluid balance and transports various substances."
+  },
+  {
+    "parameter": "Serum Globulin",
+    "explanation": "Group of blood proteins involved in immune function and transport."
+  },
+  {
+    "parameter": "Serum Protein",
+    "explanation": "Total amount of major proteins in blood, generally including albumin and globulins."
+  },
+  {
+    "parameter": "A/G Ratio",
+    "explanation": "Albumin-to-Globulin ratio; compares two major groups of blood proteins."
+  },
+  {
+    "parameter": "Urine Microalbumin",
+    "explanation": "Measures small amounts of albumin in urine; useful for detecting early kidney damage, particularly in diabetes."
+  },
+  {
+    "parameter": "eGFR",
+    "explanation": "Estimated Glomerular Filtration Rate; estimates how effectively the kidneys filter blood."
+  },
+  {
+    "parameter": "Blood Urea",
+    "explanation": "Measures urea in blood, a waste product produced from protein metabolism and eliminated by the kidneys."
+  },
+  {
+    "parameter": "BUN",
+    "explanation": "Blood Urea Nitrogen; measures the nitrogen component of urea in blood."
+  },
+  {
+    "parameter": "Creatinine",
+    "explanation": "Waste product produced mainly by muscle metabolism and filtered by the kidneys; commonly used to assess kidney function."
+  },
+  {
+    "parameter": "Creatinine Clearance",
+    "explanation": "Estimates the kidney's ability to clear creatinine from the blood."
+  },
+  {
+    "parameter": "Urine Creatinine",
+    "explanation": "Measures creatinine concentration in urine; used in kidney assessment and for interpreting urine protein/albumin measurements."
+  },
+  {
+    "parameter": "BUN / Creatinine Ratio",
+    "explanation": "Ratio between BUN and creatinine; can help interpret patterns of kidney function and hydration."
+  },
+  {
+    "parameter": "Urea / Creatinine Ratio",
+    "explanation": "Ratio of urea to creatinine, used to assess the relationship between these kidney-related markers."
+  },
+  {
+    "parameter": "Urine Protein To Creatinine Ratio",
+    "explanation": "Estimates urinary protein excretion while accounting for urine concentration."
+  },
+  {
+    "parameter": "Urine-Protein/Creatinine Ratio",
+    "explanation": "Same concept as urine protein-to-creatinine ratio; estimates protein loss in urine."
+  },
+  {
+    "parameter": "Urine Albumin",
+    "explanation": "Measures albumin excreted into urine and can indicate kidney damage when elevated."
+  },
+  {
+    "parameter": "Serum Chloride",
+    "explanation": "Electrolyte involved in fluid balance, acid-base regulation and maintenance of electrical neutrality."
+  },
+  {
+    "parameter": "Serum Phosphorus",
+    "explanation": "Mineral important for bones, energy metabolism and cellular function."
+  },
+  {
+    "parameter": "Serum Calcium",
+    "explanation": "Mineral essential for bones, muscles, nerves and blood clotting."
+  },
+  {
+    "parameter": "Serum Sodium",
+    "explanation": "Major electrolyte involved in fluid balance, nerve function and muscle function."
+  },
+  {
+    "parameter": "Serum Potassium",
+    "explanation": "Major intracellular electrolyte essential for nerve signaling and normal heart and muscle function."
+  },
+  {
+    "parameter": "Ph",
+    "explanation": "Urine pH indicates how acidic or alkaline the urine is."
+  },
+  {
+    "parameter": "Free T3",
+    "explanation": "Unbound triiodothyronine available to tissues; an active thyroid hormone."
+  },
+  {
+    "parameter": "T3",
+    "explanation": "Total triiodothyronine, a thyroid hormone involved in regulating metabolism."
+  },
+  {
+    "parameter": "T4",
+    "explanation": "Total thyroxine, the primary hormone produced by the thyroid gland."
+  },
+  {
+    "parameter": "Free T4",
+    "explanation": "Unbound thyroxine available to tissues; commonly used with TSH to assess thyroid function."
+  },
+  {
+    "parameter": "Thyroid Stimulating Hormone (TSH)",
+    "explanation": "Hormone produced by the pituitary gland that regulates thyroid hormone production."
+  },
+  {
+    "parameter": "UIBC",
+    "explanation": "Unsaturated Iron-Binding Capacity; measures the amount of transferrin available to bind additional iron."
+  },
+  {
+    "parameter": "UIBC - c",
+    "explanation": "Likely a system-specific variation/code for UIBC; underlying parameter measures unsaturated iron-binding capacity."
+  },
+  {
+    "parameter": "UIBC - d",
+    "explanation": "Likely a system-specific variation/code for UIBC; measures unsaturated iron-binding capacity."
+  },
+  {
+    "parameter": "Total Iron Binding Capacity",
+    "explanation": "Estimates the blood's capacity to bind iron, mainly through transferrin."
+  },
+  {
+    "parameter": "IRON",
+    "explanation": "Measures iron concentration in blood, generally reflecting circulating serum iron."
+  },
+  {
+    "parameter": "Transferrin Saturation %",
+    "explanation": "Percentage of transferrin binding sites occupied by iron; helps assess iron availability and iron disorders."
+  },
+  {
+    "parameter": "HsCRP",
+    "explanation": "High-sensitivity C-reactive protein; detects relatively low levels of inflammation and is commonly used in cardiovascular risk assessment."
+  },
+  {
+    "parameter": "C Reactive Protein",
+    "explanation": "Protein produced in response to inflammation; a nonspecific marker of inflammatory activity."
+  },
+  {
+    "parameter": "Rheumatoid Factor",
+    "explanation": "Autoantibody that can be present in rheumatoid arthritis and other autoimmune/infectious conditions."
+  },
+  {
+    "parameter": "Anti CCP",
+    "explanation": "Anti-cyclic citrullinated peptide antibody; relatively specific autoimmune marker associated with rheumatoid arthritis."
+  },
+  {
+    "parameter": "Serum Amylase",
+    "explanation": "Enzyme involved in carbohydrate digestion; mainly produced by the pancreas and salivary glands."
+  },
+  {
+    "parameter": "LIPASE",
+    "explanation": "Enzyme primarily produced by the pancreas that helps digest dietary fats; commonly assessed in suspected pancreatic disease."
+  },
+  {
+    "parameter": "Creatinine Phosphokinase",
+    "explanation": "Also called creatine kinase (CK); enzyme found in skeletal muscle, heart and brain that can rise with muscle injury."
+  },
+  {
+    "parameter": "Uric Acid",
+    "explanation": "Waste product formed from purine metabolism; elevated levels can contribute to gout and may be associated with kidney/metabolic conditions."
+  },
+  {
+    "parameter": "Bacteria",
+    "explanation": "Indicates bacteria detected in urine; interpretation depends on quantity and other findings because contamination is possible."
+  },
+  {
+    "parameter": "Specific Gravity",
+    "explanation": "Indicates urine concentration and provides information about hydration and the kidney's concentrating ability."
+  },
+  {
+    "parameter": "Crystals",
+    "explanation": "Microscopic crystals in urine; certain types may be associated with kidney stones or metabolic conditions."
+  },
+  {
+    "parameter": "RBCs",
+    "explanation": "Red blood cells detected in urine; may indicate blood in the urine."
+  },
+  {
+    "parameter": "Bile Pigments",
+    "explanation": "Bilirubin-related pigments detected in urine; may be associated with certain liver or biliary conditions."
+  },
+  {
+    "parameter": "Protein",
+    "explanation": "Protein detected in urine; persistent elevation may indicate kidney disease."
+  },
+  {
+    "parameter": "BLOOD (presence)",
+    "explanation": "Indicates blood/hemoglobin detected in urine."
+  },
+  {
+    "parameter": "Glucose",
+    "explanation": "Glucose detected in urine; may occur when blood glucose is sufficiently elevated or in certain renal conditions."
+  },
+  {
+    "parameter": "Yeast cells",
+    "explanation": "Fungal/yeast cells detected in urine; may indicate contamination or urinary fungal involvement depending on context."
+  },
+  {
+    "parameter": "Amorphous Deposits",
+    "explanation": "Non-specific microscopic material/crystals found in urine sediment."
+  },
+  {
+    "parameter": "Nitrite",
+    "explanation": "Urine marker that can become positive when certain bacteria convert nitrate to nitrite; may support a urinary tract infection."
+  },
+  {
+    "parameter": "Appearance",
+    "explanation": "Visual description of urine, such as clear, cloudy or turbid."
+  },
+  {
+    "parameter": "Trichomonas Vaginalis",
+    "explanation": "Parasite that can cause trichomoniasis; detection in a urine/genital specimen can indicate infection."
+  },
+  {
+    "parameter": "Bile Salts",
+    "explanation": "Bile-related substances detected in urine; may be associated with liver or biliary disease."
+  },
+  {
+    "parameter": "Cast",
+    "explanation": "Cylindrical structures formed in kidney tubules; different types can provide clues about kidney conditions."
+  },
+  {
+    "parameter": "Ketones",
+    "explanation": "Produced when the body breaks down fat for energy; can increase with fasting, low-carbohydrate diets or uncontrolled diabetes."
+  },
+  {
+    "parameter": "Urobilinogen",
+    "explanation": "Product formed from bilirubin metabolism; urine levels can provide information about liver function and red-cell breakdown."
+  },
+  {
+    "parameter": "Pus Cells - WBCs",
+    "explanation": "White blood cells in urine; can indicate urinary inflammation or infection."
+  },
+  {
+    "parameter": "Quantity",
+    "explanation": "Amount/volume of urine specimen or another specimen-related measurement; not a biomarker itself."
+  },
+  {
+    "parameter": "Colour",
+    "explanation": "Visual color of urine; affected by hydration, foods, medications and disease."
+  },
+  {
+    "parameter": "FEV1 (Pre)",
+    "explanation": "Forced Expiratory Volume in 1 second before bronchodilator; amount of air forcefully exhaled in the first second."
+  },
+  {
+    "parameter": "FEV1 / FVC (Pre)",
+    "explanation": "Ratio of FEV1 to FVC before bronchodilator; helps identify obstructive patterns of lung function."
+  },
+  {
+    "parameter": "FVC (Post)",
+    "explanation": "Forced Vital Capacity measured after bronchodilator administration."
+  },
+  {
+    "parameter": "Vital Capacity",
+    "explanation": "Maximum amount of air that can be exhaled after maximum inhalation."
+  },
+  {
+    "parameter": "FVC (Pre)",
+    "explanation": "Forced Vital Capacity measured before bronchodilator administration."
+  },
+  {
+    "parameter": "Residual Volume",
+    "explanation": "Amount of air remaining in the lungs after maximum forced exhalation."
+  },
+  {
+    "parameter": "Pulmonary Function Test (PFT)",
+    "explanation": "Group of tests assessing lung volumes, airflow and respiratory capacity."
+  },
+  {
+    "parameter": "Expiration",
+    "explanation": "Measurement/observation related to the process of breathing air out."
+  },
+  {
+    "parameter": "Final Impression",
+    "explanation": "Overall clinical interpretation of the pulmonary test."
+  },
+  {
+    "parameter": "FEV1 (Post)",
+    "explanation": "FEV1 measured after bronchodilator administration."
+  },
+  {
+    "parameter": "PEF (Pre)",
+    "explanation": "Peak Expiratory Flow measured before bronchodilator; maximum speed of forced expiration."
+  },
+  {
+    "parameter": "Inspiration",
+    "explanation": "Measurement/observation related to breathing air into the lungs."
+  },
+  {
+    "parameter": "FEV1 / FVC (Post)",
+    "explanation": "FEV1-to-FVC ratio after bronchodilator administration."
+  },
+  {
+    "parameter": "PEF (Post)",
+    "explanation": "Peak Expiratory Flow after bronchodilator administration."
+  },
+  {
+    "parameter": "FVC",
+    "explanation": "Forced Vital Capacity; maximum amount of air that can be forcefully exhaled after a full inhalation."
+  },
+  {
+    "parameter": "FEV1",
+    "explanation": "Forced Expiratory Volume in one second; amount of air exhaled during the first second of a forceful breath."
+  },
+  {
+    "parameter": "PEFR",
+    "explanation": "Peak Expiratory Flow Rate; maximum speed at which air can be forcefully exhaled."
+  },
+  {
+    "parameter": "Anti HCV",
+    "explanation": "Antibodies against Hepatitis C virus; indicates exposure to HCV but does not by itself confirm active infection."
+  },
+  {
+    "parameter": "HBeAg",
+    "explanation": "Hepatitis B e-antigen; marker associated with active HBV replication/infectivity in appropriate clinical contexts."
+  },
+  {
+    "parameter": "HBV DNA",
+    "explanation": "Detects/measures Hepatitis B viral genetic material and can indicate active viral replication."
+  },
+  {
+    "parameter": "HBsAg",
+    "explanation": "Hepatitis B surface antigen; indicates current Hepatitis B infection when confirmed appropriately."
+  },
+  {
+    "parameter": "HIV",
+    "explanation": "HIV screening/detection test; exact meaning depends on the assay used."
+  },
+  {
+    "parameter": "HIV 2",
+    "explanation": "Test specifically assessing HIV-2 infection/antibodies or antigen depending on the assay."
+  },
+  {
+    "parameter": "CA125",
+    "explanation": "Blood marker commonly used in monitoring certain ovarian cancers; can also be elevated in several non-cancerous conditions."
+  },
+  {
+    "parameter": "PSA",
+    "explanation": "Prostate-Specific Antigen; protein produced by prostate tissue and used primarily in prostate health assessment and cancer screening/monitoring."
+  },
+  {
+    "parameter": "Mammography Report",
+    "explanation": "Imaging report of breast tissue used primarily for breast cancer screening and evaluation of breast abnormalities."
+  },
+  {
+    "parameter": "PAP Smear",
+    "explanation": "Cervical cell examination used to screen for cervical precancerous changes and cancer."
+  },
+  {
+    "parameter": "Gynaecologist Consultation",
+    "explanation": "Consultation with a gynecologist; not a biomarker."
+  },
+  {
+    "parameter": "Chest X Ray",
+    "explanation": "X-ray imaging of the chest used to assess lungs, heart size and other thoracic structures."
+  },
+  {
+    "parameter": "Chest X Ray PA View",
+    "explanation": "Posteroanterior chest X-ray view, commonly used for chest/lung assessment."
+  },
+  {
+    "parameter": "CT Scan",
+    "explanation": "Computed tomography imaging that produces detailed cross-sectional images of the body."
+  },
+  {
+    "parameter": "Digital Orthopantomogram",
+    "explanation": "Panoramic dental X-ray providing a broad view of the teeth, jaws and surrounding structures."
+  },
+  {
+    "parameter": "Doopler Study",
+    "explanation": "Likely Doppler ultrasound; evaluates blood flow through vessels using ultrasound."
+  },
+  {
+    "parameter": "CT Angio",
+    "explanation": "CT angiography; CT imaging performed with contrast to visualize blood vessels."
+  },
+  {
+    "parameter": "Ultrasound",
+    "explanation": "Imaging using high-frequency sound waves to visualize internal structures."
+  },
+  {
+    "parameter": "Ultrasound of Renal System",
+    "explanation": "Ultrasound examination of kidneys and urinary system."
+  },
+  {
+    "parameter": "USG - Whole Abdomen",
+    "explanation": "Ultrasound examination of abdominal organs."
+  },
+  {
+    "parameter": "USG (Whole Abdomen)",
+    "explanation": "Same as whole-abdomen ultrasound."
+  },
+  {
+    "parameter": "X Ray",
+    "explanation": "Imaging using X-rays to visualize internal structures, particularly bones and certain organs."
+  },
+  {
+    "parameter": "X-Ray KUB",
+    "explanation": "X-ray of the kidneys, ureters and bladder."
+  },
+  {
+    "parameter": "X-Ray Dorsal Spine AP And Lat Views",
+    "explanation": "X-rays of the thoracic/dorsal spine from anteroposterior and lateral views."
+  },
+  {
+    "parameter": "X-Ray Right Upper Arm",
+    "explanation": "X-ray imaging of the right upper arm, generally assessing the humerus and surrounding structures."
+  },
+  {
+    "parameter": "Dental Check-up",
+    "explanation": "Clinical examination of teeth, gums and oral health."
+  },
+  {
+    "parameter": "Dental Examination",
+    "explanation": "Assessment of oral structures, teeth and gums for dental problems."
+  },
+  {
+    "parameter": "ENT Checkup",
+    "explanation": "Examination of the ear, nose and throat."
+  },
+  {
+    "parameter": "Vision Glasses (LT)",
+    "explanation": "Vision measurement for the left eye with corrective glasses."
+  },
+  {
+    "parameter": "Near vision Glasses (LT)",
+    "explanation": "Near-vision measurement for the left eye with correction."
+  },
+  {
+    "parameter": "Vision Glasses (RT)",
+    "explanation": "Vision measurement for the right eye with corrective glasses."
+  },
+  {
+    "parameter": "Near vision Unaided (RT)",
+    "explanation": "Near vision of the right eye without corrective lenses."
+  },
+  {
+    "parameter": "Vision Unaided (LT)",
+    "explanation": "Vision of the left eye without corrective lenses."
+  },
+  {
+    "parameter": "Near vision Unaided (LT)",
+    "explanation": "Near vision of the left eye without corrective lenses."
+  },
+  {
+    "parameter": "Near vision Glasses (RT)",
+    "explanation": "Near-vision measurement for the right eye with corrective lenses."
+  },
+  {
+    "parameter": "Vision Unaided (RT)",
+    "explanation": "Vision of the right eye without corrective lenses."
+  },
+  {
+    "parameter": "Eye Examination",
+    "explanation": "Clinical assessment of visual acuity and eye health."
+  },
+  {
+    "parameter": "Ophthalmic Check-up",
+    "explanation": "Examination of the eyes and visual system."
+  },
+  {
+    "parameter": "Body Fat Percentage",
+    "explanation": "Percentage of total body weight made up of fat tissue."
+  },
+  {
+    "parameter": "Weight",
+    "explanation": "Body mass measured in kilograms or another unit."
+  },
+  {
+    "parameter": "BMI",
+    "explanation": "Body Mass Index; weight relative to height, commonly used as a screening measure for weight category."
+  },
+  {
+    "parameter": "Systolic",
+    "explanation": "Systolic blood pressure\u2014the pressure in arteries when the heart contracts."
+  },
+  {
+    "parameter": "Diastolic3",
+    "explanation": "Diastolic blood pressure value; the \"3\" appears to be a system-specific duplicate/version identifier."
+  },
+  {
+    "parameter": "Systolic3",
+    "explanation": "Systolic blood pressure value; the \"3\" appears to be a system-specific duplicate/version identifier."
+  },
+  {
+    "parameter": "Pulse",
+    "explanation": "Number of palpable heartbeats per minute, generally corresponding closely to heart rate."
+  },
+  {
+    "parameter": "Hips",
+    "explanation": "Hip circumference measurement."
+  },
+  {
+    "parameter": "Diastolic2",
+    "explanation": "Diastolic blood pressure value; \"2\" likely represents a system-specific duplicate/version."
+  },
+  {
+    "parameter": "Diastolic",
+    "explanation": "Pressure in the arteries when the heart relaxes between beats."
+  },
+  {
+    "parameter": "Waist",
+    "explanation": "Waist circumference, commonly used as an indicator of central/abdominal adiposity."
+  },
+  {
+    "parameter": "Waist to Hip Ratio",
+    "explanation": "Waist circumference divided by hip circumference; indicates distribution of body fat."
+  },
+  {
+    "parameter": "Systolic2",
+    "explanation": "Systolic blood pressure value; \"2\" likely represents a system-specific duplicate/version."
+  },
+  {
+    "parameter": "Height",
+    "explanation": "Body height, used along with weight for measures such as BMI."
+  },
+  {
+    "parameter": "Smoking status",
+    "explanation": "Indicates whether a person currently smokes, previously smoked or does not smoke."
+  },
+  {
+    "parameter": "Alcohol",
+    "explanation": "Indicates alcohol consumption history/status."
+  },
+  {
+    "parameter": "Chewer",
+    "explanation": "Usually indicates chewing tobacco or similar products."
+  },
+  {
+    "parameter": "Smoker",
+    "explanation": "Indicates smoking status/history."
+  },
+  {
+    "parameter": "Existing Disease",
+    "explanation": "Records known existing medical conditions."
+  },
+  {
+    "parameter": "Existing Other Disease Self",
+    "explanation": "Self-reported additional existing disease/condition."
+  },
+  {
+    "parameter": "Past Medical History : Self",
+    "explanation": "Medical history reported by the individual."
+  },
+  {
+    "parameter": "Past Medical History : Mother",
+    "explanation": "Mother's reported medical/family history."
+  },
+  {
+    "parameter": "Past Medical History : Father",
+    "explanation": "Father's reported medical/family history."
+  },
+  {
+    "parameter": "Past Surgical History",
+    "explanation": "History of previous surgeries/procedures."
+  },
+  {
+    "parameter": "Patient History",
+    "explanation": "Clinical history provided or recorded for the patient."
+  },
+  {
+    "parameter": "Dietician Consultation",
+    "explanation": "Consultation focused on nutrition, diet and dietary recommendations."
+  },
+  {
+    "parameter": "Physician Examination",
+    "explanation": "Clinical examination performed by a physician."
+  },
+  {
+    "parameter": "Physician Consultation",
+    "explanation": "Medical consultation with a physician."
+  },
+  {
+    "parameter": "Growth Chart",
+    "explanation": "Chart tracking measurements such as height and weight over time, commonly used to assess growth in children."
+  },
+  {
+    "parameter": "Bone Assessment",
+    "explanation": "Assessment of bone health; may involve clinical evaluation or bone-density-related testing depending on the package."
+  },
+  {
+    "parameter": "Urine Cotinine",
+    "explanation": "Measures cotinine, a metabolite of nicotine, in urine; commonly used to assess recent tobacco/nicotine exposure."
+  },
+  {
+    "parameter": "Serum Cotinine Test",
+    "explanation": "Measures cotinine in blood to assess recent nicotine exposure."
+  },
+  {
+    "parameter": "Alcohol",
+    "explanation": "Depending on the report, may indicate alcohol-use history or an alcohol-related test; the exact meaning should be determined from the source test definition."
+  },
+  {
+    "parameter": "Cardiac Stress Test",
+    "explanation": "Assesses cardiovascular response to exercise/stress."
+  },
+  {
+    "parameter": "Bone Assessment",
+    "explanation": "General assessment of bone health; the specific underlying test should be mapped before treating it as a biomarker."
+  },
+  {
+    "parameter": "ECG (Remark)",
+    "explanation": "Interpretation/comment associated with ECG findings."
+  },
+  {
+    "parameter": "ECG (Result)",
+    "explanation": "Result/findings of the ECG."
+  },
+  {
+    "parameter": "2D Echo (Remark)",
+    "explanation": "Interpretation/comment from echocardiography."
+  },
+  {
+    "parameter": "2D Echo (Result)",
+    "explanation": "Overall echocardiography result."
+  },
+  {
+    "parameter": "TMT (Remark)",
+    "explanation": "Physician's comment on TMT."
+  },
+  {
+    "parameter": "TMT (Result)",
+    "explanation": "Overall TMT finding."
+  },
+  {
+    "parameter": "TMT Heart Rate T (Result)",
+    "explanation": "Heart rate recorded at a particular TMT stage/time."
+  },
+  {
+    "parameter": "TMT Heart Rate (BPM)",
+    "explanation": "Heart rate during TMT."
+  },
+  {
+    "parameter": "Ejection Result",
+    "explanation": "Result associated with cardiac ejection/pumping assessment."
+  },
+  {
+    "parameter": "Final Impression",
+    "explanation": "Overall conclusion of a diagnostic report."
+  },
+  {
+    "parameter": "Dummy Subtest",
+    "explanation": "Placeholder/test field used for system or configuration purposes."
+  },
+  {
+    "parameter": "demoSubtest",
+    "explanation": "Demonstration/test field rather than a clinical biomarker."
+  },
+  {
+    "parameter": "demoSubtest",
+    "explanation": "Duplicate demonstration/test field."
+  },
+  {
+    "parameter": "Quantity",
+    "explanation": "Quantity/amount field; meaning depends on the associated test/specimen."
+  },
+  {
+    "parameter": "Final Impression",
+    "explanation": "Report-level conclusion rather than a numerical biomarker."
+  },
+  {
+    "parameter": "2D Echo (Remark)",
+    "explanation": "Report-level interpretation rather than an independent biomarker."
+  },
+  {
+    "parameter": "ECG Report",
+    "explanation": "Report/document-level field rather than a biomarker."
+  }
+]

@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"
 import { useState } from "react"
 import { Info, Activity, Heart, Droplets, Bone, X, Beaker } from "lucide-react"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
+import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 type Status = "normal" | "attention"
 type OrganGroup = {
@@ -636,7 +637,10 @@ export default function Musculature3DModel({ patientData, vasbenefId }: Musculat
                           <p className="text-sm font-semibold text-gray-900 mb-2">Abnormal Results:</p>
                           {selectedOrganData.abnormalTests.map((test, idx) => (
                             <div key={idx} className="mb-2 text-sm">
-                              <p className="font-medium text-red-700">{test.name}</p>
+                              <div className="flex items-center gap-1">
+                                <p className="font-medium text-red-700">{test.name}</p>
+                                <BiomarkerInfoButton name={test.name} />
+                              </div>
                               <p className="text-gray-600">
                                 Value: {test.value} (Normal: {test.range})
                               </p>
@@ -651,8 +655,16 @@ export default function Musculature3DModel({ patientData, vasbenefId }: Musculat
                     </div>
 
                     <div className="text-xs text-gray-500">
-                      <p className="font-medium mb-1">Related Tests ({selectedOrganData.relatedTests.length}):</p>
-                      <p className="line-clamp-2">{selectedOrganData.relatedTests.join(", ")}</p>
+                      <p className="font-medium mb-2">Related Tests ({selectedOrganData.relatedTests.length}):</p>
+                      <div className="flex flex-wrap gap-x-2 gap-y-1.5">
+                        {selectedOrganData.relatedTests.map((testName, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-0.5 text-gray-600">
+                            {testName}
+                            {idx < selectedOrganData.relatedTests.length - 1 ? "," : ""}
+                            <BiomarkerInfoButton name={testName} />
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </>
                 )}

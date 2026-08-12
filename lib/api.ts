@@ -1,4 +1,16 @@
 // Types for API responses
+
+/**
+ * A single lab-report reference from the profile / beneficiary reports API.
+ * `requestId` is used with the account `mbUserId` to fetch the analyzed report
+ * details from POST /health/reports.
+ */
+export interface ReportRequest {
+  requestId: string
+  date: string
+  file?: string
+}
+
 export interface Beneficiary {
   patientName: string
   relation: string
@@ -8,6 +20,22 @@ export interface Beneficiary {
   rVasBenefId?: string | number
   age?: number
   gender?: string
+  /**
+   * Total number of lab-report records for this beneficiary, taken from the
+   * profile API's `requestIds` (lab report URLs). Shown immediately in the
+   * profile section without waiting for the reports/analysis pipeline.
+   */
+  reportCount?: number
+  /**
+   * The account-level user id (profile `userId`). Sent as `mbUserId` when
+   * fetching analyzed report details from POST /health/reports.
+   */
+  userId?: string | number
+  /**
+   * Lab-report references ({ requestId, date, file }) for this beneficiary.
+   * Health summary and trends are built from the analyzed details of these.
+   */
+  reportRequests?: ReportRequest[]
 }
 
 export interface BeneficiariesResponse {
@@ -42,6 +70,11 @@ export interface TrendAnalysisItem {
   normal_range: string
   status: string
   data_points: TrendDataPoint[]
+  /** Latest numeric value (consumed by the trends UI for change display). */
+  current_value?: number
+  /** Second-latest numeric value (consumed by the trends UI for change display). */
+  previous_value?: number
+  unit?: string
 }
 
 export interface LabReport {
@@ -50,6 +83,8 @@ export interface LabReport {
   file_name?: string
   tag?: string
   parameters?: any[]
+  /** Original report PDF URL from the beneficiary reports API (for download). */
+  file?: string
 }
 
 export interface TrendsResponse {
@@ -75,6 +110,8 @@ export interface ApiHealthReport {
     date: string
     parameters: Record<string, any>
     fullfilmentDate?: string
+    /** Original report PDF URL from the beneficiary reports API (for download). */
+    file?: string
   }>
   health_summary: HealthSummaryItem[]
   trend_analysis?: TrendAnalysisItem[]
@@ -133,24 +170,49 @@ function getValueCaseInsensitive(obj: any, key: string): any {
 }
 
 /**
- * Fetch beneficiaries from API
+ * The report `file` URLs returned by the backend are pre-signed S3 links whose
+ * path contains the report's dms_doc_id as a UUID path segment, e.g.
+ * `.../072026/cb424e70-85d3-11f1-9547-633da02d1de8/PHLB123.pdf`. The analysis
+ * pipeline is keyed on this dms_doc_id, so we extract it from the URL.
  */
-export async function fetchBeneficiaries(accessToken: string, pmEntityId = "0"): Promise<BeneficiariesResponse> {
-  const response = await fetch("/api/health/beneficiaries", {
+const DMS_DOC_ID_REGEX = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/
+
+export function extractDmsDocIdFromFileUrl(fileUrl?: string): string | null {
+  if (!fileUrl || typeof fileUrl !== "string") return null
+  const match = fileUrl.match(DMS_DOC_ID_REGEX)
+  return match ? match[0] : null
+}
+
+/**
+ * Fetch the family/beneficiary profile from the new backend and map it to the
+ * shape the app expects. The profile only reliably includes report links for
+ * the Self beneficiary; each beneficiary's authoritative report list is fetched
+ * on demand via `fetchBeneficiaryReportDocIds`.
+ *
+ * NOTE: `pmEntityId` is retained for call-site compatibility but is unused by
+ * the new profile endpoint.
+ */
+export async function fetchBeneficiaries(accessToken: string, _pmEntityId = "0"): Promise<BeneficiariesResponse> {
+  const response = await fetch("/api/health/profile", {
     method: "GET",
     headers: {
       accesstoken: accessToken,
-      pmEntityId: pmEntityId,
     },
   })
 
+  if (response.status === 401) {
+    throw new Error("UNAUTHORIZED")
+  }
   if (!response.ok) {
     throw new Error(`Beneficiaries API request failed: ${response.status}`)
   }
 
   const data = await response.json()
 
-  const responseObj = getValueCaseInsensitive(data, "response")
+  // The profile endpoint returns an array: [{ userId, email, beneficiaries: [...] }]
+  const root = Array.isArray(data) ? data[0] : data
+
+  const responseObj = getValueCaseInsensitive(root, "response")
   if (responseObj) {
     const statusCode = getValueCaseInsensitive(responseObj, "statuscode")
     if (statusCode === "401" || statusCode === 401) {
@@ -158,25 +220,151 @@ export async function fetchBeneficiaries(accessToken: string, pmEntityId = "0"):
     }
   }
 
-  const beneficiaries = getValueCaseInsensitive(data, "beneficiaries") || []
-  const mbuserid = getValueCaseInsensitive(data, "userId") || getValueCaseInsensitive(data, "userid") || getValueCaseInsensitive(data, "mbuserid") || ""
-  const employee_email = getValueCaseInsensitive(data, "email") || getValueCaseInsensitive(data, "employee_email") || ""
+  const beneficiaries = getValueCaseInsensitive(root, "beneficiaries") || []
+  const mbuserid =
+    getValueCaseInsensitive(root, "userId") ||
+    getValueCaseInsensitive(root, "userid") ||
+    getValueCaseInsensitive(root, "mbuserid") ||
+    ""
+  const employee_email =
+    getValueCaseInsensitive(root, "email") || getValueCaseInsensitive(root, "employee_email") || ""
 
   return {
-    beneficiaries: beneficiaries.map((b: any) => ({
-      patientName: getValueCaseInsensitive(b, "patientName") || getValueCaseInsensitive(b, "patientname") || "Unknown",
-      relation: getValueCaseInsensitive(b, "relation") || "Unknown",
-      visitType: getValueCaseInsensitive(b, "visitType") || getValueCaseInsensitive(b, "visittype") || "",
-      dmS_Doc_ID: getValueCaseInsensitive(b, "dmS_Doc_ID") || getValueCaseInsensitive(b, "dms_doc_id") || [],
-      latestDmsDocIds:
-        getValueCaseInsensitive(b, "latestDmsDocIds") || getValueCaseInsensitive(b, "latestdmsdocids") || [],
-      rVasBenefId: getValueCaseInsensitive(b, "rVasBenefId") || getValueCaseInsensitive(b, "rvasbenefid"),
-      age: Number.parseInt(getValueCaseInsensitive(b, "age") || "0", 10),
-      gender: getValueCaseInsensitive(b, "gender") || "Unknown",
-    })),
+    beneficiaries: beneficiaries.map((b: any) => {
+      const requestIds = getValueCaseInsensitive(b, "requestIds") || getValueCaseInsensitive(b, "requestids") || []
+      const reportRequests = parseReportRequests(requestIds)
+      // The report identifier is now the requestId (used with mbUserId to fetch
+      // analyzed details); dmS_Doc_ID carries these ids for legacy count/length checks.
+      const docIds = reportRequests.map((r) => r.requestId)
+
+      return {
+        patientName: getValueCaseInsensitive(b, "name") || getValueCaseInsensitive(b, "patientName") || "Unknown",
+        relation: getValueCaseInsensitive(b, "relation") || "Unknown",
+        visitType: "",
+        dmS_Doc_ID: docIds,
+        latestDmsDocIds: [],
+        rVasBenefId:
+          getValueCaseInsensitive(b, "vasBenifId") ??
+          getValueCaseInsensitive(b, "vasbenifid") ??
+          getValueCaseInsensitive(b, "rVasBenefId"),
+        age: Number.parseInt(String(getValueCaseInsensitive(b, "age") ?? "0"), 10),
+        gender: getValueCaseInsensitive(b, "gender") || "Unknown",
+        // Total health records come from the profile's lab report URLs.
+        reportCount: reportRequests.length,
+        // Account user id -> mbUserId for the report-details API.
+        userId:
+          getValueCaseInsensitive(b, "userId") ??
+          getValueCaseInsensitive(b, "userid") ??
+          mbuserid,
+        reportRequests,
+      }
+    }),
     mbuserid,
     employee_email,
   }
+}
+
+/**
+ * Normalize a raw `requestIds` array (from profile or the reports endpoint)
+ * into ReportRequest[] with string ids. Skips entries without a requestId.
+ */
+function parseReportRequests(raw: any): ReportRequest[] {
+  if (!Array.isArray(raw)) return []
+  const seen = new Set<string>()
+  const out: ReportRequest[] = []
+  for (const r of raw) {
+    const idRaw = getValueCaseInsensitive(r, "requestId") ?? getValueCaseInsensitive(r, "requestid")
+    if (idRaw === undefined || idRaw === null || idRaw === "") continue
+    const requestId = String(idRaw)
+    if (seen.has(requestId)) continue
+    seen.add(requestId)
+    out.push({
+      requestId,
+      date: getValueCaseInsensitive(r, "date") || "",
+      file: getValueCaseInsensitive(r, "file") || "",
+    })
+  }
+  return out
+}
+
+/**
+ * Fetch a single beneficiary's report references ({ requestId, date, file })
+ * from the reports endpoint. This is the authoritative per-beneficiary report
+ * source; the profile endpoint only populates Self.
+ */
+export async function fetchBeneficiaryReportRequests(
+  accessToken: string,
+  vasBenifId: string | number,
+): Promise<ReportRequest[]> {
+  const response = await fetch(`/api/health/reports/${vasBenifId}`, {
+    method: "GET",
+    headers: {
+      accesstoken: accessToken,
+    },
+  })
+
+  if (response.status === 401) {
+    throw new Error("UNAUTHORIZED")
+  }
+  if (!response.ok) {
+    // 403 (vasBenifId not owned) or other errors: treat as no reports available.
+    return []
+  }
+
+  const data = await response.json()
+  const rawList = Array.isArray(data)
+    ? data
+    : getValueCaseInsensitive(data, "requestIds") ||
+      getValueCaseInsensitive(data, "reports") ||
+      getValueCaseInsensitive(data, "data") ||
+      []
+
+  return parseReportRequests(rawList)
+}
+
+/**
+ * Fetch a single beneficiary's report list (by vasBenifId) from the new backend
+ * and return the extracted dms_doc_ids. This is the authoritative per-beneficiary
+ * report source; the profile endpoint only populates Self.
+ *
+ * @deprecated Superseded by fetchBeneficiaryReportRequests + the /health/reports
+ * details API. Retained for reference.
+ */
+export async function fetchBeneficiaryReportDocIds(
+  accessToken: string,
+  vasBenifId: string | number,
+): Promise<string[]> {
+  const response = await fetch(`/api/health/reports/${vasBenifId}`, {
+    method: "GET",
+    headers: {
+      accesstoken: accessToken,
+    },
+  })
+
+  if (response.status === 401) {
+    throw new Error("UNAUTHORIZED")
+  }
+  if (!response.ok) {
+    // 403 (vasBenifId not owned) or other errors: treat as no reports available.
+    return []
+  }
+
+  const data = await response.json()
+  const reports = Array.isArray(data)
+    ? data
+    : getValueCaseInsensitive(data, "requestIds") ||
+      getValueCaseInsensitive(data, "reports") ||
+      getValueCaseInsensitive(data, "data") ||
+      []
+
+  if (!Array.isArray(reports)) return []
+
+  const docIds = reports
+    .map((r: any) => extractDmsDocIdFromFileUrl(getValueCaseInsensitive(r, "file")))
+    .filter((id: string | null): id is string => Boolean(id))
+
+  // De-duplicate while preserving order.
+  return Array.from(new Set(docIds))
 }
 
 /**
@@ -284,8 +472,10 @@ export async function checkReportAnalysisStatus(
 }
 
 /**
- * Retry helper with incremental backoff
- * Retries up to maxRetries times with increasing delay (2s, 4s, 8s)
+ * Retry helper with incremental backoff.
+ * A retrying call keeps holding its throttle slot, so long backoffs stall the
+ * whole batch. Uses short delays (0.4s, 0.8s, 1.6s) since the backend normally
+ * responds in <1.5s — a real outage still surfaces quickly.
  */
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: Error | null = null
@@ -299,7 +489,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
         throw lastError
       }
       if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt + 1) * 1000 // 2s, 4s, 8s
+        const delay = Math.pow(2, attempt) * 400 // 0.4s, 0.8s, 1.6s
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
@@ -337,7 +527,10 @@ function createThrottle(maxConcurrent: number) {
   return { acquire, release }
 }
 
-const fetchReportsThrottle = createThrottle(3)
+// Report-details is fetched once per report; the Self user can have 30+ reports.
+// A concurrency of 3 forced ~10+ sequential rounds (~15s to finish trends / all
+// parameters). 8 keeps the backend comfortable while cutting rounds by ~2.5x.
+const fetchReportsThrottle = createThrottle(8)
 const trendsThrottle = createThrottle(2)
 
 /**
@@ -706,6 +899,280 @@ export async function fetchTrends(
 }
 
 /**
+ * Transform the new report-details response (POST /health/reports) into the
+ * ApiHealthReport shape consumed by the UI. The response is fully analyzed and
+ * synchronous — no polling required.
+ */
+export function transformReportDetails(data: any, fallbackDate?: string, fileUrl?: string): ApiHealthReport {
+  const status = (getValueCaseInsensitive(data, "status") || "").toString()
+  if (status.toLowerCase() === "failed") {
+    throw new Error("DOCUMENT_FAILED")
+  }
+
+  const patientCard = getValueCaseInsensitive(data, "patient_card") || {}
+  const reportData = getValueCaseInsensitive(data, "report_data") || {}
+  const parametersArray = getValueCaseInsensitive(data, "parameters") || []
+  const healthSummaryRaw = getValueCaseInsensitive(data, "health_summary") || []
+
+  const patientName =
+    getValueCaseInsensitive(reportData, "patientName") ||
+    getValueCaseInsensitive(patientCard, "name") ||
+    "Unknown Patient"
+
+  const fullfilmentDate =
+    getValueCaseInsensitive(reportData, "fullfilmentDate") ||
+    getValueCaseInsensitive(reportData, "fulfilmentDate") ||
+    fallbackDate ||
+    ""
+
+  const age = Number.parseInt(String(getValueCaseInsensitive(patientCard, "age") ?? "0"), 10)
+  const gender =
+    getValueCaseInsensitive(patientCard, "gender") || getValueCaseInsensitive(reportData, "gender") || "Unknown"
+
+  const normalizedGender = gender.toLowerCase()
+  let profileImage = "/images/profile-male.svg"
+  if (normalizedGender === "female" || normalizedGender === "f") {
+    profileImage = "/images/profile-female.svg"
+  }
+
+  // Transform flat parameters into the map keyed by metric name.
+  const transformedParameters: Record<string, any> = {}
+  parametersArray.forEach((param: any) => {
+    const metricName = getValueCaseInsensitive(param, "metric_name") || getValueCaseInsensitive(param, "name") || ""
+    if (metricName) {
+      transformedParameters[metricName] = {
+        result: getValueCaseInsensitive(param, "value") ?? getValueCaseInsensitive(param, "result") ?? "",
+        units: getValueCaseInsensitive(param, "unit") || getValueCaseInsensitive(param, "units") || "",
+        range: getValueCaseInsensitive(param, "normal_range") || getValueCaseInsensitive(param, "range") || "",
+        status: getValueCaseInsensitive(param, "status") || "normal",
+      }
+    }
+  })
+
+  // Transform organ-grouped health summary.
+  const healthSummary: HealthSummaryItem[] = healthSummaryRaw.map((item: any) => {
+    const params = getValueCaseInsensitive(item, "parameters") || []
+    let categoryName =
+      getValueCaseInsensitive(item, "organ") ||
+      getValueCaseInsensitive(item, "category") ||
+      getValueCaseInsensitive(item, "name") ||
+      getValueCaseInsensitive(item, "title")
+
+    if (!categoryName || categoryName === "Unknown") {
+      categoryName = inferCategoryFromParameters(params)
+    }
+
+    let outOfRangeCount = 0
+    params.forEach((p: any) => {
+      const s = (getValueCaseInsensitive(p, "status") || "").toLowerCase()
+      if (s === "abnormal" || s === "high" || s === "low" || s === "out_of_range") {
+        outOfRangeCount++
+      }
+    })
+
+    return {
+      category: categoryName,
+      status: getValueCaseInsensitive(item, "status") || "normal",
+      out_of_range_count: outOfRangeCount,
+      parameters: params.map((p: any) => ({
+        name: getValueCaseInsensitive(p, "metric_name") || getValueCaseInsensitive(p, "name") || "",
+        value: getValueCaseInsensitive(p, "value") ?? "",
+        unit: getValueCaseInsensitive(p, "unit") || "",
+        status: getValueCaseInsensitive(p, "status") || "normal",
+        normal_range: getValueCaseInsensitive(p, "normal_range") || "",
+      })),
+    }
+  })
+
+  return {
+    patient_info: {
+      name: patientName,
+      age: Number.isNaN(age) ? 0 : age,
+      gender,
+      profileImage,
+      blood_group: getValueCaseInsensitive(patientCard, "blood_group") || "",
+      height: getValueCaseInsensitive(patientCard, "height") || "",
+      weight: getValueCaseInsensitive(patientCard, "weight") || "",
+      abha_id: getValueCaseInsensitive(patientCard, "abha_id") || "",
+    },
+    reports: [
+      {
+        name: getValueCaseInsensitive(reportData, "productName") || "Lab Report",
+        date: fullfilmentDate || new Date().toLocaleDateString(),
+        parameters: transformedParameters,
+        fullfilmentDate,
+        file: fileUrl || "",
+      },
+    ],
+    health_summary: healthSummary,
+    latestReportDate: fullfilmentDate,
+  }
+}
+
+/**
+ * Fetch and transform a single analyzed report from POST /health/reports.
+ * `vasBenefId` is the beneficiary id (the report-details endpoint is scoped by
+ * vasBenefId, not the account mbUserId); `requestId` identifies the report.
+ */
+export async function fetchReportDetailsAsHealthReport(
+  accessToken: string,
+  vasBenefId: string | number,
+  requestId: string | number,
+  reportDate?: string,
+  fileUrl?: string,
+): Promise<ApiHealthReport> {
+  await fetchReportsThrottle.acquire()
+  try {
+    return await withRetry(async () => {
+      const response = await fetch("/api/health/report-details", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { accesstoken: accessToken } : {}),
+        },
+        body: JSON.stringify({ vasBenefId, requestId }),
+      })
+
+      if (response.status === 401) {
+        throw new Error("UNAUTHORIZED")
+      }
+      if (response.status === 404) {
+        throw new Error("NO_REPORTS_404")
+      }
+      if (!response.ok) {
+        await response.text()
+        throw new Error(`Report details request failed: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return transformReportDetails(data, reportDate, fileUrl)
+    })
+  } finally {
+    fetchReportsThrottle.release()
+  }
+}
+
+/**
+ * Parse a numeric value from a report parameter result. Returns null for
+ * non-numeric values (e.g. "Positive", "Nil") so they are excluded from trends.
+ */
+function parseNumericValue(value: any): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null
+  if (typeof value === "string") {
+    const cleaned = value.replace(/,/g, "").trim()
+    if (cleaned === "") return null
+    const n = Number.parseFloat(cleaned)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
+}
+
+/**
+ * Build trend analysis and lab report metadata client-side from a set of
+ * analyzed reports. This replaces the old n8n trends API: each report's
+ * parameters become time-series data points grouped by metric name.
+ */
+export function buildTrendsFromReports(
+  reportEntries: Array<{ name?: string; date?: string; fullfilmentDate?: string; parameters?: Record<string, any>; file?: string }>,
+): TrendsResponse {
+  const entries = (reportEntries || [])
+    .map((e) => ({
+      name: e.name || "Lab Report",
+      date: e.fullfilmentDate || e.date || "",
+      parameters: e.parameters || {},
+      file: e.file || "",
+    }))
+    .filter((e) => e.date)
+    // Ascending by date so data_points read oldest -> newest.
+    .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime())
+
+  const metricMap = new Map<
+    string,
+    { unit: string; range: string; status: string; points: TrendDataPoint[] }
+  >()
+
+  for (const entry of entries) {
+    for (const [metricName, raw] of Object.entries(entry.parameters)) {
+      const p = raw as any
+      const value = parseNumericValue(p?.result)
+      if (value === null) continue // skip qualitative params
+
+      const unit = p?.units || p?.unit || ""
+      const range = p?.range || p?.normal_range || ""
+      const status = (p?.status || "normal").toString()
+
+      let m = metricMap.get(metricName)
+      if (!m) {
+        m = { unit, range, status, points: [] }
+        metricMap.set(metricName, m)
+      }
+      // Latest entry wins for unit/range/status (entries are ascending).
+      m.unit = unit || m.unit
+      m.range = range || m.range
+      m.status = status || m.status
+      m.points.push({ date: entry.date, value, unit })
+    }
+  }
+
+  const trend_analysis: TrendAnalysisItem[] = []
+  for (const [metricName, m] of metricMap.entries()) {
+    const points = m.points
+    const last = points[points.length - 1]
+    const prev = points.length > 1 ? points[points.length - 2] : undefined
+    const currentValue = last?.value ?? 0
+    const previousValue = prev?.value
+
+    let changePct = 0
+    if (previousValue !== undefined && previousValue !== 0) {
+      changePct = ((currentValue - previousValue) / previousValue) * 100
+    }
+    const trend =
+      previousValue === undefined || currentValue === previousValue
+        ? "stable"
+        : currentValue > previousValue
+          ? "increasing"
+          : "decreasing"
+
+    trend_analysis.push({
+      metric_name: metricName,
+      change_percentage: `${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}%`,
+      trend,
+      normal_range: m.range,
+      status: m.status,
+      unit: m.unit,
+      current_value: currentValue,
+      previous_value: previousValue,
+      data_points: points,
+    })
+  }
+
+  // One lab report entry per analyzed report (used to label trend data points by date).
+  // Newest first for display; the first entry is the latest report, tagged so the
+  // Test Reports section can mark it and "View latest report" can scroll to it.
+  const lab_reports: LabReport[] = entries
+    .slice()
+    .reverse() // newest first for display
+    .map((e, index) => ({
+      report_name: [e.name || "Lab Report"],
+      report_date: e.date,
+      file: e.file || "",
+      tag: index === 0 ? "Latest_report" : "Historical Report",
+      parameters: Object.entries(e.parameters).map(([name, raw]) => {
+        const p = raw as any
+        return {
+          name,
+          value: p?.result ?? "",
+          unit: p?.units || p?.unit || "",
+          status: p?.status || "normal",
+          normal_range: p?.range || p?.normal_range || "",
+        }
+      }),
+    }))
+
+  return { trend_analysis, lab_reports }
+}
+
+/**
  * Create initial profile from beneficiary data
  */
 export function createInitialProfileFromBeneficiary(beneficiary: Beneficiary): ApiHealthReport {
@@ -786,7 +1253,7 @@ export function mergeReportsKeepLatest(
     .filter((r) => r && r.parameters && Object.keys(r.parameters).length > 0)
 
   // Group reports by fullfilmentDate and merge their parameters
-  const reportsByDate = new Map<string, { name: string; date: string; parameters: Record<string, any>; fullfilmentDate?: string }>()
+  const reportsByDate = new Map<string, { name: string; date: string; parameters: Record<string, any>; fullfilmentDate?: string; file?: string }>()
   
   for (const report of allReportsRaw) {
     const dateKey = report.fullfilmentDate || report.date || "unknown"
@@ -799,8 +1266,11 @@ export function mergeReportsKeepLatest(
         date: report.date,
         parameters: { ...report.parameters },
         fullfilmentDate: report.fullfilmentDate,
+        file: report.file || "",
       })
     } else {
+      // Keep the first non-empty file URL for this date
+      if (!existing.file && report.file) existing.file = report.file
       // Merge parameters from this report into existing
       // Add new parameters that don't exist yet
       for (const [paramName, paramValue] of Object.entries(report.parameters)) {

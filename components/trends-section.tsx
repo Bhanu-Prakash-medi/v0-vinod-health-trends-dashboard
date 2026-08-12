@@ -7,6 +7,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { getTrendData } from "@/lib/health-utils"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { getParameterPriority } from "@/lib/parameterPriority"
+import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 interface TrendsSectionProps {
   onViewAll?: () => void
@@ -154,6 +155,7 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-semibold text-[#2e3742]">{trend.name}</h3>
+                    <BiomarkerInfoButton name={trend.name} />
                     <div
                       className={`flex h-6 w-6 items-center justify-center rounded-full ${
                         isImproving ? "bg-green-50" : isWorsening ? "bg-red-50" : isStable ? "bg-gray-50" : "bg-gray-50"
