@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
 import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus } from "lucide-react"
 
@@ -13,55 +13,42 @@ interface HealthScoreSectionProps {
 
 const GAUGE_MAX = 10
 
-// ---- Legacy biomarker gauge geometry (fallback when the risk API has no data) ----
-const CX = 130
-const CY = 130
-const R = 100
-const STROKE = 18
-
-// Legacy zones (biomarker ratio, higher = better).
-const LEGACY_ZONES = [
-  { from: 0, to: 4, color: "#dc2626" },
-  { from: 4, to: 7, color: "#f59e0b" },
-  { from: 7, to: 10, color: "#16a34a" },
-]
-
-function pointFor(score: number, radius: number) {
-  const angleDeg = 180 - (score / GAUGE_MAX) * 180
-  const angleRad = (angleDeg * Math.PI) / 180
-  return { x: CX + radius * Math.cos(angleRad), y: CY - radius * Math.sin(angleRad) }
-}
-
-function arcPath(fromScore: number, toScore: number, radius: number) {
-  const start = pointFor(fromScore, radius)
-  const end = pointFor(toScore, radius)
-  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 0 1 ${end.x} ${end.y}`
-}
-
-function legacyMeta(score: number) {
-  if (score >= 7) return { label: "Good", color: "#16a34a" }
-  if (score >= 4) return { label: "Fair", color: "#f59e0b" }
-  return { label: "Needs attention", color: "#dc2626" }
-}
-
 // ---- Risk score helpers (0-10, LOWER = better / lower risk) ----
-// Colored zones matching the risk bands: Low 0-3.33, Moderate 3.33-6.66, High 6.66-10.
+// Color scheme: 0 = green (No Risk), Low = yellow, Moderate = orange, High = red.
+const RISK_GREEN = "#16a34a"
+const RISK_YELLOW = "#eab308"
+const RISK_ORANGE = "#f97316"
+const RISK_RED = "#dc2626"
+
+// Continuous visual zones on the 0-10 ring/scale: Low 0-3.33 (yellow),
+// Moderate 3.33-6.66 (orange), High 6.66-10 (red). A score of exactly 0 is
+// "No Risk" and colored green via riskColor().
 const RISK_ZONES = [
-  { from: 0, to: 3.33, color: "#16a34a" },
-  { from: 3.33, to: 6.66, color: "#f59e0b" },
-  { from: 6.66, to: 10, color: "#dc2626" },
+  { from: 0, to: 3.33, color: RISK_YELLOW },
+  { from: 3.33, to: 6.66, color: RISK_ORANGE },
+  { from: 6.66, to: 10, color: RISK_RED },
 ]
 
 function riskColor(score: number) {
-  if (score <= 3.33) return "#16a34a"
-  if (score <= 6.66) return "#f59e0b"
-  return "#dc2626"
+  if (score <= 0) return RISK_GREEN
+  if (score <= 3.33) return RISK_YELLOW
+  if (score <= 6.66) return RISK_ORANGE
+  return RISK_RED
 }
 
 // Show the score to one decimal place, TRUNCATED (not rounded) so a value like
 // 0.995798 renders as "0.9" rather than "1.0".
 function formatScore(n: number) {
   return (Math.trunc(n * 10) / 10).toFixed(1)
+}
+
+// Format the report date (e.g. "22 Jul 2026") so the user knows which report
+// the score is based on. Returns null when the date is missing/invalid.
+function formatReportDate(iso?: string | null): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 }
 
 interface RiskScoreResponse {
@@ -121,25 +108,6 @@ export default function HealthScoreSection({
   const gender: string | undefined = patientData?.patient_info?.gender
   const age: number | undefined = patientData?.patient_info?.age
 
-  // ---- Legacy biomarker-ratio score (fallback) ----
-  const legacy = useMemo(() => {
-    const summary = patientData?.health_summary || []
-    const seen = new Map<string, boolean>()
-    for (const category of summary) {
-      for (const param of category?.parameters || []) {
-        const name = (param?.name || param?.metric_name || "").toString().toLowerCase().trim()
-        if (!name) continue
-        const status = (param?.status || param?.Status || "").toString().toLowerCase()
-        const isAbnormal = status !== "" && status !== "normal" && status !== "within normal limits"
-        if (!seen.has(name) || isAbnormal) seen.set(name, isAbnormal)
-      }
-    }
-    const total = seen.size
-    const normal = [...seen.values()].filter((abnormal) => !abnormal).length
-    const computed = total > 0 ? (normal / total) * GAUGE_MAX : null
-    return { score: computed == null ? null : Math.round(computed * 10) / 10, total, normal }
-  }, [patientData])
-
   // ---- Risk score from the overall-risk-score API ----
   const idsKey = requestIds && requestIds.length ? requestIds.join(",") : ""
   const riskEnabled = !!(accessToken && idsKey)
@@ -156,7 +124,7 @@ export default function HealthScoreSection({
   const [view, setView] = useState<ViewStyle>("scale")
 
   // Animate the active score from 0 on mount / change.
-  const activeScore = hasRisk ? (riskScore as number) : (legacy.score ?? 0)
+  const activeScore = hasRisk ? (riskScore as number) : 0
   const [displayScore, setDisplayScore] = useState(0)
   const animRef = useRef<number | undefined>(undefined)
   useEffect(() => {
@@ -182,8 +150,8 @@ export default function HealthScoreSection({
     </div>
   )
 
-  // Loading state while the risk score resolves (and no fallback shown yet).
-  if (riskEnabled && riskLoading && !riskData && legacy.score == null) {
+  // Loading state while the risk score resolves.
+  if (riskEnabled && riskLoading && !riskData) {
     return (
       <section aria-label="Health score" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
         {header}
@@ -199,6 +167,7 @@ export default function HealthScoreSection({
     const score = riskScore as number
     const color = riskColor(score)
     const label = riskData!.riskLevel || "—"
+    const reportDate = formatReportDate(riskData!.appointmentDate)
     const diff = benchmark ? Math.round((score - benchmark.avgScore) * 100) / 100 : null
     // The risk zone the user currently falls in — highlighted in the donut & graph.
     const activeZoneIndex = RISK_ZONES.findIndex(
@@ -213,9 +182,16 @@ export default function HealthScoreSection({
       <section aria-label="Health risk score" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
         {header}
 
-        {/* View style toggle */}
-        <div className="mb-4 flex justify-end">
-          <div className="inline-flex items-center gap-0.5 rounded-full bg-[#f0f3f5] p-0.5" role="tablist" aria-label="Chart style">
+        {/* Report date + view style toggle */}
+        <div className="mb-4 flex items-center justify-between gap-2">
+          {reportDate ? (
+            <p className="text-xs text-[#9dabbd]">
+              Based on your report from <span className="font-medium text-[#4d5c6f]">{reportDate}</span>
+            </p>
+          ) : (
+            <span />
+          )}
+          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#f0f3f5] p-0.5" role="tablist" aria-label="Chart style">
             {VIEW_OPTIONS.map(({ id, label: vLabel, Icon }) => {
               const active = view === id
               return (
@@ -475,45 +451,6 @@ export default function HealthScoreSection({
     )
   }
 
-  // ---- Fallback: legacy biomarker gauge (unchanged behavior) ----
-  if (legacy.score == null) return null
-  const meta = legacyMeta(legacy.score)
-  const needle = pointFor(displayScore, R - STROKE - 6)
-
-  return (
-    <section aria-label="Health score" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
-      {header}
-      <div className="flex flex-col items-center">
-        <svg viewBox="0 0 260 160" className="h-auto w-full max-w-[280px]" role="img" aria-label={`Health score ${legacy.score} out of 10, ${meta.label}`}>
-          <path d={arcPath(0, GAUGE_MAX, R)} fill="none" stroke="#eef1f4" strokeWidth={STROKE} strokeLinecap="round" />
-          {LEGACY_ZONES.map((zone) => (
-            <path key={`${zone.from}-${zone.to}`} d={arcPath(zone.from, zone.to, R)} fill="none" stroke={zone.color} strokeWidth={STROKE} />
-          ))}
-          {[0, 5, 10].map((tick) => {
-            const p = pointFor(tick, R - STROKE - 16)
-            return (
-              <text key={tick} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" className="fill-[#9dabbd] text-[11px] font-medium">
-                {tick}
-              </text>
-            )
-          })}
-          <line x1={CX} y1={CY} x2={needle.x} y2={needle.y} stroke="#2e3742" strokeWidth={4} strokeLinecap="round" />
-          <circle cx={CX} cy={CY} r={8} fill="#2e3742" />
-          <circle cx={CX} cy={CY} r={3} fill="#ffffff" />
-        </svg>
-        <div className="-mt-4 flex flex-col items-center">
-          <div className="flex items-end gap-1">
-            <span className="text-3xl font-bold leading-none text-[#2e3742]">{legacy.score.toFixed(1)}</span>
-            <span className="mb-0.5 text-sm font-medium text-[#9dabbd]">/ 10</span>
-          </div>
-          <span className="mt-1 rounded-pill px-2.5 py-0.5 text-xs font-semibold" style={{ color: meta.color, backgroundColor: `${meta.color}1a` }}>
-            {meta.label}
-          </span>
-          <p className="mt-2 text-center text-xs text-[#9dabbd]">
-            {legacy.normal} of {legacy.total} biomarkers within normal range
-          </p>
-        </div>
-      </div>
-    </section>
-  )
+  // No API risk score available for this beneficiary — hide the section entirely.
+  return null
 }
