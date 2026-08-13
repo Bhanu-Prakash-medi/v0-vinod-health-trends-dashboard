@@ -75,29 +75,33 @@ export function openExternalUrl(url: string): void {
   // Immediate visual feedback that the tap registered.
   showOpeningOverlay()
 
-  // 1) Preferred: open a brand-new top-level tab. In a real browser and in most
-  //    WebViews this hands the URL to the system browser, which downloads
-  //    attachment URLs correctly and renders normal pages.
-  let opened: Window | null = null
+  // Open via a real anchor click with target="_blank". This is the one method
+  // that works across a normal browser, the sandboxed v0 preview, and mobile
+  // app WebViews: the browser/WebView opens the URL in a new tab (or hands it
+  // to the system browser), and attachment URLs download correctly.
+  //
+  // IMPORTANT: we intentionally do NOT fall back to navigating window.top or
+  // window.location. Replacing the top frame with an external URL is refused by
+  // the sandbox ("This content is blocked") AND it unmounts the whole app, so
+  // any follow-up UI (e.g. the "Saved to downloads" toast) would never render.
   try {
-    opened = window.open(url, "_blank", "noopener,noreferrer")
+    const link = document.createElement("a")
+    link.href = url
+    link.target = "_blank"
+    link.rel = "noopener noreferrer"
+    // Some WebViews only honor links that are actually in the DOM.
+    link.style.display = "none"
+    document.body.appendChild(link)
+    link.click()
+    // Clean up after the click has been dispatched.
+    window.setTimeout(() => link.remove(), 0)
   } catch {
-    opened = null
-  }
-  if (opened) return
-
-  // 2) New tab was blocked (sandboxed iframe / WebView). Navigate the TOP-MOST
-  //    window so the URL escapes the sandbox and the real browser handles it.
-  try {
-    if (window.top && window.top !== window.self) {
-      window.top.location.href = url
-      return
+    // As a final, non-destructive attempt, try a plain popup. If this is also
+    // blocked we do nothing further rather than replacing the current frame.
+    try {
+      window.open(url, "_blank", "noopener,noreferrer")
+    } catch {
+      /* no-op: never navigate the current/top frame */
     }
-  } catch {
-    // Cross-origin top navigation isn't permitted here — fall through.
   }
-
-  // 3) Last resort: navigate the current frame. For attachment URLs this simply
-  //    triggers the download without leaving the page.
-  window.location.href = url
 }
