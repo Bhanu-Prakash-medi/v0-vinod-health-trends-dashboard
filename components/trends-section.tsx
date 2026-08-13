@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown, Minus, ChevronRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
-import { getTrendData } from "@/lib/health-utils"
+import { getTrendData, hasValidRange } from "@/lib/health-utils"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { getParameterPriority } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
@@ -99,7 +99,11 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
 
   // A trend is only meaningful with more than one data point over time. Drop any
   // metric that has a single reading so we never render a "trend" with one point.
-  displayedTrends = displayedTrends.filter((trend) => Array.isArray(trend.data) && trend.data.length > 1)
+  // Also drop any metric that has no normal/reference range so parameters
+  // without a range never appear here (consistent with every other section).
+  displayedTrends = displayedTrends.filter(
+    (trend) => Array.isArray(trend.data) && trend.data.length > 1 && hasValidRange(trend.range),
+  )
 
   // If nothing has more than one data point, hide the Health Trends section.
   if (displayedTrends.length === 0) {

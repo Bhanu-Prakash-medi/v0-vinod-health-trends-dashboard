@@ -3,6 +3,7 @@
 import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle, Download } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
+import { hasValidRange } from "@/lib/health-utils"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 interface TestReportsSectionProps {
@@ -72,14 +73,18 @@ function normalizeParameters(parameters: any): NormalizedParam[] {
     range: range != null ? String(range) : "",
     isAbnormal: (status || "").toLowerCase() !== "normal",
   })
+  // Drop any parameter without a normal/reference range so it never shows in
+  // the report detail view (consistent with every other section).
   if (Array.isArray(parameters)) {
-    return parameters.map((p: any) =>
-      toParam(p.metric_name || p.name || "", p.value ?? p.result, p.unit ?? p.units, p.normal_range ?? p.range, p.status),
-    )
+    return parameters
+      .map((p: any) =>
+        toParam(p.metric_name || p.name || "", p.value ?? p.result, p.unit ?? p.units, p.normal_range ?? p.range, p.status),
+      )
+      .filter((p) => hasValidRange(p.range))
   }
-  return Object.entries(parameters).map(([name, data]: [string, any]) =>
-    toParam(name, data?.result, data?.units, data?.range, data?.status),
-  )
+  return Object.entries(parameters)
+    .map(([name, data]: [string, any]) => toParam(name, data?.result, data?.units, data?.range, data?.status))
+    .filter((p) => hasValidRange(p.range))
 }
 
 export default function TestReportsSection({ patientData, scrollToDate, onScrollHandled }: TestReportsSectionProps) {

@@ -16,6 +16,26 @@ export function genderAvatar(gender?: string | null): string {
   return normalizeGender(gender) === "female" ? "/images/profile-female.svg" : "/images/profile-male.svg"
 }
 
+// Returns true only when a parameter has a usable normal/reference range.
+// Parameters WITHOUT a range must not be shown in ANY section (Health Summary,
+// Digital Twin, Trends, Test Reports), so every section funnels through this.
+// Treats empty, whitespace, and common "no value" placeholders as missing.
+export function hasValidRange(range?: string | null): boolean {
+  const r = (range ?? "").toString().trim().toLowerCase()
+  if (!r) return false
+  const invalid = new Set([
+    "-", "--", "n/a", "na", "null", "undefined", "nil", "none", "not available", "not applicable",
+  ])
+  return !invalid.has(r)
+}
+
+// Convenience: read the range off any of the field names used across the app
+// and check validity in one call.
+export function paramHasRange(param: any): boolean {
+  if (!param) return false
+  return hasValidRange(param.range ?? param.normal_range ?? param.normalRange)
+}
+
 // Helper function to determine if a parameter is within normal range
 export function getParameterStatus(result: number, rangeStr: string): "normal" | "abnormal" {
   // Parse range string like "13.0 - 17.0" or "< 200" or "> 40"
