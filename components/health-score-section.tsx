@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
-import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus } from "lucide-react"
+import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus, Youtube, Globe } from "lucide-react"
+import { openExternalUrl } from "@/lib/open-external"
 
 interface HealthScoreSectionProps {
   patientData: any
@@ -153,9 +154,31 @@ export default function HealthScoreSection({
   }, [activeScore, view])
 
   const header = (
-    <div className="mb-3 flex items-center gap-2">
-      <Activity className="h-5 w-5 text-[#156ddc]" />
-      <h2 className="text-base font-semibold text-[#2e3742]">Health Score</h2>
+    <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <Activity className="h-5 w-5 text-[#156ddc]" />
+        <h2 className="text-base font-semibold text-[#2e3742]">Health Score</h2>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => openExternalUrl("https://youtu.be/cyWgR1VsmWo?si=RJuAOuH2MsMmFzo_")}
+          aria-label="Watch how your Health Score is calculated"
+          className="inline-flex items-center gap-1 rounded-full border border-[#f2d4d4] bg-[#fdf2f2] px-2.5 py-1 text-xs font-medium text-[#d1495b] transition-colors hover:bg-[#fbe8e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d1495b]/30"
+        >
+          <Youtube className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">How it&apos;s calculated</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => openExternalUrl("https://medibuddy.in")}
+          aria-label="Learn more on MediBuddy"
+          className="inline-flex items-center gap-1 rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-2.5 py-1 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+        >
+          <Globe className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Learn more</span>
+        </button>
+      </div>
     </div>
   )
 
