@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
+import { openExternalUrl } from "@/lib/open-external"
 
 interface HealthRecommendationsSectionProps {
   patientData: ApiHealthReport
@@ -231,6 +232,14 @@ export default function HealthRecommendationsSection({ patientData }: HealthReco
                         href={service.url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => {
+                          // Force a reliable open that escapes the sandboxed
+                          // iframe / mobile WebView (a plain target="_blank" is
+                          // dropped there, which is why Labs/Online CTAs didn't
+                          // open even though the URLs work in Chrome directly).
+                          e.preventDefault()
+                          openExternalUrl(service.url)
+                        }}
                         className="inline-flex items-center gap-1.5 rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-3 py-1.5 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
                       >
                         {service.icon}

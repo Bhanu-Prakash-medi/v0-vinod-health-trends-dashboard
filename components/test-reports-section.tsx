@@ -4,6 +4,7 @@ import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle, Download 
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 import { hasValidRange } from "@/lib/health-utils"
+import { openExternalUrl } from "@/lib/open-external"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 interface TestReportsSectionProps {
@@ -204,21 +205,15 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     setShowPdfViewer(true)
   }
 
-  // Open the pre-signed report URL in a NEW tab. We use a real anchor click
-  // with target="_blank" (not window.open, which is commonly blocked inside
-  // mobile app WebViews like the MediBuddy shell). If the browser still blocks
-  // the new tab, fall back to navigating the current tab so the PDF always
-  // opens on every platform.
+  // Open the pre-signed report URL in a NEW top-level tab. The previous anchor
+  // click stayed inside the sandboxed iframe / mobile WebView, so the S3
+  // attachment URL downloaded a broken file that "couldn't open". Routing
+  // through openExternalUrl escapes to the real browser, so the PDF downloads
+  // and opens exactly like pasting the link into Chrome directly.
   const handleDownloadReport = (e: React.MouseEvent, fileUrl: string, _fileName: string) => {
     e.stopPropagation()
     if (!fileUrl) return
-    const link = document.createElement("a")
-    link.href = fileUrl
-    link.target = "_blank"
-    link.rel = "noopener noreferrer"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    openExternalUrl(fileUrl)
   }
 
   const isLatestReport = (tag: string) => {
