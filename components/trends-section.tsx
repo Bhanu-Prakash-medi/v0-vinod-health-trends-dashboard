@@ -97,6 +97,11 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
     displayedTrends = allTrends.slice(0, 3)
   }
 
+  // A trend is only meaningful with more than one data point over time. Drop any
+  // metric that has a single reading so we never render a "trend" with one point.
+  displayedTrends = displayedTrends.filter((trend) => Array.isArray(trend.data) && trend.data.length > 1)
+
+  // If nothing has more than one data point, hide the Health Trends section.
   if (displayedTrends.length === 0) {
     return null
   }
