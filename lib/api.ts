@@ -1,6 +1,7 @@
 // Types for API responses
 
 import { genderAvatar } from "@/lib/health-utils"
+import { cachedRequest } from "@/lib/request-cache"
 
 /**
  * A single lab-report reference from the profile / beneficiary reports API.
@@ -195,6 +196,14 @@ export function extractDmsDocIdFromFileUrl(fileUrl?: string): string | null {
  * the new profile endpoint.
  */
 export async function fetchBeneficiaries(accessToken: string, _pmEntityId = "0"): Promise<BeneficiariesResponse> {
+  // Cached + de-duplicated so returning to the dashboard doesn't re-hit the
+  // profile API, and concurrent mounts share one request.
+  return cachedRequest(`beneficiaries:${accessToken}:${_pmEntityId}`, () =>
+    fetchBeneficiariesUncached(accessToken, _pmEntityId),
+  )
+}
+
+async function fetchBeneficiariesUncached(accessToken: string, _pmEntityId = "0"): Promise<BeneficiariesResponse> {
   const response = await fetch("/api/health/profile", {
     method: "GET",
     headers: {
@@ -295,6 +304,17 @@ function parseReportRequests(raw: any): ReportRequest[] {
  * source; the profile endpoint only populates Self.
  */
 export async function fetchBeneficiaryReportRequests(
+  accessToken: string,
+  vasBenifId: string | number,
+): Promise<ReportRequest[]> {
+  // Cached per beneficiary so re-selecting them (or remounting) reuses the
+  // already-resolved report references instead of re-hitting the reports API.
+  return cachedRequest(`reportRequests:${vasBenifId}`, () =>
+    fetchBeneficiaryReportRequestsUncached(accessToken, vasBenifId),
+  )
+}
+
+async function fetchBeneficiaryReportRequestsUncached(
   accessToken: string,
   vasBenifId: string | number,
 ): Promise<ReportRequest[]> {
@@ -613,6 +633,22 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
  * vasBenefId, not the account mbUserId); `requestId` identifies the report.
  */
 export async function fetchReportDetailsAsHealthReport(
+  accessToken: string,
+  vasBenefId: string | number,
+  requestId: string | number,
+  reportDate?: string,
+  fileUrl?: string,
+): Promise<ApiHealthReport> {
+  // A report's analyzed details are immutable within a session, so cache them
+  // per (beneficiary, report). This is the highest-volume call — one per report
+  // per beneficiary — so caching it is what stops the burst of repeat requests
+  // when the user returns to the dashboard.
+  return cachedRequest(`reportDetails:${vasBenefId}:${requestId}`, () =>
+    fetchReportDetailsAsHealthReportUncached(accessToken, vasBenefId, requestId, reportDate, fileUrl),
+  )
+}
+
+async function fetchReportDetailsAsHealthReportUncached(
   accessToken: string,
   vasBenefId: string | number,
   requestId: string | number,

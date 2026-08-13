@@ -122,7 +122,16 @@ export default function HealthScoreSection({
   const { data: riskData, isLoading: riskLoading } = useSWR(
     riskEnabled ? ["healthscore", String(vasbenefId), idsKey, gender ?? "", age ?? ""] : null,
     () => fetchHealthScore(requestIds as (string | number)[], accessToken as string, gender, age),
-    { revalidateOnFocus: false, shouldRetryOnError: false },
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      // Serve the cached score when returning to the dashboard instead of
+      // re-hitting the health-score API. SWR's cache is module-level, so this
+      // survives remounts; dedupingInterval also collapses concurrent calls.
+      revalidateIfStale: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 5 * 60 * 1000,
+    },
   )
 
   const hasRisk = !!riskData && riskData.score != null
