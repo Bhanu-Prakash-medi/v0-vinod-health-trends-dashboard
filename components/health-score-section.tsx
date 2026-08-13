@@ -18,25 +18,22 @@ interface HealthScoreSectionProps {
 const GAUGE_MAX = 10
 
 // ---- Risk score helpers (0-10, LOWER = better / lower risk) ----
-// Color scheme: 0 = green (No Risk), Low = yellow, Moderate = orange, High = red.
-const RISK_GREEN = "#16a34a"
+// Color scheme: Low = light green, Moderate = yellow, High = red.
+const RISK_LIGHT_GREEN = "#22c55e"
 const RISK_YELLOW = "#eab308"
-const RISK_ORANGE = "#f97316"
 const RISK_RED = "#dc2626"
 
-// Continuous visual zones on the 0-10 ring/scale: Low 0-3.33 (yellow),
-// Moderate 3.33-6.66 (orange), High 6.66-10 (red). A score of exactly 0 is
-// "No Risk" and colored green via riskColor().
+// Continuous visual zones on the 0-10 ring/scale: Low 0-3.33 (light green),
+// Moderate 3.33-6.66 (yellow), High 6.66-10 (red).
 const RISK_ZONES = [
-  { from: 0, to: 3.33, color: RISK_YELLOW },
-  { from: 3.33, to: 6.66, color: RISK_ORANGE },
+  { from: 0, to: 3.33, color: RISK_LIGHT_GREEN },
+  { from: 3.33, to: 6.66, color: RISK_YELLOW },
   { from: 6.66, to: 10, color: RISK_RED },
 ]
 
 function riskColor(score: number) {
-  if (score <= 0) return RISK_GREEN
-  if (score <= 3.33) return RISK_YELLOW
-  if (score <= 6.66) return RISK_ORANGE
+  if (score <= 3.33) return RISK_LIGHT_GREEN
+  if (score <= 6.66) return RISK_YELLOW
   return RISK_RED
 }
 

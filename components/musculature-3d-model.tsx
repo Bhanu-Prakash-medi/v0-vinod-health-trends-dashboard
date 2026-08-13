@@ -18,26 +18,6 @@ type OrganGroup = {
   icon: any
 }
 
-const getParamValue = (params: Record<string, any>, key: string): any => {
-  if (!params) return null
-
-  // Direct match
-  if (params[key]) return params[key]
-
-  // Case-insensitive search
-  const lowerKey = key.toLowerCase()
-  for (const k of Object.keys(params)) {
-    if (k.toLowerCase() === lowerKey) {
-      return params[k]
-    }
-    // Also check if key contains the search term
-    if (k.toLowerCase().includes(lowerKey) || lowerKey.includes(k.toLowerCase())) {
-      return params[k]
-    }
-  }
-  return null
-}
-
 const getParamStatus = (param: any): "normal" | "abnormal" => {
   if (!param) return "normal"
 
@@ -150,21 +130,37 @@ const normalizeParamName = (name: string): string => {
   return mappings[normalized] || normalized
 }
 
-const addUniqueParam = (
-  tests: Array<[string, any]>,
-  abnormalTests: Array<[string, any]>,
-  seenNames: Set<string>,
-  name: string,
-  param: any,
-) => {
-  const normalizedName = normalizeParamName(name)
-  if (seenNames.has(normalizedName)) return
+// Build a precise comparison key: normalize the clinical name, then strip
+// everything except alphanumerics so spacing/punctuation differences match
+// while distinct tests ("Hb" vs "HbA1c") never collide. This is IDENTICAL to
+// the Health Summary's comparisonKey, so both sections group the exact same
+// parameters into each organ/category and therefore show the same status.
+const comparisonKey = (name: string): string => normalizeParamName(name).replace(/[^a-z0-9]/g, "")
 
-  seenNames.add(normalizedName)
-  tests.push([name, param])
-  if (getParamStatus(param) === "abnormal") {
-    abnormalTests.push([name, param])
+// Collect the parameters that belong to an organ by iterating the ACTUAL report
+// parameters and exact-matching their normalized key against the organ's
+// allowed list. This replaces the old fuzzy substring lookup that could, e.g.,
+// match liver's "AST" inside "fASTing blood sugar" and wrongly flag the organ.
+const collectOrganTests = (
+  params: Record<string, any>,
+  allowedNames: string[],
+): { tests: Array<[string, any]>; abnormal: Array<[string, any]> } => {
+  const allowed = new Set(allowedNames.map(comparisonKey))
+  const seen = new Set<string>()
+  const tests: Array<[string, any]> = []
+  const abnormal: Array<[string, any]> = []
+
+  for (const [name, param] of Object.entries(params)) {
+    if (!name || !param) continue
+    const key = comparisonKey(name)
+    if (!key || !allowed.has(key)) continue
+    if (seen.has(key)) continue
+    seen.add(key)
+    tests.push([name, param])
+    if (getParamStatus(param) === "abnormal") abnormal.push([name, param])
   }
+
+  return { tests, abnormal }
 }
 
 const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
@@ -247,16 +243,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "LDL/HDL Ratio",
   ]
 
-  const lipidTests: Array<[string, any]> = []
-  const abnormalLipid: Array<[string, any]> = []
-  const seenLipid = new Set<string>()
-
-  for (const name of lipidParamNames) {
-    const param = getParamValue(params, name)
-    if (param) {
-      addUniqueParam(lipidTests, abnormalLipid, seenLipid, name, param)
-    }
-  }
+  const { tests: lipidTests, abnormal: abnormalLipid } = collectOrganTests(params, lipidParamNames)
 
   if (lipidTests.length > 0) {
     organs.push({
@@ -306,16 +293,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "GGTP",
   ]
 
-  const lftTests: Array<[string, any]> = []
-  const abnormalLFT: Array<[string, any]> = []
-  const seenLFT = new Set<string>()
-
-  for (const name of lftParamNames) {
-    const param = getParamValue(params, name)
-    if (param) {
-      addUniqueParam(lftTests, abnormalLFT, seenLFT, name, param)
-    }
-  }
+  const { tests: lftTests, abnormal: abnormalLFT } = collectOrganTests(params, lftParamNames)
 
   if (lftTests.length > 0) {
     organs.push({
@@ -350,16 +328,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "Glomerular Filtration Rate",
   ]
 
-  const kidneyTests: Array<[string, any]> = []
-  const abnormalKidney: Array<[string, any]> = []
-  const seenKidney = new Set<string>()
-
-  for (const name of kidneyParamNames) {
-    const param = getParamValue(params, name)
-    if (param) {
-      addUniqueParam(kidneyTests, abnormalKidney, seenKidney, name, param)
-    }
-  }
+  const { tests: kidneyTests, abnormal: abnormalKidney } = collectOrganTests(params, kidneyParamNames)
 
   if (kidneyTests.length > 0) {
     organs.push({
@@ -428,16 +397,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "B12",
   ]
 
-  const bloodTests: Array<[string, any]> = []
-  const abnormalBlood: Array<[string, any]> = []
-  const seenBlood = new Set<string>()
-
-  for (const name of bloodParamNames) {
-    const param = getParamValue(params, name)
-    if (param) {
-      addUniqueParam(bloodTests, abnormalBlood, seenBlood, name, param)
-    }
-  }
+  const { tests: bloodTests, abnormal: abnormalBlood } = collectOrganTests(params, bloodParamNames)
 
   if (bloodTests.length > 0) {
     organs.push({
@@ -475,16 +435,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "Estimated Average Glucose",
   ]
 
-  const sugarTests: Array<[string, any]> = []
-  const abnormalSugar: Array<[string, any]> = []
-  const seenSugar = new Set<string>()
-
-  for (const name of sugarParamNames) {
-    const param = getParamValue(params, name)
-    if (param) {
-      addUniqueParam(sugarTests, abnormalSugar, seenSugar, name, param)
-    }
-  }
+  const { tests: sugarTests, abnormal: abnormalSugar } = collectOrganTests(params, sugarParamNames)
 
   if (sugarTests.length > 0) {
     organs.push({
