@@ -3,6 +3,7 @@
 import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle, Download } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
+import { hasValidRange } from "@/lib/health-utils"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 interface TestReportsSectionProps {
@@ -72,14 +73,18 @@ function normalizeParameters(parameters: any): NormalizedParam[] {
     range: range != null ? String(range) : "",
     isAbnormal: (status || "").toLowerCase() !== "normal",
   })
+  // Drop any parameter without a normal/reference range so it never shows in
+  // the report detail view (consistent with every other section).
   if (Array.isArray(parameters)) {
-    return parameters.map((p: any) =>
-      toParam(p.metric_name || p.name || "", p.value ?? p.result, p.unit ?? p.units, p.normal_range ?? p.range, p.status),
-    )
+    return parameters
+      .map((p: any) =>
+        toParam(p.metric_name || p.name || "", p.value ?? p.result, p.unit ?? p.units, p.normal_range ?? p.range, p.status),
+      )
+      .filter((p) => hasValidRange(p.range))
   }
-  return Object.entries(parameters).map(([name, data]: [string, any]) =>
-    toParam(name, data?.result, data?.units, data?.range, data?.status),
-  )
+  return Object.entries(parameters)
+    .map(([name, data]: [string, any]) => toParam(name, data?.result, data?.units, data?.range, data?.status))
+    .filter((p) => hasValidRange(p.range))
 }
 
 export default function TestReportsSection({ patientData, scrollToDate, onScrollHandled }: TestReportsSectionProps) {
@@ -199,19 +204,15 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     setShowPdfViewer(true)
   }
 
-  // Open the original report PDF using the pre-signed URL from the beneficiary
-  // reports API. Mobile browsers (iOS Safari / Android Chrome) silently ignore
-  // a synthetic anchor with the `download` attribute on cross-origin S3 URLs,
-  // so we call window.open() directly inside the user gesture — which works on
-  // both web and mobile. If a popup blocker prevents the new tab, we fall back
-  // to navigating the current tab.
+  // Redirect the current tab to the pre-signed report URL. A direct
+  // navigation (window.location.href) is handled natively by desktop browsers
+  // and by mobile app WebViews (e.g. the MediBuddy shell) alike, so tapping
+  // download reliably opens the PDF on every platform. (The `download`
+  // attribute and window.open with noopener were silently blocked on mobile.)
   const handleDownloadReport = (e: React.MouseEvent, fileUrl: string, _fileName: string) => {
     e.stopPropagation()
     if (!fileUrl) return
-    const opened = window.open(fileUrl, "_blank", "noopener,noreferrer")
-    if (!opened) {
-      window.location.href = fileUrl
-    }
+    window.location.href = fileUrl
   }
 
   const isLatestReport = (tag: string) => {

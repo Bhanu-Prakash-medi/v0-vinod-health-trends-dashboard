@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"
 import { useState } from "react"
 import { Info, Activity, Heart, Droplets, Bone, X, Beaker } from "lucide-react"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
+import { paramHasRange } from "@/lib/health-utils"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 type Status = "normal" | "attention"
@@ -152,6 +153,9 @@ const collectOrganTests = (
 
   for (const [name, param] of Object.entries(params)) {
     if (!name || !param) continue
+    // Skip parameters with no normal/reference range so the Digital Twin shows
+    // the exact same set of parameters (and organ status) as every other section.
+    if (!paramHasRange(param)) continue
     const key = comparisonKey(name)
     if (!key || !allowed.has(key)) continue
     if (seen.has(key)) continue

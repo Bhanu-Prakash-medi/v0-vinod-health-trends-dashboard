@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
+import { paramHasRange } from "@/lib/health-utils"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 function handleViewLatestReport() {
@@ -187,6 +188,10 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
     for (const param of params) {
       const paramName = param.name || param.metric_name || ""
       if (!paramName) continue
+
+      // Skip parameters that have no normal/reference range - they must not
+      // appear anywhere (this keeps counts and the detail dialog consistent).
+      if (!paramHasRange(param)) continue
 
       const key = comparisonKey(paramName)
       if (!key) continue

@@ -83,29 +83,16 @@ export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSection
 
     setIsSubmitting(true)
 
+    // Feedback is recorded via the Snowplow analytics event below. The previous
+    // n8n webhook submission has been removed.
     trackHealthTrendsEvent(
       `feedback_submitted | rating:${rating} | reasons:${selectedReasons.join("; ")} | message:${message.trim()}`,
       vasbenefId,
     )
 
-    try {
-      await fetch(" https://n8n-swift.medibuddy.in/webhook/health-trends-feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rating: rating >= 0 ? rating : null,
-          selectedReasons,
-          feedbackMessage: message.trim(),
-          emailId: emailId || "",
-        }),
-      })
-    } catch (err) {
-      console.log("[v0] Feedback submit failed:", err instanceof Error ? err.message : err)
-    } finally {
-      // Always show the thank-you state so the user experience is not blocked
-      setIsSubmitting(false)
-      setSubmitted(true)
-    }
+    // Always show the thank-you state so the user experience is not blocked
+    setIsSubmitting(false)
+    setSubmitted(true)
   }
 
   return (

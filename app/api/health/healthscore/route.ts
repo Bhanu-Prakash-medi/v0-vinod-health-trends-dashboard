@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { RISK_BANDS, getRiskLevel, getBenchmarkForBand } from "@/lib/health-score-benchmarks"
 
-// The overall-risk-score endpoint currently lives on the staging backend only
-// (prod returns 404). The same access token is valid on both hosts.
-const HEALTHSCORE_BACKEND = "https://healthtrends-backend.mbstg.in"
+// The overall-risk-score endpoint on the production Health Trends backend.
+const HEALTHSCORE_BACKEND = "https://healthtrends-backend.medibuddy.in"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 30000): Promise<Response> {
   const controller = new AbortController()
