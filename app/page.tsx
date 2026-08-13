@@ -39,6 +39,7 @@ import {
   type ApiHealthReport,
   type Beneficiary,
 } from "@/lib/api"
+import { genderAvatar } from "@/lib/health-utils"
 
 interface BeneficiaryError {
   type: "TIMEOUT" | "GENERAL" | "NO_REPORTS"
@@ -670,12 +671,16 @@ export default function HealthDashboard() {
 
   const familyMembers = beneficiaries.map((b) => {
     const report = beneficiaryReports.get(b.patientName)
+    // Prefer the beneficiary's own gender/age (reliable + available early) and
+    // fall back to the loaded report. Derive the avatar from that gender so a
+    // female never defaults to the male image.
+    const memberGender = b.gender || report?.patient_info?.gender || "Unknown"
     return {
       name: b.patientName,
       initial: b.patientName.charAt(0).toUpperCase(),
-      age: report?.patient_info?.age || 0,
-      gender: report?.patient_info?.gender || "Unknown",
-      image: report?.patient_info?.profileImage || "/images/profile-male.svg",
+      age: b.age || report?.patient_info?.age || 0,
+      gender: memberGender,
+      image: report?.patient_info?.profileImage || genderAvatar(memberGender),
       relation: b.relation,
     }
   })
@@ -804,12 +809,14 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-              <HealthScoreSection
-                patientData={currentProfileData}
-                vasbenefId={activeBeneficiary?.rVasBenefId}
-                requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
-                accessToken={accessToken}
-              />
+                <HealthScoreSection
+                  patientData={currentProfileData}
+                  vasbenefId={activeBeneficiary?.rVasBenefId}
+                  requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
+                  accessToken={accessToken}
+                  gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
+                  age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
+                />
               <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               {/* WhatNextSection (Recommended For You) hidden per requirement */}

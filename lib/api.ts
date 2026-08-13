@@ -1,5 +1,7 @@
 // Types for API responses
 
+import { genderAvatar } from "@/lib/health-utils"
+
 /**
  * A single lab-report reference from the profile / beneficiary reports API.
  * `requestId` is used with the account `mbUserId` to fetch the analyzed report
@@ -639,12 +641,8 @@ function transformReportMetrics(data: any): ApiHealthReport {
   const gender =
     getValueCaseInsensitive(patientInfo, "gender") || getValueCaseInsensitive(patientCard, "gender") || "Unknown"
 
-  // Determine profile image based on gender
-  const normalizedGender = gender.toLowerCase()
-  let profileImage = "/images/profile-male.svg"
-  if (normalizedGender === "female" || normalizedGender === "f") {
-    profileImage = "/images/profile-female.svg"
-  }
+  // Determine profile image based on gender (robust to casing/whitespace/variants)
+  const profileImage = genderAvatar(gender)
 
   // Transform parameters
   const transformedParameters: Record<string, any> = {}
@@ -929,11 +927,7 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
   const gender =
     getValueCaseInsensitive(patientCard, "gender") || getValueCaseInsensitive(reportData, "gender") || "Unknown"
 
-  const normalizedGender = gender.toLowerCase()
-  let profileImage = "/images/profile-male.svg"
-  if (normalizedGender === "female" || normalizedGender === "f") {
-    profileImage = "/images/profile-female.svg"
-  }
+  const profileImage = genderAvatar(gender)
 
   // Transform flat parameters into the map keyed by metric name.
   const transformedParameters: Record<string, any> = {}
@@ -1177,11 +1171,7 @@ export function buildTrendsFromReports(
  */
 export function createInitialProfileFromBeneficiary(beneficiary: Beneficiary): ApiHealthReport {
   const gender = beneficiary.gender || "Unknown"
-  const normalizedGender = gender.toLowerCase()
-  let profileImage = "/images/profile-male.svg"
-  if (normalizedGender === "female" || normalizedGender === "f") {
-    profileImage = "/images/profile-female.svg"
-  }
+  const profileImage = genderAvatar(gender)
 
   return {
     patient_info: {
