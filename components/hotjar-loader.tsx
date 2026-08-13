@@ -21,6 +21,7 @@ export default function HotjarLoader() {
             a=o.getElementsByTagName('head')[0];
             r=o.createElement('script');r.async=1;
             r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+            r.onerror=function(){/* Hotjar blocked/unreachable (ad-blocker or sandbox) - handle locally so the load error doesn't bubble to window as an uncaught error */};
             a.appendChild(r);
           })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
         `,
