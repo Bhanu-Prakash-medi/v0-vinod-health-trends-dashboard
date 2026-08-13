@@ -152,10 +152,25 @@ export default function HealthScoreSection({
     </div>
   )
 
-  // While the risk score resolves, render nothing (no loading flash). The
-  // section only appears once a real score is available.
+  // While the risk score is being fetched, show an explicit loading state so
+  // the section doesn't suddenly pop in "from nowhere" once data arrives.
   if (riskEnabled && riskLoading && !riskData) {
-    return null
+    return (
+      <section aria-label="Health score, loading" aria-busy="true" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
+        {header}
+        <p className="mb-4 text-xs text-[#9dabbd]">Fetching your latest health score…</p>
+        <div className="flex flex-col items-center py-4">
+          <div className="relative flex h-40 w-40 items-center justify-center">
+            {/* Spinning ring to mirror the donut visualization */}
+            <div className="absolute inset-0 rounded-full border-[10px] border-[#eef1f4]" />
+            <div className="absolute inset-0 animate-spin rounded-full border-[10px] border-transparent border-t-[#156ddc]" />
+            <div className="h-6 w-16 animate-pulse rounded bg-[#eef1f4]" />
+          </div>
+          <div className="mt-5 h-3 w-40 animate-pulse rounded bg-[#eef1f4]" />
+          <div className="mt-2 h-3 w-28 animate-pulse rounded bg-[#f4f6f8]" />
+        </div>
+      </section>
+    )
   }
 
   // ---- Primary: risk-based UI with view styles + benchmark ----
@@ -187,10 +202,10 @@ export default function HealthScoreSection({
         <div className="mb-4 flex items-center justify-between gap-2">
           {reportDate ? (
             <p className="text-xs text-[#9dabbd]">
-              Based on your report from <span className="font-medium text-[#4d5c6f]">{reportDate}</span>
+              Based on your latest health report <span className="font-medium text-[#4d5c6f]">({reportDate})</span>
             </p>
           ) : (
-            <span />
+            <p className="text-xs text-[#9dabbd]">Based on your latest health report</p>
           )}
           <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#f0f3f5] p-0.5" role="tablist" aria-label="Chart style">
             {VIEW_OPTIONS.map(({ id, label: vLabel, Icon }) => {
@@ -365,7 +380,7 @@ export default function HealthScoreSection({
                 </span>
               </div>
               <div className="relative h-6 w-full overflow-hidden rounded-md">
-                {/* Green/yellow/red zone track — active zone highlighted */}
+                {/* Green/yellow/red zone track ��� active zone highlighted */}
                 <div className="absolute inset-0 flex">
                   {RISK_ZONES.map((z, i) => (
                     <div
@@ -463,6 +478,21 @@ export default function HealthScoreSection({
     )
   }
 
-  // No API risk score available for this beneficiary — hide the section entirely.
-  return null
+  // No API risk score available for this beneficiary — show a fallback prompting
+  // the user to take an AHC (Annual Health Checkup) lab test.
+  return (
+    <section aria-label="Health score unavailable" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
+      {header}
+      <div className="flex flex-col items-center py-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef4fd]">
+          <Activity className="h-7 w-7 text-[#156ddc]" />
+        </div>
+        <h3 className="mt-4 text-sm font-semibold text-[#2e3742]">Your health score is missing</h3>
+        <p className="mt-1 max-w-[280px] text-pretty text-xs leading-relaxed text-[#9dabbd]">
+          We couldn&apos;t find a health score for you yet. Take an AHC (Annual Health Checkup) lab test to unlock your
+          personalized health score.
+        </p>
+      </div>
+    </section>
+  )
 }
