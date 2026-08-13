@@ -199,20 +199,19 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     setShowPdfViewer(true)
   }
 
-  // Download the original report PDF using the pre-signed URL from the
-  // beneficiary reports API. Opens in a new tab (cross-origin S3 URLs ignore
-  // the anchor `download` attribute, so a new tab reliably triggers the PDF).
-  const handleDownloadReport = (e: React.MouseEvent, fileUrl: string, fileName: string) => {
+  // Open the original report PDF using the pre-signed URL from the beneficiary
+  // reports API. Mobile browsers (iOS Safari / Android Chrome) silently ignore
+  // a synthetic anchor with the `download` attribute on cross-origin S3 URLs,
+  // so we call window.open() directly inside the user gesture — which works on
+  // both web and mobile. If a popup blocker prevents the new tab, we fall back
+  // to navigating the current tab.
+  const handleDownloadReport = (e: React.MouseEvent, fileUrl: string, _fileName: string) => {
     e.stopPropagation()
     if (!fileUrl) return
-    const link = document.createElement("a")
-    link.href = fileUrl
-    link.download = fileName || "report.pdf"
-    link.target = "_blank"
-    link.rel = "noopener noreferrer"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    const opened = window.open(fileUrl, "_blank", "noopener,noreferrer")
+    if (!opened) {
+      window.location.href = fileUrl
+    }
   }
 
   const isLatestReport = (tag: string) => {

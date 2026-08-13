@@ -34,22 +34,22 @@ interface ServiceLink {
 const SERVICE_LINKS: Record<ServiceKey, ServiceLink> = {
   meds: {
     label: "Order Medicines",
-    url: "https://link.medibuddy.app/oSfU4N9VUTb",
+    url: "https://www.medibuddy.in/order-medicines",
     icon: <Pill className="h-3.5 w-3.5" />,
   },
   labs: {
     label: "Book Lab Test",
-    url: "https://link.medibuddy.app/9MklPn1XUTb",
+    url: "https://www.medibuddy.in/labsLandingPage",
     icon: <FlaskConical className="h-3.5 w-3.5" />,
   },
   online: {
     label: "Online Consultation",
-    url: "https://link.medibuddy.app/HzamqTgYUTb",
+    url: "https://www.medibuddy.in/ask",
     icon: <Video className="h-3.5 w-3.5" />,
   },
   clinic: {
     label: "In-Clinic Consultation",
-    url: "https://link.medibuddy.app/PaUI0RVZUTb",
+    url: "https://www.medibuddy.in/doctor-consultations/landing",
     icon: <Building2 className="h-3.5 w-3.5" />,
   },
 }
