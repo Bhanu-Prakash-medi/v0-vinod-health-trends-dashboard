@@ -204,26 +204,15 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     setShowPdfViewer(true)
   }
 
-  // Open the original report PDF using the pre-signed URL from the beneficiary
-  // reports API. We use a real anchor click (NOT window.open and NOT the
-  // `download` attribute):
-  //  - The `download` attribute is silently ignored/blocked for cross-origin
-  //    S3 URLs on mobile browsers, so the tap did nothing.
-  //  - `window.open(..., "noopener")` returns null even on success, and is
-  //    commonly blocked inside mobile app WebViews (e.g. the MediBuddy shell),
-  //    so the previous fallback navigated the whole app away.
-  // A plain <a target="_blank"> link is handled natively by both desktop
-  // browsers and mobile WebViews, which reliably opens the PDF externally.
+  // Redirect the current tab to the pre-signed report URL. A direct
+  // navigation (window.location.href) is handled natively by desktop browsers
+  // and by mobile app WebViews (e.g. the MediBuddy shell) alike, so tapping
+  // download reliably opens the PDF on every platform. (The `download`
+  // attribute and window.open with noopener were silently blocked on mobile.)
   const handleDownloadReport = (e: React.MouseEvent, fileUrl: string, _fileName: string) => {
     e.stopPropagation()
     if (!fileUrl) return
-    const link = document.createElement("a")
-    link.href = fileUrl
-    link.target = "_blank"
-    link.rel = "noopener noreferrer"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    window.location.href = fileUrl
   }
 
   const isLatestReport = (tag: string) => {
