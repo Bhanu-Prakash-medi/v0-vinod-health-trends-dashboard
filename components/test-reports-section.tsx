@@ -1,6 +1,6 @@
 "use client"
 
-import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle, Download } from "lucide-react"
+import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle, Download, Check } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 import { hasValidRange } from "@/lib/health-utils"
@@ -94,6 +94,14 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
   const [highlightLatest, setHighlightLatest] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [highlightReportIndex, setHighlightReportIndex] = useState<number | null>(null)
+  const [showDownloadToast, setShowDownloadToast] = useState(false)
+
+  // Auto-dismiss the "Saved to downloads" confirmation after a few seconds.
+  useEffect(() => {
+    if (!showDownloadToast) return
+    const timer = setTimeout(() => setShowDownloadToast(false), 3500)
+    return () => clearTimeout(timer)
+  }, [showDownloadToast])
 
   useEffect(() => {
     const handleScrollToLatest = () => {
@@ -214,6 +222,10 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     e.stopPropagation()
     if (!fileUrl) return
     openExternalUrl(fileUrl)
+    // The file downloads in the external browser tab, so the OS "download
+    // complete" event isn't observable here. Confirm to the user that the
+    // report has been saved once the download has been handed off.
+    setShowDownloadToast(true)
   }
 
   const isLatestReport = (tag: string) => {
@@ -572,6 +584,22 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download confirmation popup */}
+      {showDownloadToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4"
+        >
+          <div className="flex items-center gap-2.5 rounded-full border border-[#cde6d5] bg-[#eafaf0] px-4 py-2.5 shadow-lg">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#22c55e]">
+              <Check className="h-3.5 w-3.5 text-white" />
+            </span>
+            <span className="text-sm font-medium text-[#1a7a43]">Saved to downloads</span>
           </div>
         </div>
       )}
