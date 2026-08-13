@@ -1,3 +1,21 @@
+// Normalize any gender-ish input to "male" | "female" | null, tolerating
+// casing, whitespace, and common variants (m/f, man/woman, girl/boy, etc.).
+// This is the single source of truth used for both avatars and benchmarks so
+// a female never falls through to the male default.
+export function normalizeGender(gender?: string | null): "male" | "female" | null {
+  const g = (gender || "").trim().toLowerCase()
+  if (!g || g === "unknown") return null
+  if (g === "f" || g.startsWith("female") || g.startsWith("woman") || g === "girl" || g === "w") return "female"
+  if (g === "m" || g.startsWith("male") || g.startsWith("man") || g === "boy") return "male"
+  return null
+}
+
+// Pick the correct avatar strictly from gender. Female -> female avatar;
+// everything else (male / unknown / empty) -> male avatar.
+export function genderAvatar(gender?: string | null): string {
+  return normalizeGender(gender) === "female" ? "/images/profile-female.svg" : "/images/profile-male.svg"
+}
+
 // Helper function to determine if a parameter is within normal range
 export function getParameterStatus(result: number, rangeStr: string): "normal" | "abnormal" {
   // Parse range string like "13.0 - 17.0" or "< 200" or "> 40"

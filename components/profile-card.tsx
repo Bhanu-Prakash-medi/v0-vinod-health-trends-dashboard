@@ -1,6 +1,7 @@
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { genderAvatar } from "@/lib/health-utils"
 
 interface ProfileCardProps {
   name: string
@@ -29,13 +30,14 @@ export default function ProfileCard({
   profileImage,
   relation,
 }: ProfileCardProps) {
-  // Pick the avatar strictly from gender, tolerating "Female"/"F"/"male"/"m"
-  // etc. Only a female value yields the female avatar; everything else (male,
-  // unknown, empty) falls back to the male avatar. A real resolved profileImage
-  // still takes precedence over this.
-  const normalizedGender = (gender || "").trim().toLowerCase()
-  const isFemale = normalizedGender === "female" || normalizedGender === "f"
-  const genderAvatar = isFemale ? "/images/profile-female.svg" : "/images/profile-male.svg"
+  // Pick the avatar strictly from gender via the shared helper (robust to
+  // casing/whitespace/variants). Only a *real* uploaded image (not one of the
+  // default gender SVGs) should override the reliable gender prop — otherwise a
+  // stale/default male SVG from the report data would mask a female profile.
+  const fallbackAvatar = genderAvatar(gender)
+  const isDefaultAvatar =
+    !profileImage || profileImage.includes("profile-male.svg") || profileImage.includes("profile-female.svg")
+  const avatarSrc = isDefaultAvatar ? fallbackAvatar : profileImage
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
@@ -58,7 +60,7 @@ export default function ProfileCard({
               />
             </svg>
             <Avatar className="absolute left-1/2 top-1/2 h-[42px] w-[42px] -translate-x-1/2 -translate-y-1/2">
-              <AvatarImage src={profileImage || genderAvatar} alt={name} />
+              <AvatarImage src={avatarSrc || "/placeholder.svg"} alt={name} />
               <AvatarFallback className="bg-[#156ddc] text-sm font-semibold text-white">{initial}</AvatarFallback>
             </Avatar>
             <div className="absolute -right-1 -top-1 rounded-full bg-[#156ddc] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">

@@ -9,6 +9,10 @@ interface HealthScoreSectionProps {
   vasbenefId?: string | number
   requestIds?: (string | number)[]
   accessToken?: string | null
+  /** Reliable gender/age from the beneficiary record — used for the population
+   *  benchmark. Falls back to patientData.patient_info when not provided. */
+  gender?: string
+  age?: number
 }
 
 const GAUGE_MAX = 10
@@ -104,9 +108,15 @@ export default function HealthScoreSection({
   vasbenefId,
   requestIds,
   accessToken,
+  gender: genderProp,
+  age: ageProp,
 }: HealthScoreSectionProps) {
-  const gender: string | undefined = patientData?.patient_info?.gender
-  const age: number | undefined = patientData?.patient_info?.age
+  // Prefer the reliable beneficiary gender/age; fall back to the loaded report.
+  // Both feed the population benchmark (Avg marker), so a valid value here is
+  // what makes the MediBuddy benchmark show up.
+  const rawGender = genderProp || patientData?.patient_info?.gender
+  const gender: string | undefined = rawGender && rawGender !== "Unknown" ? rawGender : undefined
+  const age: number | undefined = ageProp || patientData?.patient_info?.age || undefined
 
   // ---- Risk score from the overall-risk-score API ----
   const idsKey = requestIds && requestIds.length ? requestIds.join(",") : ""
