@@ -675,12 +675,18 @@ export default function HealthDashboard() {
     // fall back to the loaded report. Derive the avatar from that gender so a
     // female never defaults to the male image.
     const memberGender = b.gender || report?.patient_info?.gender || "Unknown"
+    // The report's profileImage is itself just a default gender SVG, so only let
+    // a *real* uploaded photo override the reliable gender-based avatar —
+    // otherwise a stale/default male SVG would mask a female (and vice versa).
+    const reportImage = report?.patient_info?.profileImage
+    const isDefaultReportImage =
+      !reportImage || reportImage.includes("profile-male.svg") || reportImage.includes("profile-female.svg")
     return {
       name: b.patientName,
       initial: b.patientName.charAt(0).toUpperCase(),
       age: b.age || report?.patient_info?.age || 0,
       gender: memberGender,
-      image: report?.patient_info?.profileImage || genderAvatar(memberGender),
+      image: isDefaultReportImage ? genderAvatar(memberGender) : reportImage,
       relation: b.relation,
     }
   })
