@@ -8,7 +8,7 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import { getParameterBand } from "@/lib/parameter-bands"
+import { getParameterBand, getParameterBandScale } from "@/lib/parameter-bands"
 
 export default function AllParametersSection({
   patientData,
@@ -93,6 +93,7 @@ export default function AllParametersSection({
       // For the 7 custom-band parameters, resolve the granular band (color +
       // label). Non-listed parameters keep the default normal/abnormal display.
       const band = getParameterBand(metricName, result, patientData?.patient_info?.gender)
+      const bandScale = getParameterBandScale(metricName, result, patientData?.patient_info?.gender)
 
       return {
         name: metricName,
@@ -103,6 +104,7 @@ export default function AllParametersSection({
         position: dynamicPosition,
         result,
         band,
+        bandScale,
       }
     })
     .filter((param) => param.position !== null) // Case 4: Filter out malformed ranges
@@ -191,28 +193,52 @@ export default function AllParametersSection({
               <div className="w-[140px]">
                 {/* Scale bar + marker wrapper */}
                 <div className="relative h-4">
-                  {/* Scale bar */}
-                  <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
-                    <div className="w-1/3 bg-[#faa9a3] h-3" />
-                    <div className="w-1/3 bg-[#addaaf] h-3" />
-                    <div className="w-1/3 bg-[#faa9a3] h-3" />
-                  </div>
+                  {param.bandScale ? (
+                    <>
+                      {/* Band-colored scale */}
+                      <div className="flex overflow-hidden rounded gap-0 items-center h-3 mt-0.5">
+                        {param.bandScale.segments.map((seg, i) => (
+                          <div
+                            key={i}
+                            className="h-3"
+                            style={{ width: `${seg.widthPct}%`, backgroundColor: seg.color }}
+                            title={seg.label}
+                          />
+                        ))}
+                      </div>
 
-                  {/* Separators */}
-                  <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
-                  <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+                      {/* Indicator */}
+                      <div
+                        className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white shadow-sm"
+                        style={{
+                          left: `${param.bandScale.markerPct}%`,
+                          top: "12px",
+                          borderColor: param.band?.color ?? "#2e3742",
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {/* Scale bar */}
+                      <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
+                        <div className="w-1/3 bg-[#faa9a3] h-3" />
+                        <div className="w-1/3 bg-[#addaaf] h-3" />
+                        <div className="w-1/3 bg-[#faa9a3] h-3" />
+                      </div>
 
-                  {/* Indicator */}
-                  <div
-                    className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-                      param.band ? "" : param.status === "abnormal" ? "border-red-600" : "border-green-600"
-                    } bg-white shadow-sm`}
-                    style={{
-                      left: `${param.position}%`,
-                      top: "12px",
-                      ...(param.band ? { borderColor: param.band.color } : {}),
-                    }}
-                  />
+                      {/* Separators */}
+                      <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+                      <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+
+                      {/* Indicator */}
+                      <div
+                        className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                          param.status === "abnormal" ? "border-red-600" : "border-green-600"
+                        } bg-white shadow-sm`}
+                        style={{ left: `${param.position}%`, top: "12px" }}
+                      />
+                    </>
+                  )}
                 </div>
 
                 {/* Normal Range text */}
