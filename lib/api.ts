@@ -158,6 +158,63 @@ export function getPmEntityIdFromCookie(): string {
 }
 
 /**
+ * Fetch whether the user has already agreed to the Health Trends data-consent.
+ * Proxies GET /health/getconsent/{mbUserId}. Returns `true` when an agreement
+ * exists, `false` otherwise (including on any error, so the modal is shown).
+ */
+export async function getHealthConsent(mbUserId: string | number, accessToken?: string | null): Promise<boolean> {
+  if (mbUserId === undefined || mbUserId === null || mbUserId === "") return false
+  try {
+    const response = await fetch(`/api/health/consent?mbUserId=${encodeURIComponent(String(mbUserId))}`, {
+      method: "GET",
+      headers: {
+        ...(accessToken ? { accesstoken: accessToken } : {}),
+      },
+    })
+    if (!response.ok) return false
+    const data = await response.json()
+    // The consent record may be returned directly or nested under data/response.
+    const record = getValueCaseInsensitive(data, "data") ?? getValueCaseInsensitive(data, "response") ?? data
+    const agreed =
+      getValueCaseInsensitive(record, "isAgreed") ??
+      getValueCaseInsensitive(record, "isagreed") ??
+      getValueCaseInsensitive(record, "agreed")
+    return agreed === true || agreed === "true" || agreed === 1
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Submit the user's Health Trends data-consent agreement.
+ * Proxies POST /health/consent. Returns `true` on success.
+ */
+export async function submitHealthConsent(
+  payload: { mbUserId: string | number; pmEntityId?: string | number | null; email?: string },
+  accessToken?: string | null,
+): Promise<boolean> {
+  try {
+    const response = await fetch("/api/health/consent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { accesstoken: accessToken } : {}),
+      },
+      body: JSON.stringify({
+        mbUserId: payload.mbUserId,
+        pmEntityId: payload.pmEntityId ?? null,
+        email: payload.email ?? "",
+        isAgreed: true,
+        agreedDate: null,
+      }),
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+/**
  * Helper function to get value from object with case-insensitive key matching
  */
 function getValueCaseInsensitive(obj: any, key: string): any {
