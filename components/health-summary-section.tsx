@@ -1,6 +1,24 @@
 "use client"
 
-import { Activity, FileText, Heart, Droplet, Atom, TrendingUp, Candy, Beaker, Info, ChevronRight } from "lucide-react"
+import {
+  Activity,
+  HeartPulse,
+  Droplet,
+  Droplets,
+  Gauge,
+  Candy,
+  Pill,
+  FlaskConical,
+  Bean,
+  Scale,
+  Brain,
+  Bone,
+  Wind,
+  Dna,
+  Stethoscope,
+  Info,
+  ChevronRight,
+} from "lucide-react"
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -37,22 +55,48 @@ interface HealthSummarySectionProps {
 }
 
 const categoryIcons: Record<string, any> = {
-  Heart: Heart,
-  Liver: Activity,
-  "Kidney & Urine": Droplet,
-  Kidney: Droplet,
+  // Cardiovascular / lipid profile
+  Heart: HeartPulse,
+  Lipid: HeartPulse,
+  Cholesterol: HeartPulse,
+  // Liver function tests (enzyme panel)
+  Liver: FlaskConical,
+  // Kidney filters and produces urine
+  "Kidney & Urine": Droplets,
+  Kidney: Droplets,
+  Urine: Droplets,
+  Renal: Droplets,
+  // Blood / haematology (single blood drop)
   Blood: Droplet,
-  Thyroid: Activity,
+  "Complete Blood Count": Droplet,
+  CBC: Droplet,
+  Haematology: Droplet,
+  // Thyroid regulates metabolism (dial/gauge)
+  Thyroid: Gauge,
+  // Sugar / diabetes
   "Sugar/Diabetes": Candy,
   Diabetes: Candy,
   Sugar: Candy,
-  "Vitamins & Minerals": Atom,
-  Vitamins: Atom,
-  "Gallbladder & Pancreas": FileText,
-  Pancreas: FileText,
-  "Body Composition": TrendingUp,
-  General: Beaker,
-  default: Beaker,
+  // Vitamins & minerals (supplement pill)
+  "Vitamins & Minerals": Pill,
+  Vitamins: Pill,
+  Minerals: Pill,
+  // Gallbladder & pancreas (organ-shaped bean)
+  "Gallbladder & Pancreas": Bean,
+  Pancreas: Bean,
+  Gallbladder: Bean,
+  // Body composition (weighing scale)
+  "Body Composition": Scale,
+  // Other common organ systems
+  "Bone & Joint": Bone,
+  Bone: Bone,
+  Brain: Brain,
+  Neuro: Brain,
+  Lung: Wind,
+  Respiratory: Wind,
+  Genetic: Dna,
+  General: Stethoscope,
+  default: Stethoscope,
 }
 
 const getIconForCategory = (category: string) => {
@@ -364,17 +408,18 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
     )
   }
 
-  // ... existing code for fallback ...
+  // Fallback card list. Icons are resolved from the shared categoryIcons map
+  // (via getIconForCategory) so both render paths use the same meaningful icons.
   const healthCards = [
-    { title: "Heart" as const, icon: Heart },
-    { title: "Liver" as const, icon: Activity },
-    { title: "Kidney & Urine" as const, icon: Droplet },
-    { title: "Blood" as const, icon: Droplet },
-    { title: "Thyroid" as const, icon: Activity },
-    { title: "Sugar/Diabetes" as const, icon: Candy },
-    { title: "Vitamins & Minerals" as const, icon: Atom },
-    { title: "Gallbladder & Pancreas" as const, icon: FileText },
-    { title: "Body Composition" as const, icon: TrendingUp },
+    { title: "Heart" as const },
+    { title: "Liver" as const },
+    { title: "Kidney & Urine" as const },
+    { title: "Blood" as const },
+    { title: "Thyroid" as const },
+    { title: "Sugar/Diabetes" as const },
+    { title: "Vitamins & Minerals" as const },
+    { title: "Gallbladder & Pancreas" as const },
+    { title: "Body Composition" as const },
   ]
 
   const visibleCards = healthCards.filter((card) => hasDataForCategory(card.title, patientData))
@@ -399,7 +444,7 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
       {/* Cards Grid */}
       <div className="grid grid-cols-2 py-0 gap-4">
         {visibleCards.map((card) => {
-          const Icon = card.icon
+          const Icon = getIconForCategory(card.title)
           const status = getCategoryStatus(card.title, patientData)
           const outOfRangeCount = countOutOfRangeParams(card.title, patientData)
 

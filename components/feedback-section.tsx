@@ -8,10 +8,14 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
+import { submitHealthFeedback } from "@/lib/api"
 
 interface FeedbackSectionProps {
+  mbUserId?: string | number
   vasbenefId?: string | number
+  pmEntityId?: string | number | null
   emailId?: string
+  accessToken?: string | null
 }
 
 interface FeedbackOptionSet {
@@ -20,7 +24,13 @@ interface FeedbackOptionSet {
   options: string[]
 }
 
-export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSectionProps) {
+export default function FeedbackSection({
+  mbUserId,
+  vasbenefId,
+  pmEntityId,
+  emailId,
+  accessToken,
+}: FeedbackSectionProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [rating, setRating] = useState(-1)
   const [message, setMessage] = useState("")
@@ -83,14 +93,26 @@ export default function FeedbackSection({ vasbenefId, emailId }: FeedbackSection
 
     setIsSubmitting(true)
 
-    // Feedback is recorded via the Snowplow analytics event below. The previous
-    // n8n webhook submission has been removed.
+    const feedbackSaved = mbUserId
+      ? await submitHealthFeedback(
+          {
+            mbUserId,
+            vasBenefId: vasbenefId ?? null,
+            pmEntityId: pmEntityId ?? null,
+            email: emailId ?? "",
+            rating,
+            remarks: selectedReasons.join("; "),
+            comment: message.trim(),
+          },
+          accessToken,
+        )
+      : false
+
     trackHealthTrendsEvent(
-      `feedback_submitted | rating:${rating} | reasons:${selectedReasons.join("; ")} | message:${message.trim()}`,
+      `feedback_submitted | rating:${rating} | reasons:${selectedReasons.join("; ")} | message:${message.trim()} | saved:${feedbackSaved}`,
       vasbenefId,
     )
 
-    // Always show the thank-you state so the user experience is not blocked
     setIsSubmitting(false)
     setSubmitted(true)
   }
