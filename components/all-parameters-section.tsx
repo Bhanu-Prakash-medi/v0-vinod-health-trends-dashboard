@@ -221,9 +221,9 @@ export default function AllParametersSection({
                     <>
                       {/* Scale bar */}
                       <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
-                        <div className="w-1/3 bg-[#faa9a3] h-3" />
-                        <div className="w-1/3 bg-[#addaaf] h-3" />
-                        <div className="w-1/3 bg-[#faa9a3] h-3" />
+                        <div className="w-1/3 bg-[#ef4444] h-3" />
+                        <div className="w-1/3 bg-[#22c55e] h-3" />
+                        <div className="w-1/3 bg-[#ef4444] h-3" />
                       </div>
 
                       {/* Separators */}

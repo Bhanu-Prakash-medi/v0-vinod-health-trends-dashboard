@@ -233,9 +233,9 @@ export default function AllParametersPage({
                   ) : (
                     <>
                       <div className="flex h-3 overflow-hidden rounded mt-0.5">
-                        <div className="w-1/3 bg-[#faa9a3]" />
-                        <div className="w-1/3 bg-[#addaaf]" />
-                        <div className="w-1/3 bg-[#faa9a3]" />
+                        <div className="w-1/3 bg-[#ef4444]" />
+                        <div className="w-1/3 bg-[#22c55e]" />
+                        <div className="w-1/3 bg-[#ef4444]" />
                       </div>
 
                       <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
