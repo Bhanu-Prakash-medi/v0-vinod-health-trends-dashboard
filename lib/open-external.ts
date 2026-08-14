@@ -69,8 +69,47 @@ function showOpeningOverlay(): void {
   }, 1400)
 }
 
+/**
+ * For MediBuddy deep-link targets (Book Lab Test, Online Consultation), hand
+ * the URL to the native app shell via its JS bridge instead of opening a web
+ * tab. Matches by host + path so it works for both http/https variants of the
+ * configured URLs. Returns true when the native bridge handled the URL.
+ */
+function tryMediBuddyNativeBridge(url: string): boolean {
+  let isDeepLinkTarget = false
+  try {
+    const { hostname, pathname } = new URL(url)
+    isDeepLinkTarget =
+      /(^|\.)medibuddy\.in$/i.test(hostname) &&
+      (pathname === "/labsLandingPage" || pathname === "/ask")
+  } catch {
+    return false
+  }
+  if (!isDeepLinkTarget) return false
+
+  const w = window as any
+  // iOS bridge
+  if (w.webkit?.messageHandlers?.bridgeHandler) {
+    w.webkit.messageHandlers.bridgeHandler.postMessage({
+      taskType: "DEEP_LINK",
+      url,
+    })
+    return true
+  }
+  // Android bridge
+  if (w.bridgeInterface?.performTask) {
+    const callbackId = "pop_back_" + Date.now()
+    w.bridgeInterface.performTask(callbackId, "DEEP_LINK", JSON.stringify({ url }))
+    return true
+  }
+  return false
+}
+
 export function openExternalUrl(url: string): void {
   if (typeof window === "undefined" || !url) return
+
+  // MediBuddy app WebView: hand deep-link targets to the native bridge and stop.
+  if (tryMediBuddyNativeBridge(url)) return
 
   // Immediate visual feedback that the tap registered.
   showOpeningOverlay()
