@@ -36,6 +36,8 @@ import {
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
   getPmEntityIdFromCookie,
+  getHealthConsent,
+  submitHealthConsent,
   type ApiHealthReport,
   type Beneficiary,
 } from "@/lib/api"
@@ -65,8 +67,12 @@ export default function HealthDashboard() {
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>("")
-  // Consent form temporarily hidden. To re-enable, set the initial value back to false.
-  const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState(true)
+  // Consent gate. Starts hidden until we know the user's consent status:
+  // `null` = unknown/checking (no modal yet), `true` = agreed, `false` = must agree.
+  const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState<boolean | null>(null)
+  // Identifiers needed to submit consent, captured from the profile response
+  // (mbUserId, email) and the cookie (pmEntityId).
+  const consentIdsRef = useRef<{ mbUserId: string; pmEntityId: string; email: string } | null>(null)
   const hasHealthSummaryEventFiredRef = useRef(false)
   const hasTrendsEventFiredRef = useRef(false)
   // Tracks which beneficiaries have already had their reports requested, so a
@@ -508,6 +514,23 @@ export default function HealthDashboard() {
         setUserEmail(data.employee_email || "")
         setSnowplowUserContext(data.mbuserid || null, data.employee_email || null)
 
+        // Consent gate: mbUserId comes from the profile response, pmEntityId
+        // from the cookie, email from the profile. Check existing consent; if
+        // the user hasn't agreed yet, the modal is shown.
+        const consentMbUserId = data.mbuserid ? String(data.mbuserid) : ""
+        consentIdsRef.current = {
+          mbUserId: consentMbUserId,
+          pmEntityId,
+          email: data.employee_email || "",
+        }
+        if (consentMbUserId) {
+          const alreadyAgreed = await getHealthConsent(consentMbUserId, token)
+          if (isMounted) setHasAcceptedHealthConsent(alreadyAgreed)
+        } else if (isMounted) {
+          // No user id -> can't record consent; don't block the dashboard.
+          setHasAcceptedHealthConsent(true)
+        }
+
         // Set self user's vasbenefId for self-only events
         const selfBenef = data.beneficiaries.find((b) => b.relation.toLowerCase() === "self")
         if (selfBenef?.rVasBenefId) {
@@ -603,11 +626,20 @@ export default function HealthDashboard() {
     }
   }
 
+  const handleConsentAgree = async () => {
+    const ids = consentIdsRef.current
+    // Optimistically unblock the dashboard; record the agreement in the
+    // background. mbUserId + email come from the profile, pmEntityId from cookie.
+    setHasAcceptedHealthConsent(true)
+    if (!ids?.mbUserId) return
+    await submitHealthConsent(
+      { mbUserId: ids.mbUserId, pmEntityId: ids.pmEntityId, email: ids.email },
+      accessToken,
+    )
+  }
+
   const consentModal = (
-    <HealthConsentModal
-      open={!hasAcceptedHealthConsent}
-      onAgree={() => setHasAcceptedHealthConsent(true)}
-    />
+    <HealthConsentModal open={hasAcceptedHealthConsent === false} onAgree={handleConsentAgree} />
   )
 
   if (isBeneficiariesLoading) {

@@ -158,6 +158,83 @@ export function getPmEntityIdFromCookie(): string {
 }
 
 /**
+ * Fetch whether the user has already agreed to the Health Trends data-consent.
+ * Proxies GET /health/getconsent/{mbUserId}. Returns `true` when an agreement
+ * exists, `false` otherwise (including on any error, so the modal is shown).
+ */
+export async function getHealthConsent(mbUserId: string | number, accessToken?: string | null): Promise<boolean> {
+  if (mbUserId === undefined || mbUserId === null || mbUserId === "") return false
+  try {
+    const response = await fetch(`/api/health/consent?mbUserId=${encodeURIComponent(String(mbUserId))}`, {
+      method: "GET",
+      headers: {
+        ...(accessToken ? { accesstoken: accessToken } : {}),
+      },
+    })
+    if (!response.ok) return false
+    const data = await response.json()
+    // The consent record may be returned directly or nested under data/response.
+    const record = getValueCaseInsensitive(data, "data") ?? getValueCaseInsensitive(data, "response") ?? data
+    const agreed =
+      getValueCaseInsensitive(record, "isAgreed") ??
+      getValueCaseInsensitive(record, "isagreed") ??
+      getValueCaseInsensitive(record, "agreed")
+    return agreed === true || agreed === "true" || agreed === 1
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Submit the user's Health Trends data-consent agreement.
+ * Proxies POST /health/consent. Returns `true` on success.
+ */
+export async function submitHealthConsent(
+  payload: { mbUserId: string | number; pmEntityId?: string | number | null; email?: string },
+  accessToken?: string | null,
+): Promise<boolean> {
+  try {
+    const response = await fetch("/api/health/consent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { accesstoken: accessToken } : {}),
+      },
+      body: JSON.stringify({
+        mbUserId: payload.mbUserId,
+        pmEntityId: payload.pmEntityId ?? null,
+        email: payload.email ?? "",
+        isAgreed: true,
+        // Current date/time as ISO 8601 in IST, e.g. "2026-08-14T15:26:30.098+05:30".
+        agreedDate: formatIstTimestamp(),
+      }),
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Formats the current instant as a valid ISO 8601 timestamp in IST:
+ * "YYYY-MM-DDTHH:mm:ss.SSS+05:30". IST is computed explicitly (UTC + 5:30) so
+ * the "+05:30" offset is always correct regardless of the runtime timezone.
+ */
+function formatIstTimestamp(date: Date = new Date()): string {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+  const ist = new Date(date.getTime() + IST_OFFSET_MS)
+  const pad = (n: number, len = 2) => String(n).padStart(len, "0")
+  const year = ist.getUTCFullYear()
+  const month = pad(ist.getUTCMonth() + 1)
+  const day = pad(ist.getUTCDate())
+  const hours = pad(ist.getUTCHours())
+  const minutes = pad(ist.getUTCMinutes())
+  const seconds = pad(ist.getUTCSeconds())
+  const millis = pad(ist.getUTCMilliseconds(), 3)
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${millis}+05:30`
+}
+
+/**
  * Helper function to get value from object with case-insensitive key matching
  */
 function getValueCaseInsensitive(obj: any, key: string): any {
