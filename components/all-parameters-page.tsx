@@ -210,7 +210,7 @@ export default function AllParametersPage({
                 <div className="relative h-4">
                   {param.bandScale ? (
                     <>
-                      <div className="flex h-3 overflow-hidden rounded mt-0.5">
+                      <div className="flex h-3 overflow-hidden rounded-full mt-0.5">
                         {param.bandScale.segments.map((seg, i) => (
                           <div
                             key={i}

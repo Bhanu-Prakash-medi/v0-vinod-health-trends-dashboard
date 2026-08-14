@@ -196,7 +196,7 @@ export default function AllParametersSection({
                   {param.bandScale ? (
                     <>
                       {/* Band-colored scale */}
-                      <div className="flex overflow-hidden rounded gap-0 items-center h-3 mt-0.5">
+                      <div className="flex overflow-hidden rounded-full gap-0 items-center h-3 mt-0.5">
                         {param.bandScale.segments.map((seg, i) => (
                           <div
                             key={i}
