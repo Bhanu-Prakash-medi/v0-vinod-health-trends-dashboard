@@ -462,7 +462,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "64290c35bcff4770b16dbbe9e4eb5c2f"
+        const DEBUG_TOKEN = "85aad10ac407460b9a5fcff87ed9c4ba"
 
         let cookieToken: string | null = null
         try {
@@ -656,7 +656,26 @@ export default function HealthDashboard() {
   }
 
   const activeBeneficiary = beneficiaries[activeBeneficiaryIndex]
-  const currentProfileData = activeBeneficiary ? beneficiaryReports.get(activeBeneficiary.patientName) : null
+  const rawProfileData = activeBeneficiary ? beneficiaryReports.get(activeBeneficiary.patientName) : null
+  // Ensure patient_info.gender/age is populated from the active beneficiary
+  // (reliable + available early). The report's own patient_info.gender is often
+  // "Unknown"/empty, which would make sex-specific bands (e.g. female HDL)
+  // silently fall back to the male cutoffs. This is the single source of truth
+  // consumed by every section (health summary, digital twin, parameters, etc.).
+  const currentProfileData =
+    rawProfileData && activeBeneficiary
+      ? {
+          ...rawProfileData,
+          patient_info: {
+            ...rawProfileData.patient_info,
+            gender:
+              activeBeneficiary.gender && activeBeneficiary.gender !== "Unknown"
+                ? activeBeneficiary.gender
+                : rawProfileData.patient_info?.gender,
+            age: activeBeneficiary.age || rawProfileData.patient_info?.age,
+          },
+        }
+      : rawProfileData
   const isReportLoading = currentProfileData?.isLoading ?? true
   const currentBeneficiaryError = activeBeneficiary ? beneficiaryErrors.get(activeBeneficiary.patientName) : undefined
   // A beneficiary "has records" if the profile reported lab report URLs

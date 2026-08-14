@@ -9,6 +9,7 @@ import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 import { getParameterBand, getParameterBandScale, getParameterNormalRange } from "@/lib/parameter-bands"
+import { resolveParameterStatus } from "@/lib/parameter-status"
 
 export default function AllParametersSection({
   patientData,
@@ -79,16 +80,13 @@ export default function AllParametersSection({
       const result = Number.parseFloat(param.value || param.result || "0") || 0
       const range = param.normal_range || param.range || ""
       const units = param.unit || param.units || ""
-      const apiStatus = (param.status || "").toLowerCase()
-      const status = apiStatus === "abnormal" || apiStatus === "high" || apiStatus === "low" ? "abnormal" : "normal"
+      // Status from hardcoded band ranges / numeric range only (never the API
+      // status flag), so the badge and marker always match the value + range.
+      const status = resolveParameterStatus(
+        { name: metricName, value: result, range },
+        patientData?.patient_info?.gender,
+      )
       const dynamicPosition = calculateDynamicPosition(result, range)
-
-      // Debug: log parameter position calculation
-      if (metricName?.includes("CRP") || metricName?.includes("Epithelial")) {
-        console.log(`[v0] LAB REPORT API - Metric: "${metricName}" | API Status: "${apiStatus}" | Value: ${result} ${units} | Range: ${range} | Processed Status: ${status} | Position: ${dynamicPosition}%`)
-      } else {
-        console.log(`[v0] Parameter: "${metricName}" | Value: ${result} ${units} | Range: ${range} | Status: ${status} | Position: ${dynamicPosition}%`)
-      }
 
       // For the 7 custom-band parameters, resolve the granular band (color +
       // label). Non-listed parameters keep the default normal/abnormal display.

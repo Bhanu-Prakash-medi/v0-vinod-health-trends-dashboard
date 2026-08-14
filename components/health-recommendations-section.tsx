@@ -18,6 +18,7 @@ import {
 import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
 import { openExternalUrl } from "@/lib/open-external"
+import { resolveParameterStatus } from "@/lib/parameter-status"
 
 interface HealthRecommendationsSectionProps {
   patientData: ApiHealthReport
@@ -63,10 +64,6 @@ interface Recommendation {
   services?: ServiceKey[]
 }
 
-function isAbnormal(status: string | undefined): boolean {
-  const s = (status || "normal").toLowerCase()
-  return s !== "normal" && s !== "in range" && s !== "in_range" && s !== "within normal limits"
-}
 
 function normalizeCategory(name: string): string {
   const n = (name || "").toLowerCase()
@@ -149,11 +146,13 @@ const categoryRecommendations: Record<string, Recommendation> = {
 
 function generateRecommendations(patientData: ApiHealthReport): Recommendation[] {
   const healthSummary = patientData?.health_summary || []
+  const gender = (patientData as any)?.patient_info?.gender
   const abnormalCategoryKeys = new Set<string>()
 
   for (const category of healthSummary) {
     const params = category.parameters || []
-    const hasAbnormal = params.some((p: any) => isAbnormal(p.status))
+    // Status from hardcoded band / numeric range only, never the API flag.
+    const hasAbnormal = params.some((p: any) => resolveParameterStatus(p, gender) === "abnormal")
     if (hasAbnormal) {
       abnormalCategoryKeys.add(normalizeCategory(category.category || category.name || ""))
     }

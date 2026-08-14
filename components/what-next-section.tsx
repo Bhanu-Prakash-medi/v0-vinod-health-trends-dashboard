@@ -2,6 +2,7 @@
 
 import { Stethoscope, FlaskConical, TrendingUp, CalendarCheck, ShieldCheck, ChevronRight } from "lucide-react"
 import type { ApiHealthReport } from "@/lib/api"
+import { resolveParameterStatus } from "@/lib/parameter-status"
 
 interface Recommendation {
   id: string
@@ -35,14 +36,14 @@ function generateRecommendations(patientData: ApiHealthReport): Recommendation[]
   const trendAnalysis = patientData.trend_analysis || []
   const labReports = patientData.lab_reports || []
 
+  const gender = (patientData as any)?.patient_info?.gender
+
   // 1. Check for abnormal categories -> Consult a Doctor
   const abnormalCategories: { name: string; count: number }[] = []
   for (const category of healthSummary) {
     const params = category.parameters || []
-    const outOfRange = params.filter((p) => {
-      const status = (p.status || "normal").toLowerCase()
-      return status !== "normal" && status !== "in range" && status !== "in_range" && status !== "within normal limits"
-    })
+    // Status from hardcoded band / numeric range only, never the API flag.
+    const outOfRange = params.filter((p) => resolveParameterStatus(p, gender) === "abnormal")
     if (outOfRange.length > 0) {
       abnormalCategories.push({
         name: category.category || "Unknown",

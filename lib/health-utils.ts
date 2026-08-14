@@ -41,22 +41,41 @@ export function paramHasRange(param: any): boolean {
   return hasValidRange(param.range ?? param.normal_range ?? param.normalRange)
 }
 
-// Helper function to determine if a parameter is within normal range
+// Helper function to determine if a parameter is within normal range.
+// Handles the range formats seen in reports: "13.0 - 17.0", "0.3-1.0",
+// "< 200", "<= 200", "≤ 1.2", "> 40", ">= 40", "≥ 40", and "upto 40".
+// When the range can't be parsed to numbers, the value is treated as normal.
 export function getParameterStatus(result: number, rangeStr: string): "normal" | "abnormal" {
-  // Parse range string like "13.0 - 17.0" or "< 200" or "> 40"
-  if (rangeStr.includes("-")) {
-    const [min, max] = rangeStr.split("-").map((s) => Number.parseFloat(s.trim()))
-    return result >= min && result <= max ? "normal" : "abnormal"
-  } else if (rangeStr.startsWith("<")) {
-    const max = Number.parseFloat(rangeStr.replace("<", "").trim())
-    return result < max ? "normal" : "abnormal"
-  } else if (rangeStr.startsWith(">")) {
-    const min = Number.parseFloat(rangeStr.replace(">", "").trim())
-    return result > min ? "normal" : "abnormal"
-  } else if (rangeStr.toLowerCase().includes("upto")) {
-    const max = Number.parseFloat(rangeStr.toLowerCase().replace("upto", "").trim())
-    return result <= max ? "normal" : "abnormal"
+  if (result == null || Number.isNaN(result)) return "normal"
+  // Normalize unicode operators and dashes to ASCII.
+  const s = (rangeStr ?? "")
+    .toString()
+    .trim()
+    .replace(/≤/g, "<=")
+    .replace(/≥/g, ">=")
+    .replace(/[–—]/g, "-")
+  if (!s) return "normal"
+
+  // Between form: "a - b" (also handles no-space "a-b" and negative bounds).
+  const between = s.match(/^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$/)
+  if (between) {
+    const min = Number.parseFloat(between[1])
+    const max = Number.parseFloat(between[2])
+    if (!Number.isNaN(min) && !Number.isNaN(max)) {
+      return result >= min && result <= max ? "normal" : "abnormal"
+    }
   }
+
+  const firstNum = s.match(/-?\d+(?:\.\d+)?/)
+  if (!firstNum) return "normal"
+  const n = Number.parseFloat(firstNum[0])
+  if (Number.isNaN(n)) return "normal"
+
+  if (s.startsWith("<=")) return result <= n ? "normal" : "abnormal"
+  if (s.startsWith("<")) return result < n ? "normal" : "abnormal"
+  if (s.startsWith(">=")) return result >= n ? "normal" : "abnormal"
+  if (s.startsWith(">")) return result > n ? "normal" : "abnormal"
+  if (s.toLowerCase().includes("upto")) return result <= n ? "normal" : "abnormal"
   return "normal"
 }
 

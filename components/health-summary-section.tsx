@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
 import { paramHasRange } from "@/lib/health-utils"
-import { getParameterBand } from "@/lib/parameter-bands"
+import { getParameterBand, getParameterNormalRange } from "@/lib/parameter-bands"
+import { resolveParameterStatus } from "@/lib/parameter-status"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 function handleViewLatestReport() {
@@ -114,36 +115,11 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
     return mappings[normalized] || normalized
   }
 
-  // Helper function to check parameter status (same logic as Digital Twin)
-  const getParamStatus = (param: any): "normal" | "abnormal" => {
-    if (!param) return "normal"
-
-    // Check status field directly
-    const status = param.status || param.Status
-    if (status) {
-      const statusLower = status.toString().toLowerCase()
-      if (statusLower === "normal" || statusLower === "within normal limits") {
-        return "normal"
-      }
-      return "abnormal"
-    }
-
-    // Fallback to range comparison
-    const value = Number.parseFloat(param.result || param.value || param.Value || "0")
-    const range = param.range || param.normal_range || param.normalRange || ""
-
-    if (!range || isNaN(value)) return "normal"
-
-    const rangeStr = range.toString()
-    if (rangeStr.includes("-")) {
-      const [min, max] = rangeStr.split("-").map((s: string) => Number.parseFloat(s.trim()))
-      if (!isNaN(min) && !isNaN(max)) {
-        if (value < min || value > max) return "abnormal"
-      }
-    }
-
-    return "normal"
-  }
+  // Parameter status comes from the shared resolver: hardcoded band ranges for
+  // the 7 band parameters, else the numeric reference range. The API status
+  // flag is intentionally ignored (it wrongly flagged in-range values).
+  const getParamStatus = (param: any): "normal" | "abnormal" =>
+    resolveParameterStatus(param, patientData?.patient_info?.gender)
 
   // Digital Twin parameter lists for overlapping categories
   const digitalTwinParamLists: Record<string, string[]> = {
@@ -319,7 +295,14 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
                     const paramStatus = getParamStatus(param)
                     const paramValue = param.value ?? param.result ?? "-"
                     const paramUnit = param.unit || ""
-                    const paramRange = param.normal_range || param.range || ""
+                    // For the 7 band parameters, show the sex-aware clinical
+                    // normal range (e.g. female HDL 50–59) instead of the raw
+                    // report range; fall back to the report range otherwise.
+                    const paramRange =
+                      getParameterNormalRange(param.name, patientData?.patient_info?.gender) ??
+                      param.normal_range ??
+                      param.range ??
+                      ""
                     // Custom band (color + granular label) for the 7 listed
                     // parameters; other parameters keep the normal/abnormal look.
                     const band = getParameterBand(
