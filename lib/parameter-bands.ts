@@ -217,9 +217,11 @@ export interface BandScale {
   markerPct: number
 }
 
-// Builds a proportional, band-colored scale bar (segments + marker position)
-// for the custom-band parameters, so the range indicator reflects the clinical
-// bands instead of a generic red/green/red bar. Returns null for non-band
+// Builds a band-colored scale bar (equal-width segments + marker position) for
+// the custom-band parameters, so the range indicator reflects the clinical
+// bands instead of a generic red/green/red bar. Every band gets the SAME width
+// regardless of its numeric span, and the marker is placed proportionally
+// inside whichever band the value falls in. Returns null for non-band
 // parameters (caller keeps the default bar).
 export function getParameterBandScale(
   name: string | null | undefined,
@@ -233,34 +235,34 @@ export function getParameterBandScale(
   const bands = filterBandsBySex(def.ranges, sex)
   if (bands.length === 0) return null
 
-  // Collect finite boundaries to establish the numeric domain of the bar.
-  const finite: number[] = []
-  for (const b of bands) {
-    if (b.min != null) finite.push(b.min)
-    if (b.max != null) finite.push(b.max)
-  }
-  if (finite.length === 0) return null
+  const n = bands.length
+  const segWidth = 100 / n
 
-  const firstFinite = Math.min(...finite)
-  const lastFinite = Math.max(...finite)
-  const span = lastFinite - firstFinite || Math.abs(lastFinite) || 1
-  // Give the open-ended first/last bands a visible width.
-  const pad = span * 0.2
-  const domainMin = firstFinite - pad
-  const domainMax = lastFinite + pad
-  const domainSpan = domainMax - domainMin
+  // Equal-width segments so no color takes more or less space than another.
+  const segments: BandScaleSegment[] = bands.map((b) => ({
+    color: b.color,
+    label: shortBandLabel(b.label),
+    widthPct: segWidth,
+  }))
 
-  const segments: BandScaleSegment[] = bands.map((b) => {
-    const lo = Math.max(b.min ?? domainMin, domainMin)
-    const hi = Math.min(b.max ?? domainMax, domainMax)
-    const widthPct = Math.max(0, ((hi - lo) / domainSpan) * 100)
-    return { color: b.color, label: shortBandLabel(b.label), widthPct }
-  })
-
+  // Place the marker inside its band's equal-width slot, proportional to where
+  // the value sits between that band's bounds. Open-ended bounds fall back to
+  // the slot edges so the marker stays within the bar.
   let markerPct: number | null = null
   if (value != null && !Number.isNaN(value)) {
-    const clamped = Math.min(Math.max(value, domainMin), domainMax)
-    markerPct = ((clamped - domainMin) / domainSpan) * 100
+    let idx = bands.findIndex((b) => {
+      const min = b.min ?? Number.NEGATIVE_INFINITY
+      const max = b.max ?? Number.POSITIVE_INFINITY
+      return value >= min && value <= max
+    })
+    if (idx === -1) idx = value < (bands[0].min ?? Number.NEGATIVE_INFINITY) ? 0 : n - 1
+
+    const b = bands[idx]
+    const lo = b.min ?? b.max ?? value
+    const hi = b.max ?? b.min ?? value
+    const denom = hi - lo
+    const frac = denom > 0 ? Math.min(Math.max((value - lo) / denom, 0), 1) : 0.5
+    markerPct = (idx + frac) * segWidth
   }
 
   return { segments, markerPct: markerPct ?? 50 }
