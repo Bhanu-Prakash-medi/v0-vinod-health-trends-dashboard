@@ -227,6 +227,26 @@ export function getParameterBand(
   return null
 }
 
+// Band colors that represent an in-range / healthy result. Green (#22C55E),
+// protective green (#16A34A) and lime "near optimal" (#84CC16) are in range;
+// every amber/orange/red band counts as out of range.
+const IN_RANGE_BAND_COLORS = new Set(["#22C55E", "#16A34A", "#84CC16"])
+
+// Determines Normal/Abnormal for the 7 custom-band parameters using ONLY the
+// hardcoded clinical bands (never the report's own range or the API status
+// flag). Returns null for every other parameter so the caller can fall back to
+// the numeric reference-range comparison.
+export function getParameterBandStatus(
+  name: string | null | undefined,
+  value: number | null | undefined,
+  gender?: string | null,
+): "normal" | "abnormal" | null {
+  if (value == null || Number.isNaN(value)) return null
+  const band = getParameterBand(name, value, gender)
+  if (!band) return null
+  return IN_RANGE_BAND_COLORS.has(band.color.toUpperCase()) ? "normal" : "abnormal"
+}
+
 export interface BandScaleSegment {
   color: string
   label: string

@@ -7,6 +7,7 @@ import { hasValidRange } from "@/lib/health-utils"
 import { openExternalUrl } from "@/lib/open-external"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 import { getParameterBand } from "@/lib/parameter-bands"
+import { isParamAbnormal } from "@/lib/parameter-status"
 
 interface TestReportsSectionProps {
   patientData: any
@@ -66,26 +67,28 @@ interface NormalizedParam {
 // The report `parameters` come in two shapes: an array of metric objects or a
 // keyed object. Flatten both into a single list so the report view can render
 // one responsive layout (stacked cards on mobile, table on desktop).
-function normalizeParameters(parameters: any): NormalizedParam[] {
+function normalizeParameters(parameters: any, gender?: string | null): NormalizedParam[] {
   if (!parameters) return []
-  const toParam = (name: string, value: any, unit: any, range: any, status: any): NormalizedParam => ({
+  // isAbnormal comes from the shared resolver (hardcoded band ranges / numeric
+  // range only) — never the API status flag — so it matches every other section.
+  const toParam = (name: string, value: any, unit: any, range: any): NormalizedParam => ({
     name,
     value: value != null ? String(value) : "",
     unit: unit != null ? String(unit) : "",
     range: range != null ? String(range) : "",
-    isAbnormal: (status || "").toLowerCase() !== "normal",
+    isAbnormal: isParamAbnormal({ name, value, range }, gender),
   })
   // Drop any parameter without a normal/reference range so it never shows in
   // the report detail view (consistent with every other section).
   if (Array.isArray(parameters)) {
     return parameters
       .map((p: any) =>
-        toParam(p.metric_name || p.name || "", p.value ?? p.result, p.unit ?? p.units, p.normal_range ?? p.range, p.status),
+        toParam(p.metric_name || p.name || "", p.value ?? p.result, p.unit ?? p.units, p.normal_range ?? p.range),
       )
       .filter((p) => hasValidRange(p.range))
   }
   return Object.entries(parameters)
-    .map(([name, data]: [string, any]) => toParam(name, data?.result, data?.units, data?.range, data?.status))
+    .map(([name, data]: [string, any]) => toParam(name, data?.result, data?.units, data?.range))
     .filter((p) => hasValidRange(p.range))
 }
 
@@ -509,7 +512,10 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
 
                 {/* Test Results Summary */}
                 {(() => {
-                  const params = normalizeParameters(reports[selectedReportIndex].parameters)
+                  const params = normalizeParameters(
+                    reports[selectedReportIndex].parameters,
+                    patientData?.patient_info?.gender,
+                  )
                   if (params.length === 0) return null
                   return (
                     <div className="space-y-4">

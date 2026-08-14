@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Info, Activity, Heart, Droplets, Bone, X, Beaker } from "lucide-react"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { paramHasRange } from "@/lib/health-utils"
+import { resolveParameterStatus } from "@/lib/parameter-status"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 type Status = "normal" | "attention"
@@ -17,38 +18,6 @@ type OrganGroup = {
   relatedTests: string[]
   abnormalTests: Array<{ name: string; value: string; range: string }>
   icon: any
-}
-
-const getParamStatus = (param: any): "normal" | "abnormal" => {
-  if (!param) return "normal"
-
-  // Check status field directly
-  const status = param.status || param.Status
-  if (status) {
-    const statusLower = status.toString().toLowerCase()
-    if (statusLower === "normal" || statusLower === "within normal limits") {
-      return "normal"
-    }
-    return "abnormal"
-  }
-
-  // Fallback to range comparison
-  const value = Number.parseFloat(param.result || param.value || param.Value || "0")
-  const range = param.range || param.normal_range || param.normalRange || ""
-
-  if (!range || isNaN(value)) return "normal"
-
-  const rangeParts = range
-    .toString()
-    .split("-")
-    .map((s: string) => Number.parseFloat(s.trim()))
-  if (rangeParts.length === 2 && !isNaN(rangeParts[0]) && !isNaN(rangeParts[1])) {
-    if (value < rangeParts[0] || value > rangeParts[1]) {
-      return "abnormal"
-    }
-  }
-
-  return "normal"
 }
 
 const normalizeParamName = (name: string): string => {
@@ -145,6 +114,7 @@ const comparisonKey = (name: string): string => normalizeParamName(name).replace
 const collectOrganTests = (
   params: Record<string, any>,
   allowedNames: string[],
+  gender?: string | null,
 ): { tests: Array<[string, any]>; abnormal: Array<[string, any]> } => {
   const allowed = new Set(allowedNames.map(comparisonKey))
   const seen = new Set<string>()
@@ -161,7 +131,7 @@ const collectOrganTests = (
     if (seen.has(key)) continue
     seen.add(key)
     tests.push([name, param])
-    if (getParamStatus(param) === "abnormal") abnormal.push([name, param])
+    if (resolveParameterStatus({ ...param, name }, gender) === "abnormal") abnormal.push([name, param])
   }
 
   return { tests, abnormal }
@@ -169,6 +139,7 @@ const collectOrganTests = (
 
 const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
   const organs: OrganGroup[] = []
+  const gender = patientData?.patient_info?.gender
 
   let params: Record<string, any> = {}
 
@@ -247,7 +218,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "LDL/HDL Ratio",
   ]
 
-  const { tests: lipidTests, abnormal: abnormalLipid } = collectOrganTests(params, lipidParamNames)
+  const { tests: lipidTests, abnormal: abnormalLipid } = collectOrganTests(params, lipidParamNames, gender)
 
   if (lipidTests.length > 0) {
     organs.push({
@@ -297,7 +268,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "GGTP",
   ]
 
-  const { tests: lftTests, abnormal: abnormalLFT } = collectOrganTests(params, lftParamNames)
+  const { tests: lftTests, abnormal: abnormalLFT } = collectOrganTests(params, lftParamNames, gender)
 
   if (lftTests.length > 0) {
     organs.push({
@@ -332,7 +303,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "Glomerular Filtration Rate",
   ]
 
-  const { tests: kidneyTests, abnormal: abnormalKidney } = collectOrganTests(params, kidneyParamNames)
+  const { tests: kidneyTests, abnormal: abnormalKidney } = collectOrganTests(params, kidneyParamNames, gender)
 
   if (kidneyTests.length > 0) {
     organs.push({
@@ -401,7 +372,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "B12",
   ]
 
-  const { tests: bloodTests, abnormal: abnormalBlood } = collectOrganTests(params, bloodParamNames)
+  const { tests: bloodTests, abnormal: abnormalBlood } = collectOrganTests(params, bloodParamNames, gender)
 
   if (bloodTests.length > 0) {
     organs.push({
@@ -439,7 +410,7 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     "Estimated Average Glucose",
   ]
 
-  const { tests: sugarTests, abnormal: abnormalSugar } = collectOrganTests(params, sugarParamNames)
+  const { tests: sugarTests, abnormal: abnormalSugar } = collectOrganTests(params, sugarParamNames, gender)
 
   if (sugarTests.length > 0) {
     organs.push({

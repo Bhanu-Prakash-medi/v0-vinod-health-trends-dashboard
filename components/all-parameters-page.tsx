@@ -9,6 +9,7 @@ import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 import { getParameterBand, getParameterBandScale, getParameterNormalRange } from "@/lib/parameter-bands"
+import { resolveParameterStatus } from "@/lib/parameter-status"
 
 export default function AllParametersPage({
   patientData,
@@ -80,8 +81,12 @@ export default function AllParametersPage({
       const result = Number.parseFloat(param.value || param.result || "0") || 0
       const range = param.normal_range || param.range || ""
       const units = param.unit || param.units || ""
-      const apiStatus = (param.status || "").toLowerCase()
-      const status = apiStatus === "abnormal" || apiStatus === "high" || apiStatus === "low" ? "abnormal" : "normal"
+      // Status from hardcoded band ranges / numeric range only (never the API
+      // status flag), so the badge and marker always match the value + range.
+      const status = resolveParameterStatus(
+        { name: metricName, value: result, range },
+        patientData?.patient_info?.gender,
+      )
       const dynamicPosition = calculateDynamicPosition(result, range)
 
       const band = getParameterBand(metricName, result, patientData?.patient_info?.gender)

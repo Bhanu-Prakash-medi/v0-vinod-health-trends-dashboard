@@ -149,11 +149,13 @@ const categoryRecommendations: Record<string, Recommendation> = {
 
 function generateRecommendations(patientData: ApiHealthReport): Recommendation[] {
   const healthSummary = patientData?.health_summary || []
+  const gender = (patientData as any)?.patient_info?.gender
   const abnormalCategoryKeys = new Set<string>()
 
   for (const category of healthSummary) {
     const params = category.parameters || []
-    const hasAbnormal = params.some((p: any) => isAbnormal(p.status))
+    // Status from hardcoded band / numeric range only, never the API flag.
+    const hasAbnormal = params.some((p: any) => resolveParameterStatus(p, gender) === "abnormal")
     if (hasAbnormal) {
       abnormalCategoryKeys.add(normalizeCategory(category.category || category.name || ""))
     }
