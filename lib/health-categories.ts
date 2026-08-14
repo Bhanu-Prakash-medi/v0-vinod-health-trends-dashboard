@@ -1,3 +1,5 @@
+import { resolveParameterStatus } from "@/lib/parameter-status"
+
 // Maps health categories to their corresponding lab parameter keys
 export const HEALTH_CATEGORY_MAPPING = {
   "Kidney & Urine": [
@@ -129,6 +131,7 @@ export function countOutOfRangeParams(category: keyof typeof HEALTH_CATEGORY_MAP
     return 0
   }
 
+  const gender = patientData?.patient_info?.gender
   let outOfRangeCount = 0
 
   categoryParams.forEach((param) => {
@@ -137,9 +140,10 @@ export function countOutOfRangeParams(category: keyof typeof HEALTH_CATEGORY_MAP
       const value = paramData.result !== undefined ? paramData.result : Number.parseFloat(paramData.Value)
       const range = paramData.range || paramData["Reference Range"] || ""
 
+      // Shared resolver: hardcoded band ranges (by param name) / numeric range
+      // only — never the API status flag.
       if (range && !isNaN(value)) {
-        const status = getParameterStatus(value, range)
-        if (status === "abnormal") {
+        if (resolveParameterStatus({ name: param, value, range }, gender) === "abnormal") {
           outOfRangeCount++
         }
       }
@@ -164,32 +168,4 @@ export function getCategoryStatus(
   return outOfRangeCount > 0 ? "warning" : "normal"
 }
 
-// Helper function to determine if a parameter is within normal range
-function getParameterStatus(result: number, rangeStr: string): "normal" | "abnormal" {
-  if (!rangeStr || rangeStr === "" || rangeStr === "-") {
-    return "normal"
-  }
 
-  if (rangeStr.includes("-")) {
-    const [min, max] = rangeStr.split("-").map((s) => Number.parseFloat(s.trim()))
-    if (!isNaN(min) && !isNaN(max)) {
-      return result >= min && result <= max ? "normal" : "abnormal"
-    }
-  } else if (rangeStr.startsWith("<")) {
-    const max = Number.parseFloat(rangeStr.replace("<", "").trim())
-    if (!isNaN(max)) {
-      return result < max ? "normal" : "abnormal"
-    }
-  } else if (rangeStr.startsWith(">")) {
-    const min = Number.parseFloat(rangeStr.replace(">", "").trim())
-    if (!isNaN(min)) {
-      return result > min ? "normal" : "abnormal"
-    }
-  } else if (rangeStr.toLowerCase().includes("upto")) {
-    const max = Number.parseFloat(rangeStr.toLowerCase().replace("upto", "").trim())
-    if (!isNaN(max)) {
-      return result <= max ? "normal" : "abnormal"
-    }
-  }
-  return "normal"
-}

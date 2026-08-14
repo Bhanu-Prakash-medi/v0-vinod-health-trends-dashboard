@@ -18,6 +18,7 @@ import {
 import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
 import { openExternalUrl } from "@/lib/open-external"
+import { resolveParameterStatus } from "@/lib/parameter-status"
 
 interface HealthRecommendationsSectionProps {
   patientData: ApiHealthReport
@@ -63,10 +64,6 @@ interface Recommendation {
   services?: ServiceKey[]
 }
 
-function isAbnormal(status: string | undefined): boolean {
-  const s = (status || "normal").toLowerCase()
-  return s !== "normal" && s !== "in range" && s !== "in_range" && s !== "within normal limits"
-}
 
 function normalizeCategory(name: string): string {
   const n = (name || "").toLowerCase()
