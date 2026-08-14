@@ -75,10 +75,14 @@ const PARAMETER_BAND_DEFS: ParameterBandDef[] = [
     direction: "lower_is_worse",
     notes:
       "HDL is inverted vs. the other lipids — LOW is the risk factor, HIGH is protective. Men and women have different low-risk cutoffs.",
+    // Sex-specific cutoffs. Bands must NOT overlap within a sex, otherwise the
+    // "normal range" label and band matching disagree. Men: Low < 40, Normal
+    // 40–59. Women: Low < 50, Normal 50–59. High (protective) ≥ 60 for both.
     ranges: [
       { label: "Low (Risk Factor) - Men", min: null, max: 39.9, color: "#EF4444", sex: "male" },
       { label: "Low (Risk Factor) - Women", min: null, max: 49.9, color: "#EF4444", sex: "female" },
-      { label: "Normal", min: 40, max: 59, color: "#22C55E" },
+      { label: "Normal", min: 40, max: 59, color: "#22C55E", sex: "male" },
+      { label: "Normal", min: 50, max: 59, color: "#22C55E", sex: "female" },
       { label: "High (Protective)", min: 60, max: null, color: "#16A34A" },
     ],
   },

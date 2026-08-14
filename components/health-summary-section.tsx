@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
 import { paramHasRange } from "@/lib/health-utils"
-import { getParameterBand } from "@/lib/parameter-bands"
+import { getParameterBand, getParameterNormalRange } from "@/lib/parameter-bands"
 import { resolveParameterStatus } from "@/lib/parameter-status"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
@@ -295,7 +295,14 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
                     const paramStatus = getParamStatus(param)
                     const paramValue = param.value ?? param.result ?? "-"
                     const paramUnit = param.unit || ""
-                    const paramRange = param.normal_range || param.range || ""
+                    // For the 7 band parameters, show the sex-aware clinical
+                    // normal range (e.g. female HDL 50–59) instead of the raw
+                    // report range; fall back to the report range otherwise.
+                    const paramRange =
+                      getParameterNormalRange(param.name, patientData?.patient_info?.gender) ??
+                      param.normal_range ??
+                      param.range ??
+                      ""
                     // Custom band (color + granular label) for the 7 listed
                     // parameters; other parameters keep the normal/abnormal look.
                     const band = getParameterBand(
