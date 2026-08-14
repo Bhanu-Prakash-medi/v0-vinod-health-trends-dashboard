@@ -175,6 +175,27 @@ export function formatBandRange(band: ParameterBand): string {
   if (min == null && max != null) return `≤ ${max}`
   if (min != null && max == null) return `≥ ${min}`
   return ""
+  }
+
+// Returns the "healthy" reference range text for a custom-band parameter (the
+// Normal / Desirable / Optimal band), so the label under the scale bar matches
+// the colored bands instead of the lab report's raw range. Returns null for
+// non-band parameters (caller keeps the report's range text).
+export function getParameterNormalRange(
+  name: string | null | undefined,
+  gender?: string | null,
+): string | null {
+  const def = matchDef(name)
+  if (!def) return null
+
+  const sex = normalizeGender(gender)
+  const bands = filterBandsBySex(def.ranges, sex)
+  // The healthy band is the green one (Normal / Desirable / Optimal).
+  const healthy =
+    bands.find((b) => /^(normal|desirable|optimal)$/i.test(b.label.trim())) ??
+    bands.find((b) => b.color === "#22C55E")
+  if (!healthy) return null
+  return formatBandRange(healthy)
 }
 
 export interface MatchedBand {

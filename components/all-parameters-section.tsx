@@ -8,7 +8,7 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import { getParameterBand, getParameterBandScale } from "@/lib/parameter-bands"
+import { getParameterBand, getParameterBandScale, getParameterNormalRange } from "@/lib/parameter-bands"
 
 export default function AllParametersSection({
   patientData,
@@ -242,7 +242,10 @@ export default function AllParametersSection({
                 </div>
 
                 {/* Normal Range text */}
-                <div className="text-center text-[9px] text-[#9dabbd] mt-2">Normal Range: {param.range}</div>
+                <div className="text-center text-[9px] text-[#9dabbd] mt-2">
+                  Normal Range:{" "}
+                  {getParameterNormalRange(param.name, patientData?.patient_info?.gender) ?? param.range}
+                </div>
               </div>
             </div>
           </Card>

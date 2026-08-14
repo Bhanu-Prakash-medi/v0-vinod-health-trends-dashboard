@@ -8,7 +8,7 @@ import type { ApiHealthReport } from "@/lib/api"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import { getParameterBand, getParameterBandScale } from "@/lib/parameter-bands"
+import { getParameterBand, getParameterBandScale, getParameterNormalRange } from "@/lib/parameter-bands"
 
 export default function AllParametersPage({
   patientData,
@@ -252,7 +252,10 @@ export default function AllParametersPage({
                 </div>
 
                 {/* Normal Range text */}
-                <div className="mt-2 text-center text-[9px] text-[#9dabbd]">Normal Range: {param.range}</div>
+                <div className="mt-2 text-center text-[9px] text-[#9dabbd]">
+                  Normal Range:{" "}
+                  {getParameterNormalRange(param.name, patientData?.patient_info?.gender) ?? param.range}
+                </div>
               </div>
             </div>
           </Card>
