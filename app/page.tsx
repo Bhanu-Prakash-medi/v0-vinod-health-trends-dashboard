@@ -67,6 +67,8 @@ export default function HealthDashboard() {
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>("")
+  const [mbUserId, setMbUserId] = useState<string>("")
+  const [pmEntityId, setPmEntityId] = useState<string>("0")
   // Consent gate. Starts hidden until we know the user's consent status:
   // `null` = unknown/checking (no modal yet), `true` = agreed, `false` = must agree.
   const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState<boolean | null>(null)
@@ -480,9 +482,10 @@ export default function HealthDashboard() {
         // Prefer the real token from the cookie; fall back to the debug token.
         let token = cookieToken || DEBUG_TOKEN
 
-        const pmEntityId = getPmEntityIdFromCookie()
+  const pmEntityId = getPmEntityIdFromCookie()
+  setPmEntityId(pmEntityId)
 
-        let data
+  let data
         try {
           data = await fetchBeneficiaries(token, pmEntityId)
         } catch (fetchErr) {
@@ -511,6 +514,7 @@ export default function HealthDashboard() {
         }
 
         setBeneficiaries(data.beneficiaries)
+        setMbUserId(data.mbuserid ? String(data.mbuserid) : "")
         setUserEmail(data.employee_email || "")
         setSnowplowUserContext(data.mbuserid || null, data.employee_email || null)
 
@@ -885,7 +889,13 @@ export default function HealthDashboard() {
                 scrollToDate={pendingReportDate}
                 onScrollHandled={() => setPendingReportDate(null)}
               />
-                <FeedbackSection vasbenefId={activeBeneficiary?.rVasBenefId} emailId={userEmail} />
+                <FeedbackSection
+            mbUserId={mbUserId}
+            vasbenefId={activeBeneficiary?.rVasBenefId}
+            pmEntityId={pmEntityId}
+            emailId={userEmail}
+            accessToken={accessToken}
+          />
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
               </div>

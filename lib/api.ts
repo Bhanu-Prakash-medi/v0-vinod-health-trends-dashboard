@@ -235,6 +235,37 @@ function formatIstTimestamp(date: Date = new Date()): string {
 }
 
 /**
+ * Persists Health Trends feedback through the backend feedback endpoint.
+ */
+export async function submitHealthFeedback(
+  payload: {
+    mbUserId: string | number
+    vasBenefId: string | number | null
+    pmEntityId: string | number | null
+    email: string
+    rating: number
+    remarks: string
+    comment: string
+  },
+  accessToken?: string | null,
+): Promise<boolean> {
+  try {
+    const response = await fetch("/api/health/feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { accesstoken: accessToken } : {}),
+      },
+      body: JSON.stringify(payload),
+    })
+    return response.ok
+  } catch (error) {
+    console.error("[v0] Feedback submission failed:", error)
+    return false
+  }
+}
+
+/**
  * Helper function to get value from object with case-insensitive key matching
  */
 function getValueCaseInsensitive(obj: any, key: string): any {
