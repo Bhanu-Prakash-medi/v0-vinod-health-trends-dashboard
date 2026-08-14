@@ -205,13 +205,33 @@ export async function submitHealthConsent(
         pmEntityId: payload.pmEntityId ?? null,
         email: payload.email ?? "",
         isAgreed: true,
-        agreedDate: null,
+        // Current date/time in IST, e.g. "2026-08-14 15:26:30.098 +0530".
+        agreedDate: formatIstTimestamp(),
       }),
     })
     return response.ok
   } catch {
     return false
   }
+}
+
+/**
+ * Formats the current instant as an IST timestamp string:
+ * "YYYY-MM-DD HH:mm:ss.SSS +0530". IST is computed explicitly (UTC + 5:30) so
+ * the "+0530" offset is always correct regardless of the runtime timezone.
+ */
+function formatIstTimestamp(date: Date = new Date()): string {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+  const ist = new Date(date.getTime() + IST_OFFSET_MS)
+  const pad = (n: number, len = 2) => String(n).padStart(len, "0")
+  const year = ist.getUTCFullYear()
+  const month = pad(ist.getUTCMonth() + 1)
+  const day = pad(ist.getUTCDate())
+  const hours = pad(ist.getUTCHours())
+  const minutes = pad(ist.getUTCMinutes())
+  const seconds = pad(ist.getUTCSeconds())
+  const millis = pad(ist.getUTCMilliseconds(), 3)
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${millis} +0530`
 }
 
 /**
