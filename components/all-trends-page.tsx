@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
-import { getTrendData } from "@/lib/health-utils"
+import { getTrendData, hasValidRange } from "@/lib/health-utils"
 import type { ApiHealthReport } from "@/lib/api"
 import { getParameterPriority } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
@@ -147,6 +147,10 @@ export default function AllTrendsPage({
     // Fallback to old logic
     allTrends = getTrendData(patientData)
   }
+
+  // Only keep parameters with a numeric reference range. Text-only ranges
+  // (e.g. "Normal", "Negative") are excluded from this section too.
+  allTrends = allTrends.filter((trend: any) => hasValidRange(trend.range))
 
   const parseRange = (rangeStr: string) => {
     if (!rangeStr) return null

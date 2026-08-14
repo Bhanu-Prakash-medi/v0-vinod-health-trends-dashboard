@@ -86,12 +86,12 @@ const PARAMETER_BAND_DEFS: ParameterBandDef[] = [
     id: "cholesterol_ldl",
     unit: "mg/dL",
     direction: "higher_is_worse",
+    // Capped at 4 bands (High + Very High merged into "High").
     ranges: [
       { label: "Optimal", min: null, max: 99, color: "#22C55E" },
       { label: "Near Optimal", min: 100, max: 129, color: "#84CC16" },
       { label: "Borderline High", min: 130, max: 159, color: "#F59E0B" },
-      { label: "High", min: 160, max: 189, color: "#F97316" },
-      { label: "Very High", min: 190, max: null, color: "#EF4444" },
+      { label: "High", min: 160, max: null, color: "#EF4444" },
     ],
   },
   {
@@ -151,6 +151,16 @@ function byId(id: string): ParameterBandDef | null {
   return PARAMETER_BAND_DEFS.find((d) => d.id === id) ?? null
 }
 
+// Resolve the sex-specific bands to a single applicable set. Bands with no
+// `sex` always apply; sex-specific bands only apply to the matching patient
+// sex. When the patient's sex is unknown we default to "male" (consistent with
+// the rest of the app's avatar/benchmark defaults) so we never show BOTH the
+// male and female variants — that would exceed the intended 4 bands.
+function filterBandsBySex(ranges: ParameterBand[], sex: "male" | "female" | null): ParameterBand[] {
+  const effectiveSex: "male" | "female" = sex ?? "male"
+  return ranges.filter((b) => !b.sex || b.sex === effectiveSex)
+}
+
 // A concise pill label: drop the parenthetical/qualifier so pills stay compact
 // ("Prediabetes (Impaired Fasting Glucose)" -> "Prediabetes"). The full label
 // and range are shown in the info popup.
@@ -185,9 +195,8 @@ export function getParameterBand(
   if (!def || value == null || Number.isNaN(value)) return null
 
   const sex = normalizeGender(gender)
-  for (const band of def.ranges) {
-    // Skip sex-specific bands that don't apply to this patient.
-    if (band.sex && band.sex !== sex) continue
+  const bands = filterBandsBySex(def.ranges, sex)
+  for (const band of bands) {
     const min = band.min ?? Number.NEGATIVE_INFINITY
     const max = band.max ?? Number.POSITIVE_INFINITY
     if (value >= min && value <= max) {
@@ -221,7 +230,7 @@ export function getParameterBandScale(
   if (!def) return null
 
   const sex = normalizeGender(gender)
-  const bands = def.ranges.filter((b) => !b.sex || !sex || b.sex === sex)
+  const bands = filterBandsBySex(def.ranges, sex)
   if (bands.length === 0) return null
 
   // Collect finite boundaries to establish the numeric domain of the bar.
@@ -266,7 +275,8 @@ export function getParameterBandInfo(
   const def = matchDef(name)
   if (!def) return null
   const sex = normalizeGender(gender)
-  // If we know the sex, hide the other sex's band to avoid confusion.
-  const ranges = def.ranges.filter((b) => !b.sex || !sex || b.sex === sex)
+  // Show only the applicable sex's bands (defaults unknown -> male) so the
+  // popup never lists more than the intended bands.
+  const ranges = filterBandsBySex(def.ranges, sex)
   return { unit: def.unit, notes: def.notes, ranges }
 }
