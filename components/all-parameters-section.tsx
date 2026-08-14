@@ -8,6 +8,7 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import { getParameterBand, getParameterBandScale, getParameterNormalRange } from "@/lib/parameter-bands"
 
 export default function AllParametersSection({
   patientData,
@@ -89,6 +90,11 @@ export default function AllParametersSection({
         console.log(`[v0] Parameter: "${metricName}" | Value: ${result} ${units} | Range: ${range} | Status: ${status} | Position: ${dynamicPosition}%`)
       }
 
+      // For the 7 custom-band parameters, resolve the granular band (color +
+      // label). Non-listed parameters keep the default normal/abnormal display.
+      const band = getParameterBand(metricName, result, patientData?.patient_info?.gender)
+      const bandScale = getParameterBandScale(metricName, result, patientData?.patient_info?.gender)
+
       return {
         name: metricName,
         status,
@@ -97,6 +103,8 @@ export default function AllParametersSection({
         range,
         position: dynamicPosition,
         result,
+        band,
+        bandScale,
       }
     })
     .filter((param) => param.position !== null) // Case 4: Filter out malformed ranges
@@ -142,17 +150,26 @@ export default function AllParametersSection({
               <div className="flex items-start justify-between">
                 <div className="flex flex-1 items-center gap-2">
                   <h3 className="text-sm font-medium text-[#2e3742]">{param.name}</h3>
-                  <BiomarkerInfoButton name={param.name} />
+                  <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
                 </div>
 
                 {/* Status Tag - matching trends section style */}
-                <div
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    param.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {param.status === "normal" ? "Normal" : "Abnormal"}
-                </div>
+                {param.band ? (
+                  <div
+                    className="rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ color: param.band.color, backgroundColor: `${param.band.color}1A` }}
+                  >
+                    {param.band.shortLabel}
+                  </div>
+                ) : (
+                  <div
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      param.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                    }`}
+                  >
+                    {param.status === "normal" ? "Normal" : "Abnormal"}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -161,7 +178,12 @@ export default function AllParametersSection({
             {/* Data Section */}
             <div className="flex items-center justify-between p-4">
               <div>
-                <p className={`text-xs font-medium ${param.status === "abnormal" ? "text-red-600" : "text-green-600"}`}>
+                <p
+                  className={`text-xs font-medium ${
+                    param.band ? "" : param.status === "abnormal" ? "text-red-600" : "text-green-600"
+                  }`}
+                  style={param.band ? { color: param.band.color } : undefined}
+                >
                   {param.currentValue}
                 </p>
                 <p className="mt-0.5 text-[10px] text-[#9dabbd]">{param.date}</p>
@@ -171,28 +193,59 @@ export default function AllParametersSection({
               <div className="w-[140px]">
                 {/* Scale bar + marker wrapper */}
                 <div className="relative h-4">
-                  {/* Scale bar */}
-                  <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
-                    <div className="w-1/3 bg-[#faa9a3] h-3" />
-                    <div className="w-1/3 bg-[#addaaf] h-3" />
-                    <div className="w-1/3 bg-[#faa9a3] h-3" />
-                  </div>
+                  {param.bandScale ? (
+                    <>
+                      {/* Band-colored scale */}
+                      <div className="flex overflow-hidden rounded-full gap-0 items-center h-3 mt-0.5">
+                        {param.bandScale.segments.map((seg, i) => (
+                          <div
+                            key={i}
+                            className="h-3"
+                            style={{ width: `${seg.widthPct}%`, backgroundColor: seg.color }}
+                            title={seg.label}
+                          />
+                        ))}
+                      </div>
 
-                  {/* Separators */}
-                  <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
-                  <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+                      {/* Indicator */}
+                      <div
+                        className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white shadow-sm"
+                        style={{
+                          left: `${param.bandScale.markerPct}%`,
+                          top: "12px",
+                          borderColor: param.band?.color ?? "#2e3742",
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {/* Scale bar */}
+                      <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
+                        <div className="w-1/3 bg-[#ef4444] h-3" />
+                        <div className="w-1/3 bg-[#22c55e] h-3" />
+                        <div className="w-1/3 bg-[#ef4444] h-3" />
+                      </div>
 
-                  {/* Indicator */}
-                  <div
-                    className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-                      param.status === "abnormal" ? "border-red-600" : "border-green-600"
-                    } bg-white shadow-sm`}
-                    style={{ left: `${param.position}%`, top: "12px" }}
-                  />
+                      {/* Separators */}
+                      <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+                      <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
+
+                      {/* Indicator */}
+                      <div
+                        className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                          param.status === "abnormal" ? "border-red-600" : "border-green-600"
+                        } bg-white shadow-sm`}
+                        style={{ left: `${param.position}%`, top: "12px" }}
+                      />
+                    </>
+                  )}
                 </div>
 
                 {/* Normal Range text */}
-                <div className="text-center text-[9px] text-[#9dabbd] mt-2">Normal Range: {param.range}</div>
+                <div className="text-center text-[9px] text-[#9dabbd] mt-2">
+                  Normal Range:{" "}
+                  {getParameterNormalRange(param.name, patientData?.patient_info?.gender) ?? param.range}
+                </div>
               </div>
             </div>
           </Card>

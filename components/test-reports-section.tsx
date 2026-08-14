@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { hasValidRange } from "@/lib/health-utils"
 import { openExternalUrl } from "@/lib/open-external"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import { getParameterBand } from "@/lib/parameter-bands"
 
 interface TestReportsSectionProps {
   patientData: any
@@ -516,7 +517,13 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
 
                       {/* Mobile: stacked cards (avoids horizontal table overflow) */}
                       <div className="space-y-2 sm:hidden">
-                        {params.map((p, idx) => (
+                        {params.map((p, idx) => {
+                          const band = getParameterBand(
+                            p.name,
+                            Number.parseFloat(String(p.value)),
+                            patientData?.patient_info?.gender,
+                          )
+                          return (
                           <div
                             key={idx}
                             className={`rounded-lg border p-3 ${p.isAbnormal ? "border-[#f5c6c2] bg-[#feeceb]" : "border-[#f0f3f5] bg-[#f9fafb]"}`}
@@ -524,20 +531,32 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                             <div className="flex items-start justify-between gap-2">
                               <span className="inline-flex min-w-0 items-center gap-1 text-xs font-medium text-[#2e3742]">
                                 <span className="break-words">{p.name}</span>
-                                <BiomarkerInfoButton name={p.name} />
+                                <BiomarkerInfoButton name={p.name} gender={patientData?.patient_info?.gender} />
                               </span>
                               <span
-                                className={`shrink-0 whitespace-nowrap text-sm font-semibold ${p.isAbnormal ? "text-red-600" : "text-[#2e3742]"}`}
+                                className={`shrink-0 whitespace-nowrap text-sm font-semibold ${
+                                  band ? "" : p.isAbnormal ? "text-red-600" : "text-[#2e3742]"
+                                }`}
+                                style={band ? { color: band.color } : undefined}
                               >
                                 {p.value}
                                 {p.unit ? ` ${p.unit}` : ""}
                               </span>
                             </div>
+                            {band ? (
+                              <span
+                                className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                style={{ color: band.color, backgroundColor: `${band.color}1A` }}
+                              >
+                                {band.shortLabel}
+                              </span>
+                            ) : null}
                             {p.range ? (
                               <p className="mt-1 text-[11px] text-[#9dabbd]">Normal range: {p.range}</p>
                             ) : null}
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
 
                       {/* Desktop: full table */}
@@ -552,23 +571,34 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                             </tr>
                           </thead>
                           <tbody>
-                            {params.map((p, idx) => (
+                            {params.map((p, idx) => {
+                              const band = getParameterBand(
+                                p.name,
+                                Number.parseFloat(String(p.value)),
+                                patientData?.patient_info?.gender,
+                              )
+                              return (
                               <tr key={idx} className={`border-b ${p.isAbnormal ? "bg-[#feeceb]" : ""}`}>
                                 <td className="p-2 text-xs">
                                   <span className="inline-flex items-center gap-1">
                                     {p.name}
-                                    <BiomarkerInfoButton name={p.name} />
+                                    <BiomarkerInfoButton name={p.name} gender={patientData?.patient_info?.gender} />
                                   </span>
                                 </td>
                                 <td
-                                  className={`text-center p-2 text-xs font-semibold ${p.isAbnormal ? "text-red-600" : ""}`}
+                                  className={`text-center p-2 text-xs font-semibold ${
+                                    band ? "" : p.isAbnormal ? "text-red-600" : ""
+                                  }`}
+                                  style={band ? { color: band.color } : undefined}
                                 >
                                   {p.value}
+                                  {band ? <span className="ml-1 font-medium">({band.shortLabel})</span> : null}
                                 </td>
                                 <td className="text-center p-2 text-xs">{p.unit}</td>
                                 <td className="text-center p-2 text-xs">{p.range}</td>
                               </tr>
-                            ))}
+                              )
+                            })}
                           </tbody>
                         </table>
                       </div>

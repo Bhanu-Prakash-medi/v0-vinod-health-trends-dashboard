@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
-import { getTrendData } from "@/lib/health-utils"
+import { getTrendData, hasValidRange } from "@/lib/health-utils"
 import type { ApiHealthReport } from "@/lib/api"
 import { getParameterPriority } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import { getParameterBand } from "@/lib/parameter-bands"
 
 // Helper function to parse dates from various formats
 const parseDate = (dateStr: string): Date => {
@@ -147,6 +148,10 @@ export default function AllTrendsPage({
     allTrends = getTrendData(patientData)
   }
 
+  // Only keep parameters with a numeric reference range. Text-only ranges
+  // (e.g. "Normal", "Negative") are excluded from this section too.
+  allTrends = allTrends.filter((trend: any) => hasValidRange(trend.range))
+
   const parseRange = (rangeStr: string) => {
     if (!rangeStr) return null
     if (rangeStr.includes("-")) {
@@ -226,7 +231,13 @@ export default function AllTrendsPage({
           const isStable = Math.abs(trend.changePercent) < 5
           const rangeData = parseRange(trend.range)
 
-          const lineColor = trend.status === "normal" ? "#2f9a48" : "#d93026"
+          const band = getParameterBand(
+            trend.name,
+            Number.parseFloat(String(trend.current)),
+            patientData?.patient_info?.gender,
+          )
+
+          const lineColor = band ? band.color : trend.status === "normal" ? "#2f9a48" : "#d93026"
           const referenceColor = "#2f9a48"
 
           const getPointStatus = (value: number): "normal" | "abnormal" => {
@@ -266,7 +277,7 @@ export default function AllTrendsPage({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-semibold text-[#2e3742]">{trend.name}</h3>
-                    <BiomarkerInfoButton name={trend.name} />
+                    <BiomarkerInfoButton name={trend.name} gender={patientData?.patient_info?.gender} />
                     <div
                       className={`flex h-6 w-6 items-center justify-center rounded-full ${
                         isImproving ? "bg-green-50" : isWorsening ? "bg-red-50" : isStable ? "bg-gray-50" : "bg-gray-50"
@@ -286,19 +297,31 @@ export default function AllTrendsPage({
                     </div>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-[#2e3742]">
+                    <span
+                      className={`text-lg font-bold ${band ? "" : "text-[#2e3742]"}`}
+                      style={band ? { color: band.color } : undefined}
+                    >
                       {trend.current} {trend.unit}
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-[#9dabbd]">Range: {trend.range}</p>
                 </div>
-                <div
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    trend.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {trend.status === "normal" ? "Normal" : "Abnormal"}
-                </div>
+                {band ? (
+                  <div
+                    className="rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ color: band.color, backgroundColor: `${band.color}1A` }}
+                  >
+                    {band.shortLabel}
+                  </div>
+                ) : (
+                  <div
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      trend.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                    }`}
+                  >
+                    {trend.status === "normal" ? "Normal" : "Abnormal"}
+                  </div>
+                )}
               </div>
 
               {trend.data && trend.data.length > 0 && (
@@ -431,10 +454,16 @@ export default function AllTrendsPage({
           <DialogHeader className="border-b border-[#f0f3f5] px-4 py-3">
             <div className="flex items-center gap-2">
               <DialogTitle className="text-base font-semibold text-[#2e3742]">{selectedPoint?.name}</DialogTitle>
-              <BiomarkerInfoButton name={selectedPoint?.name} />
+              <BiomarkerInfoButton name={selectedPoint?.name} gender={patientData?.patient_info?.gender} />
             </div>
           </DialogHeader>
-          {selectedPoint && (
+          {selectedPoint && (() => {
+            const pointBand = getParameterBand(
+              selectedPoint.name,
+              Number.parseFloat(String(selectedPoint.value)),
+              patientData?.patient_info?.gender,
+            )
+            return (
             <div className="flex flex-col gap-3 p-4">
               <div className="flex items-center gap-2 text-sm text-[#4d5c6f]">
                 <Calendar className="h-4 w-4 text-[#9dabbd]" />
@@ -444,18 +473,30 @@ export default function AllTrendsPage({
                 <div className="min-w-0">
                   <p className="text-xs text-[#9dabbd]">Reading</p>
                   <p
-                    className={`break-words text-xl font-bold ${selectedPoint.status === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                    className={`break-words text-xl font-bold ${
+                      pointBand ? "" : selectedPoint.status === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"
+                    }`}
+                    style={pointBand ? { color: pointBand.color } : undefined}
                   >
                     {selectedPoint.value} {selectedPoint.unit}
                   </p>
                 </div>
-                <span
-                  className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${
-                    selectedPoint.status === "abnormal" ? "bg-[#fef0f0] text-[#de3d31]" : "bg-[#edf7ee] text-[#459f49]"
-                  }`}
-                >
-                  {selectedPoint.status === "abnormal" ? "Abnormal" : "Normal"}
-                </span>
+                {pointBand ? (
+                  <span
+                    className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ color: pointBand.color, backgroundColor: `${pointBand.color}1A` }}
+                  >
+                    {pointBand.shortLabel}
+                  </span>
+                ) : (
+                  <span
+                    className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${
+                      selectedPoint.status === "abnormal" ? "bg-[#fef0f0] text-[#de3d31]" : "bg-[#edf7ee] text-[#459f49]"
+                    }`}
+                  >
+                    {selectedPoint.status === "abnormal" ? "Abnormal" : "Normal"}
+                  </span>
+                )}
               </div>
               {selectedPoint.range && (
                 <p className="text-xs text-[#9dabbd]">Normal range: {selectedPoint.range}</p>
@@ -487,7 +528,8 @@ export default function AllTrendsPage({
                 <p className="text-xs text-[#9dabbd]">No matching report found for this date.</p>
               )}
             </div>
-          )}
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </div>

@@ -26,7 +26,12 @@ export function hasValidRange(range?: string | null): boolean {
   const invalid = new Set([
     "-", "--", "n/a", "na", "null", "undefined", "nil", "none", "not available", "not applicable",
   ])
-  return !invalid.has(r)
+  if (invalid.has(r)) return false
+  // Only NUMERIC ranges are considered. Purely textual reference ranges such as
+  // "normal", "negative", "positive", "non-reactive", "absent" carry no numeric
+  // boundary and must be excluded from every section. Require at least one digit.
+  if (!/\d/.test(r)) return false
+  return true
 }
 
 // Convenience: read the range off any of the field names used across the app

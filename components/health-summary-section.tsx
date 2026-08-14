@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
 import { paramHasRange } from "@/lib/health-utils"
+import { getParameterBand } from "@/lib/parameter-bands"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
 function handleViewLatestReport() {
@@ -319,6 +320,13 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
                     const paramValue = param.value ?? param.result ?? "-"
                     const paramUnit = param.unit || ""
                     const paramRange = param.normal_range || param.range || ""
+                    // Custom band (color + granular label) for the 7 listed
+                    // parameters; other parameters keep the normal/abnormal look.
+                    const band = getParameterBand(
+                      param.name,
+                      Number.parseFloat(String(paramValue)),
+                      patientData?.patient_info?.gender,
+                    )
                     return (
                       <div
                         key={`${param.name}-${i}`}
@@ -327,7 +335,7 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <p className="break-words text-sm font-medium text-[#2e3742]">{param.name}</p>
-                            <BiomarkerInfoButton name={param.name} />
+                            <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
                           </div>
                           {paramRange && (
                             <p className="mt-0.5 break-words text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>
@@ -335,17 +343,29 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
                         </div>
                         <div className="flex shrink-0 flex-col items-end text-right">
                           <span
-                            className={`break-words text-sm font-bold ${paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                            className={`break-words text-sm font-bold ${
+                              band ? "" : paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"
+                            }`}
+                            style={band ? { color: band.color } : undefined}
                           >
                             {paramValue} {paramUnit}
                           </span>
-                          <span
-                            className={`mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              paramStatus === "abnormal" ? "bg-[#fef0f0] text-[#de3d31]" : "bg-[#edf7ee] text-[#459f49]"
-                            }`}
-                          >
-                            {paramStatus === "abnormal" ? "Abnormal" : "Normal"}
-                          </span>
+                          {band ? (
+                            <span
+                              className="mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                              style={{ color: band.color, backgroundColor: `${band.color}1A` }}
+                            >
+                              {band.shortLabel}
+                            </span>
+                          ) : (
+                            <span
+                              className={`mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                paramStatus === "abnormal" ? "bg-[#fef0f0] text-[#de3d31]" : "bg-[#edf7ee] text-[#459f49]"
+                              }`}
+                            >
+                              {paramStatus === "abnormal" ? "Abnormal" : "Normal"}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )
