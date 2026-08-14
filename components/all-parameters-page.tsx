@@ -8,6 +8,7 @@ import type { ApiHealthReport } from "@/lib/api"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import { getParameterBand } from "@/lib/parameter-bands"
 
 export default function AllParametersPage({
   patientData,
@@ -83,6 +84,8 @@ export default function AllParametersPage({
       const status = apiStatus === "abnormal" || apiStatus === "high" || apiStatus === "low" ? "abnormal" : "normal"
       const dynamicPosition = calculateDynamicPosition(result, range)
 
+      const band = getParameterBand(metricName, result, patientData?.patient_info?.gender)
+
       return {
         name: metricName,
         status,
@@ -91,6 +94,7 @@ export default function AllParametersPage({
         range,
         position: dynamicPosition,
         result,
+        band,
       }
     })
     .filter((param) => param.position !== null) // Filter out malformed ranges
@@ -162,16 +166,25 @@ export default function AllParametersPage({
               <div className="flex items-start justify-between">
                 <div className="flex flex-1 items-center gap-2">
                   <h3 className="text-sm font-medium text-[#2e3742]">{param.name}</h3>
-                  <BiomarkerInfoButton name={param.name} />
+                  <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
                 </div>
 
-                <div
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    param.status === "normal" ? "bg-[#edf7ee] text-[#459f49]" : "bg-[#fef0f0] text-[#de3d31]"
-                  }`}
-                >
-                  {param.status === "normal" ? "Normal" : "Abnormal"}
-                </div>
+                {param.band ? (
+                  <div
+                    className="rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ color: param.band.color, backgroundColor: `${param.band.color}1A` }}
+                  >
+                    {param.band.shortLabel}
+                  </div>
+                ) : (
+                  <div
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      param.status === "normal" ? "bg-[#edf7ee] text-[#459f49]" : "bg-[#fef0f0] text-[#de3d31]"
+                    }`}
+                  >
+                    {param.status === "normal" ? "Normal" : "Abnormal"}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -180,7 +193,10 @@ export default function AllParametersPage({
             <div className="flex items-center justify-between p-4">
               <div>
                 <p
-                  className={`text-xs font-medium ${param.status === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"}`}
+                  className={`text-xs font-medium ${
+                    param.band ? "" : param.status === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"
+                  }`}
+                  style={param.band ? { color: param.band.color } : undefined}
                 >
                   {param.currentValue}
                 </p>
@@ -201,9 +217,13 @@ export default function AllParametersPage({
 
                   <div
                     className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-                      param.status === "abnormal" ? "border-[#de3d31]" : "border-[#459f49]"
+                      param.band ? "" : param.status === "abnormal" ? "border-[#de3d31]" : "border-[#459f49]"
                     } bg-white shadow-sm`}
-                    style={{ left: `${param.position}%`, top: "12px" }}
+                    style={{
+                      left: `${param.position}%`,
+                      top: "12px",
+                      ...(param.band ? { borderColor: param.band.color } : {}),
+                    }}
                   />
                 </div>
 

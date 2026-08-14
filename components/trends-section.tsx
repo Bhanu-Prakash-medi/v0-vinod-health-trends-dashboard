@@ -8,6 +8,7 @@ import { getTrendData, hasValidRange } from "@/lib/health-utils"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { getParameterPriority } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import { getParameterBand } from "@/lib/parameter-bands"
 
 interface TrendsSectionProps {
   onViewAll?: () => void
@@ -155,7 +156,14 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
           const isStable = Math.abs(trend.changePercent) < 5
           const rangeData = parseRange(trend.range)
 
-          const lineColor = trend.status === "normal" ? "#2f9a48" : "#d93026"
+          // Custom band for the 7 listed parameters (color + granular label).
+          const band = getParameterBand(
+            trend.name,
+            Number.parseFloat(String(trend.current)),
+            patientData?.patient_info?.gender,
+          )
+
+          const lineColor = band ? band.color : trend.status === "normal" ? "#2f9a48" : "#d93026"
           const referenceColor = "#2f9a48"
 
           return (
@@ -164,7 +172,7 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-semibold text-[#2e3742]">{trend.name}</h3>
-                    <BiomarkerInfoButton name={trend.name} />
+                    <BiomarkerInfoButton name={trend.name} gender={patientData?.patient_info?.gender} />
                     <div
                       className={`flex h-6 w-6 items-center justify-center rounded-full ${
                         isImproving ? "bg-green-50" : isWorsening ? "bg-red-50" : isStable ? "bg-gray-50" : "bg-gray-50"
@@ -184,19 +192,31 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
                     </div>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-[#2e3742]">
+                    <span
+                      className={`text-lg font-bold ${band ? "" : "text-[#2e3742]"}`}
+                      style={band ? { color: band.color } : undefined}
+                    >
                       {trend.current} {trend.unit}
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-[#9dabbd]">Normal Range: {trend.range}</p>
                 </div>
-                <div
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    trend.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {trend.status === "normal" ? "Normal" : "Abnormal"}
-                </div>
+                {band ? (
+                  <div
+                    className="rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ color: band.color, backgroundColor: `${band.color}1A` }}
+                  >
+                    {band.shortLabel}
+                  </div>
+                ) : (
+                  <div
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      trend.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                    }`}
+                  >
+                    {trend.status === "normal" ? "Normal" : "Abnormal"}
+                  </div>
+                )}
               </div>
 
               {trend.data && trend.data.length > 0 && (

@@ -8,6 +8,7 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import { getParameterBand } from "@/lib/parameter-bands"
 
 export default function AllParametersSection({
   patientData,
@@ -89,6 +90,10 @@ export default function AllParametersSection({
         console.log(`[v0] Parameter: "${metricName}" | Value: ${result} ${units} | Range: ${range} | Status: ${status} | Position: ${dynamicPosition}%`)
       }
 
+      // For the 7 custom-band parameters, resolve the granular band (color +
+      // label). Non-listed parameters keep the default normal/abnormal display.
+      const band = getParameterBand(metricName, result, patientData?.patient_info?.gender)
+
       return {
         name: metricName,
         status,
@@ -97,6 +102,7 @@ export default function AllParametersSection({
         range,
         position: dynamicPosition,
         result,
+        band,
       }
     })
     .filter((param) => param.position !== null) // Case 4: Filter out malformed ranges
@@ -142,17 +148,26 @@ export default function AllParametersSection({
               <div className="flex items-start justify-between">
                 <div className="flex flex-1 items-center gap-2">
                   <h3 className="text-sm font-medium text-[#2e3742]">{param.name}</h3>
-                  <BiomarkerInfoButton name={param.name} />
+                  <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
                 </div>
 
                 {/* Status Tag - matching trends section style */}
-                <div
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    param.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {param.status === "normal" ? "Normal" : "Abnormal"}
-                </div>
+                {param.band ? (
+                  <div
+                    className="rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ color: param.band.color, backgroundColor: `${param.band.color}1A` }}
+                  >
+                    {param.band.shortLabel}
+                  </div>
+                ) : (
+                  <div
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      param.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                    }`}
+                  >
+                    {param.status === "normal" ? "Normal" : "Abnormal"}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -161,7 +176,12 @@ export default function AllParametersSection({
             {/* Data Section */}
             <div className="flex items-center justify-between p-4">
               <div>
-                <p className={`text-xs font-medium ${param.status === "abnormal" ? "text-red-600" : "text-green-600"}`}>
+                <p
+                  className={`text-xs font-medium ${
+                    param.band ? "" : param.status === "abnormal" ? "text-red-600" : "text-green-600"
+                  }`}
+                  style={param.band ? { color: param.band.color } : undefined}
+                >
                   {param.currentValue}
                 </p>
                 <p className="mt-0.5 text-[10px] text-[#9dabbd]">{param.date}</p>
@@ -185,9 +205,13 @@ export default function AllParametersSection({
                   {/* Indicator */}
                   <div
                     className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-                      param.status === "abnormal" ? "border-red-600" : "border-green-600"
+                      param.band ? "" : param.status === "abnormal" ? "border-red-600" : "border-green-600"
                     } bg-white shadow-sm`}
-                    style={{ left: `${param.position}%`, top: "12px" }}
+                    style={{
+                      left: `${param.position}%`,
+                      top: "12px",
+                      ...(param.band ? { borderColor: param.band.color } : {}),
+                    }}
                   />
                 </div>
 
