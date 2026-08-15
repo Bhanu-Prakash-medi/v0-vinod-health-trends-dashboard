@@ -470,7 +470,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "f25779da95bc4bf7ae832e5ba939e852"
+        const DEBUG_TOKEN = "57fe25dbffa248199d6afe46b2c4528c"
 
         let cookieToken: string | null = null
         try {
@@ -870,14 +870,18 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-                <HealthScoreSection
-                  patientData={currentProfileData}
-                  vasbenefId={activeBeneficiary?.rVasBenefId}
-                  requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
-                  accessToken={accessToken}
-                  gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
-                  age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
-                />
+                {/* Health Score is shown only for the Self profile, not for
+                    other family beneficiaries. */}
+                {activeBeneficiary?.relation?.toLowerCase() === "self" && (
+                  <HealthScoreSection
+                    patientData={currentProfileData}
+                    vasbenefId={activeBeneficiary?.rVasBenefId}
+                    requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
+                    accessToken={accessToken}
+                    gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
+                    age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
+                  />
+                )}
               <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               {/* WhatNextSection (Recommended For You) hidden per requirement */}

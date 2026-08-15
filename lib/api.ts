@@ -158,9 +158,11 @@ export function getPmEntityIdFromCookie(): string {
 }
 
 /**
- * Fetch whether the user has already agreed to the Health Trends data-consent.
- * Proxies GET /health/getconsent/{mbUserId}. Returns `true` when an agreement
- * exists, `false` otherwise (including on any error, so the modal is shown).
+ * Fetch whether the user has a currently-valid Health Trends data-consent.
+ * Proxies GET /health/getconsent/{mbUserId}. Returns `true` only when the user
+ * has agreed AND the agreedDate is within the last 3 months; returns `false`
+ * otherwise (not agreed, consent older than 3 months, missing date, or any
+ * error), so the consent modal is shown again.
  */
 export async function getHealthConsent(mbUserId: string | number, accessToken?: string | null): Promise<boolean> {
   if (mbUserId === undefined || mbUserId === null || mbUserId === "") return false
@@ -179,7 +181,21 @@ export async function getHealthConsent(mbUserId: string | number, accessToken?: 
       getValueCaseInsensitive(record, "isAgreed") ??
       getValueCaseInsensitive(record, "isagreed") ??
       getValueCaseInsensitive(record, "agreed")
-    return agreed === true || agreed === "true" || agreed === 1
+    const hasAgreed = agreed === true || agreed === "true" || agreed === 1
+    if (!hasAgreed) return false
+
+    // Consent expires after 3 months: only treat it as valid when the recorded
+    // agreedDate is within the last 3 months. If the date is missing/unparseable
+    // or older than 3 months, return false so the modal is shown again.
+    const agreedDateRaw =
+      getValueCaseInsensitive(record, "agreedDate") ?? getValueCaseInsensitive(record, "agreeddate")
+    if (!agreedDateRaw) return false
+    const agreedTime = new Date(agreedDateRaw).getTime()
+    if (Number.isNaN(agreedTime)) return false
+
+    const threeMonthsAgo = new Date()
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+    return agreedTime >= threeMonthsAgo.getTime()
   } catch {
     return false
   }
