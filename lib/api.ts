@@ -159,10 +159,11 @@ export function getPmEntityIdFromCookie(): string {
 
 /**
  * Fetch whether the user has a currently-valid Health Trends data-consent.
- * Proxies GET /health/getconsent/{mbUserId}. Returns `true` only when the user
- * has agreed AND the agreedDate is within the last 3 months; returns `false`
- * otherwise (not agreed, consent older than 3 months, missing date, or any
- * error), so the consent modal is shown again.
+ * Proxies GET /health/getconsent/{mbUserId}. Returns `true` when the user has
+ * agreed and consent hasn't expired: if an agreedDate is present it must be
+ * within the last 3 months; if no date is returned, the isAgreed flag alone is
+ * honoured. Returns `false` when not agreed, when consent is older than 3
+ * months, or on any error, so the consent modal is shown again.
  */
 export async function getHealthConsent(mbUserId: string | number, accessToken?: string | null): Promise<boolean> {
   if (mbUserId === undefined || mbUserId === null || mbUserId === "") return false
@@ -184,14 +185,16 @@ export async function getHealthConsent(mbUserId: string | number, accessToken?: 
     const hasAgreed = agreed === true || agreed === "true" || agreed === 1
     if (!hasAgreed) return false
 
-    // Consent expires after 3 months: only treat it as valid when the recorded
-    // agreedDate is within the last 3 months. If the date is missing/unparseable
-    // or older than 3 months, return false so the modal is shown again.
+    // Consent expires after 3 months. The backend may or may not return an
+    // agreedDate. When a valid date is present and it is older than 3 months,
+    // treat consent as expired (show the modal again). When the date is missing
+    // or unparseable, honour the isAgreed flag and treat consent as valid so we
+    // don't nag an already-agreed user.
     const agreedDateRaw =
       getValueCaseInsensitive(record, "agreedDate") ?? getValueCaseInsensitive(record, "agreeddate")
-    if (!agreedDateRaw) return false
+    if (!agreedDateRaw) return true
     const agreedTime = new Date(agreedDateRaw).getTime()
-    if (Number.isNaN(agreedTime)) return false
+    if (Number.isNaN(agreedTime)) return true
 
     const threeMonthsAgo = new Date()
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
