@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import {
@@ -58,7 +59,8 @@ export default function HealthConsentModal({ open, onAgree }: HealthConsentModal
             </DialogDescription>
           </DialogHeader>
 
-          <div ref={scrollContainerRef} onScroll={updateScrollState} className="min-h-0 flex-1 overflow-y-auto px-6 py-5 font-body text-sm leading-relaxed text-foreground">
+          <div className="relative min-h-0 flex-1">
+          <div ref={scrollContainerRef} onScroll={updateScrollState} className="h-full overflow-y-auto px-6 py-5 font-body text-sm leading-relaxed text-foreground">
             <section aria-labelledby="health-disclaimer-heading" className="space-y-3">
               <h2 id="health-disclaimer-heading" className="font-display text-base font-semibold text-foreground">Disclaimer</h2>
               <p>
@@ -81,6 +83,21 @@ export default function HealthConsentModal({ open, onAgree }: HealthConsentModal
               </ul>
             </section>
 
+          </div>
+
+            {/* Animated scroll cue: fades in a bouncing chevron until the user
+                reaches the end of the consent text. */}
+            <div
+              aria-hidden="true"
+              className={`pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-3 transition-opacity duration-300 ${
+                hasReachedEnd ? 'opacity-0' : 'opacity-100'
+              }`}
+            >
+              <span className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent" />
+              <span className="relative flex h-9 w-9 animate-bounce items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+                <ChevronDown className="h-5 w-5" />
+              </span>
+            </div>
           </div>
 
           <div className="shrink-0 border-t border-border bg-background px-6 py-4">
