@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   description:
     "Track your health metrics, view test reports, and monitor your body with interactive 3D muscle analysis",
   generator: "v0.app",
+  icons: {
+    icon: "/medibuddy-icon.png",
+    apple: "/medibuddy-icon.png",
+  },
 }
 
 export default function RootLayout({
