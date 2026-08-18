@@ -528,8 +528,11 @@ export default function HealthDashboard() {
           email: data.employee_email || "",
         }
         if (consentMbUserId) {
-          const alreadyAgreed = await getHealthConsent(consentMbUserId, token)
-          if (isMounted) setHasAcceptedHealthConsent(alreadyAgreed)
+          const consentStatus = await getHealthConsent(consentMbUserId, token)
+          // Only show the modal on a conclusive "not_agreed". For "agreed" and
+          // "unknown" (transient errors/timeouts) keep the dashboard unblocked
+          // so an already-agreed user is never nagged by a flaky request.
+          if (isMounted) setHasAcceptedHealthConsent(consentStatus !== "not_agreed")
         } else if (isMounted) {
           // No user id -> can't record consent; don't block the dashboard.
           setHasAcceptedHealthConsent(true)
