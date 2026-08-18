@@ -157,16 +157,29 @@ export function getPmEntityIdFromCookie(): string {
   return "0"
 }
 
+export type HealthConsentStatus = "agreed" | "not_agreed" | "unknown"
+
 /**
- * Fetch whether the user has a currently-valid Health Trends data-consent.
- * Proxies GET /health/getconsent/{mbUserId}. Returns `true` when the user has
- * agreed and consent hasn't expired: if an agreedDate is present it must be
- * within the last 3 months; if no date is returned, the isAgreed flag alone is
- * honoured. Returns `false` when not agreed, when consent is older than 3
- * months, or on any error, so the consent modal is shown again.
+ * Fetch the user's Health Trends data-consent status. Proxies GET
+ * /health/getconsent/{mbUserId}.
+ *
+ * Returns a tri-state so the caller can tell a real "not agreed" apart from a
+ * transient failure:
+ *  - "agreed"     -> the user has agreed and consent hasn't expired (if an
+ *                    agreedDate is present it must be within the last 3 months;
+ *                    a missing/unparseable date honours the isAgreed flag).
+ *  - "not_agreed" -> the backend responded conclusively that the user has not
+ *                    agreed (or consent is older than 3 months).
+ *  - "unknown"    -> the status could not be determined (network error,
+ *                    timeout, non-2xx, or unparseable body). The caller MUST
+ *                    NOT show the consent modal in this case, so an already
+ *                    agreed user is never nagged because of a flaky request.
  */
-export async function getHealthConsent(mbUserId: string | number, accessToken?: string | null): Promise<boolean> {
-  if (mbUserId === undefined || mbUserId === null || mbUserId === "") return false
+export async function getHealthConsent(
+  mbUserId: string | number,
+  accessToken?: string | null,
+): Promise<HealthConsentStatus> {
+  if (mbUserId === undefined || mbUserId === null || mbUserId === "") return "unknown"
   try {
     const response = await fetch(`/api/health/consent?mbUserId=${encodeURIComponent(String(mbUserId))}`, {
       method: "GET",
@@ -174,8 +187,16 @@ export async function getHealthConsent(mbUserId: string | number, accessToken?: 
         ...(accessToken ? { accesstoken: accessToken } : {}),
       },
     })
-    if (!response.ok) return false
-    const data = await response.json()
+    // Any non-success response is inconclusive: do not force the modal.
+    if (!response.ok) return "unknown"
+
+    let data: any
+    try {
+      data = await response.json()
+    } catch {
+      return "unknown"
+    }
+
     // The consent record may be returned directly or nested under data/response.
     const record = getValueCaseInsensitive(data, "data") ?? getValueCaseInsensitive(data, "response") ?? data
     const agreed =
@@ -183,24 +204,24 @@ export async function getHealthConsent(mbUserId: string | number, accessToken?: 
       getValueCaseInsensitive(record, "isagreed") ??
       getValueCaseInsensitive(record, "agreed")
     const hasAgreed = agreed === true || agreed === "true" || agreed === 1
-    if (!hasAgreed) return false
+    if (!hasAgreed) return "not_agreed"
 
     // Consent expires after 3 months. The backend may or may not return an
     // agreedDate. When a valid date is present and it is older than 3 months,
-    // treat consent as expired (show the modal again). When the date is missing
-    // or unparseable, honour the isAgreed flag and treat consent as valid so we
-    // don't nag an already-agreed user.
+    // treat consent as expired. When the date is missing or unparseable,
+    // honour the isAgreed flag and treat consent as valid.
     const agreedDateRaw =
       getValueCaseInsensitive(record, "agreedDate") ?? getValueCaseInsensitive(record, "agreeddate")
-    if (!agreedDateRaw) return true
+    if (!agreedDateRaw) return "agreed"
     const agreedTime = new Date(agreedDateRaw).getTime()
-    if (Number.isNaN(agreedTime)) return true
+    if (Number.isNaN(agreedTime)) return "agreed"
 
     const threeMonthsAgo = new Date()
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
-    return agreedTime >= threeMonthsAgo.getTime()
+    return agreedTime >= threeMonthsAgo.getTime() ? "agreed" : "not_agreed"
   } catch {
-    return false
+    // Network error / timeout -> inconclusive, don't show the modal.
+    return "unknown"
   }
 }
 
