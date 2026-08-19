@@ -538,7 +538,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "3c49738274c843c18ffe21fa9ff973d5"
+        const DEBUG_TOKEN = "e1e515f41d084209ae3b17f97f537942"
 
         let cookieToken: string | null = null
         try {
@@ -777,6 +777,12 @@ export default function HealthDashboard() {
   // allowlisted emails may use the app; everyone else from that org sees a
   // "feature coming soon" screen. Any other org is unrestricted. Reached only
   // after beneficiaries loaded (so pmEntityId + userEmail are populated).
+  console.log("[v0] access gate check", {
+    pmEntityId,
+    pmEntityIdType: typeof pmEntityId,
+    userEmail,
+    allowed: isAppAccessAllowed(pmEntityId, userEmail),
+  })
   if (!isAppAccessAllowed(pmEntityId, userEmail)) {
     return <FeatureComingSoon />
   }
