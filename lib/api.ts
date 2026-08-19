@@ -977,6 +977,139 @@ export function buildTrendsFromReports(
 }
 
 /**
+ * Normalize a single trend metric object from the /health/trends API into the
+ * UI's TrendAnalysisItem shape. Defensive about field names because the backend
+ * shape isn't strictly typed here — falls back across common aliases.
+ */
+function normalizeTrendItem(raw: any): TrendAnalysisItem | null {
+  if (!raw || typeof raw !== "object") return null
+
+  const metricName =
+    getValueCaseInsensitive(raw, "metric_name") ||
+    getValueCaseInsensitive(raw, "metricName") ||
+    getValueCaseInsensitive(raw, "name") ||
+    getValueCaseInsensitive(raw, "parameter") ||
+    getValueCaseInsensitive(raw, "test_name") ||
+    ""
+  if (!metricName) return null
+
+  // Locate the time-series points array under any of the common keys.
+  const rawPoints =
+    getValueCaseInsensitive(raw, "data_points") ||
+    getValueCaseInsensitive(raw, "dataPoints") ||
+    getValueCaseInsensitive(raw, "points") ||
+    getValueCaseInsensitive(raw, "values") ||
+    getValueCaseInsensitive(raw, "history") ||
+    getValueCaseInsensitive(raw, "readings") ||
+    []
+
+  const unit =
+    getValueCaseInsensitive(raw, "unit") || getValueCaseInsensitive(raw, "units") || ""
+  const normalRange =
+    getValueCaseInsensitive(raw, "normal_range") ||
+    getValueCaseInsensitive(raw, "range") ||
+    getValueCaseInsensitive(raw, "reference_range") ||
+    getValueCaseInsensitive(raw, "referenceRange") ||
+    ""
+
+  const data_points: TrendDataPoint[] = (Array.isArray(rawPoints) ? rawPoints : [])
+    .map((pt: any) => {
+      const date =
+        getValueCaseInsensitive(pt, "date") ||
+        getValueCaseInsensitive(pt, "report_date") ||
+        getValueCaseInsensitive(pt, "fullfilmentDate") ||
+        getValueCaseInsensitive(pt, "test_date") ||
+        getValueCaseInsensitive(pt, "appointmentDate") ||
+        ""
+      const value = parseNumericValue(
+        getValueCaseInsensitive(pt, "value") ??
+          getValueCaseInsensitive(pt, "result") ??
+          getValueCaseInsensitive(pt, "val"),
+      )
+      const ptUnit = getValueCaseInsensitive(pt, "unit") || getValueCaseInsensitive(pt, "units") || unit
+      return date && value !== null ? { date, value, unit: ptUnit } : null
+    })
+    .filter((p): p is TrendDataPoint => p !== null)
+    // Ascending by date so data_points read oldest -> newest.
+    .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime())
+
+  const last = data_points[data_points.length - 1]
+  const prev = data_points.length > 1 ? data_points[data_points.length - 2] : undefined
+  const currentValue = last?.value ?? 0
+  const previousValue = prev?.value
+
+  let changePct = 0
+  if (previousValue !== undefined && previousValue !== 0) {
+    changePct = ((currentValue - previousValue) / previousValue) * 100
+  }
+  const trend =
+    previousValue === undefined || currentValue === previousValue
+      ? "stable"
+      : currentValue > previousValue
+        ? "increasing"
+        : "decreasing"
+
+  return {
+    metric_name: metricName,
+    change_percentage: `${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}%`,
+    trend: getValueCaseInsensitive(raw, "trend") || trend,
+    normal_range: normalRange,
+    status: (getValueCaseInsensitive(raw, "status") || "normal").toString(),
+    unit,
+    current_value: currentValue,
+    previous_value: previousValue,
+    data_points,
+  }
+}
+
+/**
+ * Normalize the raw /health/trends API response into a TrendAnalysisItem[].
+ * Handles both a wrapped `{ trend_analysis: [...] }` shape and a raw metrics
+ * array under common keys.
+ */
+export function normalizeTrendsApiResponse(data: any): TrendAnalysisItem[] {
+  if (!data) return []
+  const list =
+    getValueCaseInsensitive(data, "trend_analysis") ||
+    getValueCaseInsensitive(data, "trends") ||
+    getValueCaseInsensitive(data, "data") ||
+    getValueCaseInsensitive(data, "result") ||
+    (Array.isArray(data) ? data : [])
+  if (!Array.isArray(list)) return []
+  return list.map(normalizeTrendItem).filter((t): t is TrendAnalysisItem => t !== null)
+}
+
+/**
+ * Fetch pre-computed trends for a beneficiary from the backend /health/trends
+ * endpoint (via the local proxy). Returns a normalized TrendAnalysisItem[], or
+ * null when the request fails so the caller can fall back to client-side trends.
+ */
+export async function fetchTrendsFromApi(
+  mbUserId: string | number,
+  vasBenefId: string | number,
+  accessToken?: string | null,
+): Promise<TrendAnalysisItem[] | null> {
+  if (mbUserId === undefined || mbUserId === null || mbUserId === "") return null
+  if (vasBenefId === undefined || vasBenefId === null || vasBenefId === "") return null
+  try {
+    const response = await fetch("/api/health/trends", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { accesstoken: accessToken } : {}),
+      },
+      body: JSON.stringify({ mbUserId, vasBenefId }),
+    })
+    if (!response.ok) return null
+    const data = await response.json()
+    return normalizeTrendsApiResponse(data)
+  } catch (error) {
+    console.error("[v0] fetchTrendsFromApi failed:", error)
+    return null
+  }
+}
+
+/**
  * Create initial profile from beneficiary data
  */
 export function createInitialProfileFromBeneficiary(beneficiary: Beneficiary): ApiHealthReport {
