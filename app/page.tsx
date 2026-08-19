@@ -32,6 +32,7 @@ import {
   fetchBeneficiaryReportRequests,
   fetchReportDetailsAsHealthReport,
   buildTrendsFromReports,
+  fetchTrendsFromApi,
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
@@ -40,6 +41,7 @@ import {
   submitHealthConsent,
   type ApiHealthReport,
   type Beneficiary,
+  type TrendAnalysisItem,
 } from "@/lib/api"
 import { genderAvatar } from "@/lib/health-utils"
 
@@ -77,6 +79,9 @@ export default function HealthDashboard() {
   const consentIdsRef = useRef<{ mbUserId: string; pmEntityId: string; email: string } | null>(null)
   const hasHealthSummaryEventFiredRef = useRef(false)
   const hasTrendsEventFiredRef = useRef(false)
+  // Trends fetched from the backend /health/trends API, keyed by patientName.
+  // Preferred over client-side trends when present (see attachTrendsToReport).
+  const apiTrendsRef = useRef<Map<string, TrendAnalysisItem[]>>(new Map())
   // Tracks which beneficiaries have already had their reports requested, so a
   // beneficiary's reports are fetched only once (on first selection). Self is
   // loaded eagerly; everyone else is loaded lazily when the user selects them.
@@ -88,19 +93,27 @@ export default function HealthDashboard() {
   // Build trend analysis + lab reports client-side from the analyzed reports
   // (each report's parameters become time-series points). This replaces the old
   // n8n trends API — trends are derived from the same report-details responses.
-  const attachTrendsToReport = useCallback((report: ApiHealthReport): ApiHealthReport => {
-    try {
-      const { trend_analysis, lab_reports } = buildTrendsFromReports(report.reports || [])
-      if (!hasTrendsEventFiredRef.current && trend_analysis.length > 0) {
-        hasTrendsEventFiredRef.current = true
-        trackHealthTrendsEvent("Trends Graphs Loaded")
+  const attachTrendsToReport = useCallback(
+    (report: ApiHealthReport, apiTrends?: TrendAnalysisItem[] | null): ApiHealthReport => {
+      try {
+        // lab_reports (Test Reports list) is always derived client-side from the
+        // report-details responses. trend_analysis prefers the backend
+        // /health/trends API when available, falling back to the client-side
+        // build otherwise.
+        const { trend_analysis: clientTrends, lab_reports } = buildTrendsFromReports(report.reports || [])
+        const trend_analysis = apiTrends && apiTrends.length > 0 ? apiTrends : clientTrends
+        if (!hasTrendsEventFiredRef.current && trend_analysis.length > 0) {
+          hasTrendsEventFiredRef.current = true
+          trackHealthTrendsEvent("Trends Graphs Loaded")
+        }
+        return { ...report, trend_analysis, lab_reports }
+      } catch {
+        // Trends are non-critical; return the report unchanged on failure.
+        return report
       }
-      return { ...report, trend_analysis, lab_reports }
-    } catch {
-      // Trends are non-critical; return the report unchanged on failure.
-      return report
-    }
-  }, [])
+    },
+    [],
+  )
 
   const loadBeneficiaryReport = useCallback(
     async (beneficiary: Beneficiary, token: string) => {
@@ -148,6 +161,26 @@ export default function HealthDashboard() {
       // (the backend no longer accepts the account mbUserId). Fall back to
       // userId only if rVasBenefId is somehow missing.
       const reportVasBenefId = beneficiary.rVasBenefId ?? beneficiary.userId ?? ""
+
+      // Fetch pre-computed trends from the backend /health/trends API. mbUserId
+      // is the account-level id (captured for consent); vasBenefId scopes to
+      // this beneficiary. Fired in parallel (NOT awaited here) so a slow trends
+      // endpoint never delays report loading; the result is stored per-
+      // beneficiary and awaited just before the final merge below. A failure
+      // resolves to null and attachTrendsToReport falls back to client trends.
+      const trendsMbUserId = consentIdsRef.current?.mbUserId || beneficiary.userId || reportVasBenefId
+      const trendsVasBenefId = reportVasBenefId
+      const trendsPromise: Promise<TrendAnalysisItem[] | null> =
+        trendsMbUserId && trendsVasBenefId
+          ? fetchTrendsFromApi(trendsMbUserId, trendsVasBenefId, token)
+              .then((apiTrends) => {
+                if (apiTrends && apiTrends.length > 0) {
+                  apiTrendsRef.current.set(beneficiary.patientName, apiTrends)
+                }
+                return apiTrends
+              })
+              .catch(() => null)
+          : Promise.resolve(null)
 
       try {
         // Report identifiers are requestIds. The latest report (by date) drives
@@ -238,6 +271,7 @@ export default function HealthDashboard() {
             // Merge all loaded reports, but only use effective latest docs for health summary/digital twin
             const mergedReport = attachTrendsToReport(
               mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
+              apiTrendsRef.current.get(beneficiary.patientName),
             )
             mergedReport.patient_info.relation = beneficiary.relation
 
@@ -316,11 +350,12 @@ export default function HealthDashboard() {
             }
 
             // If a latest doc failed, re-merge with remaining successful reports using updated effective IDs
-            if (isFailed && loadedReports.length > 0) {
-              const mergedReport = attachTrendsToReport(
-                mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
-              )
-              mergedReport.patient_info.relation = beneficiary.relation
+          if (isFailed && loadedReports.length > 0) {
+            const mergedReport = attachTrendsToReport(
+              mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
+              apiTrendsRef.current.get(beneficiary.patientName),
+            )
+            mergedReport.patient_info.relation = beneficiary.relation
               setBeneficiaryReports((prev) => {
                 const newMap = new Map(prev)
                 newMap.set(beneficiary.patientName, mergedReport)
@@ -351,11 +386,17 @@ export default function HealthDashboard() {
           }
         }
         const effectiveLatestDocIdsFinal = getEffectiveLatestDocIds()
-        // Build trends from all successful reports (client-side) and attach them.
-        const mergedReport = attachTrendsToReport(
-          mergeReportsKeepLatest(successfulReports, effectiveLatestDocIdsFinal, finalReportDocIdMap),
-        )
-        mergedReport.isLoading = false
+          // Ensure the trends API call (fired in parallel earlier) has settled so
+          // the final render prefers backend trends when available.
+          await trendsPromise
+          // Attach trends: prefer the backend /health/trends API result for this
+          // beneficiary, falling back to the client-side build inside
+          // attachTrendsToReport when the API returned nothing.
+          const mergedReport = attachTrendsToReport(
+            mergeReportsKeepLatest(successfulReports, effectiveLatestDocIdsFinal, finalReportDocIdMap),
+            apiTrendsRef.current.get(beneficiary.patientName),
+          )
+          mergedReport.isLoading = false
         mergedReport.patient_info.relation = beneficiary.relation
 
         setBeneficiaryReports((prev) => {

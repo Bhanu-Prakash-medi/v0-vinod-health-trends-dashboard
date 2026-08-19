@@ -993,8 +993,10 @@ function normalizeTrendItem(raw: any): TrendAnalysisItem | null {
     ""
   if (!metricName) return null
 
-  // Locate the time-series points array under any of the common keys.
+  // Locate the time-series points array under any of the common keys. The
+  // /health/trends API nests each metric's readings under a `trends` key.
   const rawPoints =
+    getValueCaseInsensitive(raw, "trends") ||
     getValueCaseInsensitive(raw, "data_points") ||
     getValueCaseInsensitive(raw, "dataPoints") ||
     getValueCaseInsensitive(raw, "points") ||
@@ -1049,9 +1051,12 @@ function normalizeTrendItem(raw: any): TrendAnalysisItem | null {
         ? "increasing"
         : "decreasing"
 
+  // Prefer the API-provided change percentage; fall back to the computed one.
+  const apiChangePct = getValueCaseInsensitive(raw, "change_percentage") || getValueCaseInsensitive(raw, "changePercentage")
+
   return {
     metric_name: metricName,
-    change_percentage: `${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}%`,
+    change_percentage: apiChangePct || `${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}%`,
     trend: getValueCaseInsensitive(raw, "trend") || trend,
     normal_range: normalRange,
     status: (getValueCaseInsensitive(raw, "status") || "normal").toString(),
