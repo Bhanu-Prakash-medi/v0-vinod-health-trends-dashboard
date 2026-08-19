@@ -1383,6 +1383,11 @@ export function mergeReportsKeepLatest(
     lab_reports: latestReport.lab_reports,
     isLoading: latestReport.isLoading,
     isLoadingMetrics: latestReport.isLoadingMetrics,
-    latestReportDate: latestReport.latestReportDate || latestReportData?.fullfilmentDate,
+    // The Health Summary content is keyed off latestReportData (the globally
+    // latest report by fullfilmentDate — see latestDateKey above). Source the
+    // displayed date from that SAME report so the header date always matches
+    // the data shown. latestReport (picked by comparing only each report's
+    // first entry) can resolve to a different date and caused a mismatch.
+    latestReportDate: latestReportData?.fullfilmentDate || latestReportData?.date || latestReport.latestReportDate,
   }
 }
