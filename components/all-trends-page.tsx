@@ -148,9 +148,12 @@ export default function AllTrendsPage({
     allTrends = getTrendData(patientData)
   }
 
-  // Only keep parameters with a numeric reference range. Text-only ranges
-  // (e.g. "Normal", "Negative") are excluded from this section too.
-  allTrends = allTrends.filter((trend: any) => hasValidRange(trend.range))
+  // Only keep parameters that form a real trend: more than one data point over
+  // time (a single reading is not a trend) AND a numeric reference range.
+  // Text-only ranges (e.g. "Normal", "Negative") are excluded from this section.
+  allTrends = allTrends.filter(
+    (trend: any) => Array.isArray(trend.data) && trend.data.length > 1 && hasValidRange(trend.range),
+  )
 
   const parseRange = (rangeStr: string) => {
     if (!rangeStr) return null
