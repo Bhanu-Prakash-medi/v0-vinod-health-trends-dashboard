@@ -16,6 +16,8 @@ import FeedbackSection from "@/components/feedback-section"
 import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
 import HealthScoreSection from "@/components/health-score-section"
+import HealthScoreComingSoon from "@/components/health-score-coming-soon"
+import { isHealthScoreAllowed } from "@/lib/health-score-allowlist"
 import EmptyState from "@/components/empty-state"
 import ReportProblemButton from "@/components/report-problem-button"
 import {
@@ -950,18 +952,24 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-                {/* Health Score is shown only for the Self profile, not for
-                    other family beneficiaries. */}
-                {activeBeneficiary?.relation?.toLowerCase() === "self" && (
-                  <HealthScoreSection
-                    patientData={currentProfileData}
-                    vasbenefId={activeBeneficiary?.rVasBenefId}
-                    requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
-                    accessToken={accessToken}
-                    gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
-                    age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
-                  />
-                )}
+                {/* Health Risk Score is shown only for the Self profile, not for
+                    other family beneficiaries. It is further gated to an email
+                    allowlist (matched against the profile's employee_email):
+                    allowlisted users see the real score, everyone else sees a
+                    "coming soon" placeholder. */}
+                {activeBeneficiary?.relation?.toLowerCase() === "self" &&
+                  (isHealthScoreAllowed(userEmail) ? (
+                    <HealthScoreSection
+                      patientData={currentProfileData}
+                      vasbenefId={activeBeneficiary?.rVasBenefId}
+                      requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
+                      accessToken={accessToken}
+                      gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
+                      age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
+                    />
+                  ) : (
+                    <HealthScoreComingSoon />
+                  ))}
               <SectionViewTracker section="summary">
                 <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
               </SectionViewTracker>
