@@ -27,6 +27,8 @@ import {
 import { initSnowplow, trackHealthTrendsEvent, setSnowplowUserContext, setSelfVasBenefId } from "@/lib/snowplow"
 import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
+import { trackEvent } from "@/lib/analytics/posthog"
+import SectionViewTracker from "@/components/section-view-tracker"
 import {
   fetchBeneficiaries,
   fetchBeneficiaryReportRequests,
@@ -117,6 +119,13 @@ export default function HealthDashboard() {
 
   const loadBeneficiaryReport = useCallback(
     async (beneficiary: Beneficiary, token: string) => {
+      // Low-sensitivity categorical source for analytics — never the actual
+      // beneficiary name/identity.
+      const analyticsSource: "self" | "family_member" =
+        beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member"
+      const loadStartedAt = Date.now()
+      trackEvent("health_report_load_started", { source: analyticsSource })
+
       setBeneficiaryErrors((prev) => {
         const newMap = new Map(prev)
         newMap.delete(beneficiary.patientName)
@@ -425,6 +434,12 @@ export default function HealthDashboard() {
           hasHealthSummaryEventFiredRef.current = true
           trackHealthTrendsEvent("Health Summary Loaded")
         }
+
+        trackEvent("health_report_load_succeeded", {
+          source: analyticsSource,
+          success: true,
+          duration_ms: Date.now() - loadStartedAt,
+        })
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err)
 
@@ -445,6 +460,12 @@ export default function HealthDashboard() {
         } else {
           errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
         }
+
+        trackEvent("health_report_load_failed", {
+          source: analyticsSource,
+          success: false,
+          duration_ms: Date.now() - loadStartedAt,
+        })
 
         setBeneficiaryErrors((prev) => {
           const newMap = new Map(prev)
@@ -478,6 +499,10 @@ export default function HealthDashboard() {
     (beneficiaryName: string) => {
       const beneficiary = beneficiaries.find((b) => b.patientName === beneficiaryName)
       if (beneficiary && accessToken) {
+        trackEvent("health_report_retry_clicked", {
+          source: beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member",
+          action: "retry_report_load",
+        })
         setBeneficiaryReports((prev) => {
           const newMap = new Map(prev)
           newMap.set(beneficiary.patientName, createInitialProfileFromBeneficiary(beneficiary))
@@ -689,6 +714,17 @@ export default function HealthDashboard() {
   const consentModal = (
     <HealthConsentModal open={hasAcceptedHealthConsent === false} onAgree={handleConsentAgree} />
   )
+
+  // Full-page trends/all-parameters views are dedicated screens, so their
+  // "viewed" moment is simply the state flip that renders them (unlike the
+  // in-page sections below, which use scroll-into-view via SectionViewTracker).
+  useEffect(() => {
+    if (showAllTrends) trackEvent("health_trends_section_viewed", { section: "trends" })
+  }, [showAllTrends])
+
+  useEffect(() => {
+    if (showAllParameters) trackEvent("health_trends_section_viewed", { section: "all_parameters" })
+  }, [showAllParameters])
 
   if (isBeneficiariesLoading) {
     return (
@@ -926,17 +962,41 @@ export default function HealthDashboard() {
                     age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
                   />
                 )}
-              <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
-              <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
+              <SectionViewTracker section="summary">
+                <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
+              </SectionViewTracker>
+              <SectionViewTracker section="insights">
+                <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
+              </SectionViewTracker>
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
-              {hasTrends && <TrendsSection onViewAll={() => setShowAllTrends(true)} patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />}
-              <AllParametersSection patientData={currentProfileData} onViewAll={() => setShowAllParameters(true)} vasbenefId={activeBeneficiary?.rVasBenefId} />
-              <HealthRecommendationsSection patientData={currentProfileData} />
-              <TestReportsSection
+              {hasTrends && (
+                <SectionViewTracker section="trends">
+                  <TrendsSection
+                    onViewAll={() => {
+                      trackEvent("health_trends_action_clicked", { action: "view_all_trends" })
+                      setShowAllTrends(true)
+                    }}
+                    patientData={currentProfileData}
+                    vasbenefId={activeBeneficiary?.rVasBenefId}
+                  />
+                </SectionViewTracker>
+              )}
+              <AllParametersSection
                 patientData={currentProfileData}
-                scrollToDate={pendingReportDate}
-                onScrollHandled={() => setPendingReportDate(null)}
+                onViewAll={() => {
+                  trackEvent("health_trends_action_clicked", { action: "view_all_parameters" })
+                  setShowAllParameters(true)
+                }}
+                vasbenefId={activeBeneficiary?.rVasBenefId}
               />
+              <HealthRecommendationsSection patientData={currentProfileData} />
+              <SectionViewTracker section="reports">
+                <TestReportsSection
+                  patientData={currentProfileData}
+                  scrollToDate={pendingReportDate}
+                  onScrollHandled={() => setPendingReportDate(null)}
+                />
+              </SectionViewTracker>
                 <FeedbackSection
             mbUserId={mbUserId}
             vasbenefId={activeBeneficiary?.rVasBenefId}
