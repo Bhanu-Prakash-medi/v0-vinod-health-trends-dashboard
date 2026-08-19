@@ -777,6 +777,12 @@ export default function HealthDashboard() {
   // allowlisted emails may use the app; everyone else from that org sees a
   // "feature coming soon" screen. Any other org is unrestricted. Reached only
   // after beneficiaries loaded (so pmEntityId + userEmail are populated).
+  console.log("[v0] access gate check", {
+    pmEntityId,
+    pmEntityIdType: typeof pmEntityId,
+    userEmail,
+    allowed: isAppAccessAllowed(pmEntityId, userEmail),
+  })
   if (!isAppAccessAllowed(pmEntityId, userEmail)) {
     return <FeatureComingSoon />
   }
