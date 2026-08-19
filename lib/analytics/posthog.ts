@@ -20,7 +20,9 @@ let initialized = false
 export function initPostHog() {
   if (typeof window === "undefined" || initialized) return
 
-  const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
+  // PostHog project tokens are public (exposed client-side by design), so the
+  // configured project token is used as the default with an env-var override.
+  const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || "e1e515f41d084209ae3b17f97f537942"
   if (!token) {
     // Analytics is a no-op when unconfigured; the app must still work.
     return
