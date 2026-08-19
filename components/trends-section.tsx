@@ -60,7 +60,12 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
       return getParameterPriority(a.metric_name) - getParameterPriority(b.metric_name)
     })
 
-    displayedTrends = sortedTrends.slice(0, 3).map((item: any) => {
+    // Map the FULL sorted list (not just the first 3) so that single-point or
+    // range-less metrics can be filtered out below before we pick the top 3.
+    // Slicing to 3 first let single-reading abnormal params (e.g. HDL/LDL with
+    // one measurement) occupy all slots and then get dropped, hiding the many
+    // valid multi-point trends further down the list.
+    displayedTrends = sortedTrends.map((item: any) => {
       const dataPoints = item.data_points || []
 
       // Sort data chronologically first to find the latest and previous values
@@ -102,9 +107,11 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
   // metric that has a single reading so we never render a "trend" with one point.
   // Also drop any metric that has no normal/reference range so parameters
   // without a range never appear here (consistent with every other section).
-  displayedTrends = displayedTrends.filter(
-    (trend) => Array.isArray(trend.data) && trend.data.length > 1 && hasValidRange(trend.range),
-  )
+  displayedTrends = displayedTrends
+    .filter((trend) => Array.isArray(trend.data) && trend.data.length > 1 && hasValidRange(trend.range))
+    // Preview shows at most 3 trends; pick them AFTER filtering so we surface
+    // the top valid multi-point trends rather than dropped single-point ones.
+    .slice(0, 3)
 
   // If nothing has more than one data point, hide the Health Trends section.
   if (displayedTrends.length === 0) {

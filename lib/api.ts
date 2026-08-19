@@ -715,6 +715,28 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
     }
   })
 
+  // Also fold in every biomarker that appears in the grouped health_summary.
+  // Some report-details responses return a sparse (or empty) top-level
+  // `parameters` array while carrying the actual biomarkers inside
+  // health_summary[].parameters. Trends are built from reports[].parameters, so
+  // without this the trends engine sees almost no metrics (and single-point
+  // metrics get filtered out, hiding the whole Health Trends section) even
+  // though the health summary looks complete. Only add names not already
+  // present so the flat array remains authoritative when both exist.
+  healthSummaryRaw.forEach((item: any) => {
+    const params = getValueCaseInsensitive(item, "parameters") || []
+    params.forEach((param: any) => {
+      const metricName = getValueCaseInsensitive(param, "metric_name") || getValueCaseInsensitive(param, "name") || ""
+      if (!metricName || transformedParameters[metricName]) return
+      transformedParameters[metricName] = {
+        result: getValueCaseInsensitive(param, "value") ?? getValueCaseInsensitive(param, "result") ?? "",
+        units: getValueCaseInsensitive(param, "unit") || getValueCaseInsensitive(param, "units") || "",
+        range: getValueCaseInsensitive(param, "normal_range") || getValueCaseInsensitive(param, "range") || "",
+        status: getValueCaseInsensitive(param, "status") || "normal",
+      }
+    })
+  })
+
   // Transform organ-grouped health summary.
   const healthSummary: HealthSummaryItem[] = healthSummaryRaw.map((item: any) => {
     const params = getValueCaseInsensitive(item, "parameters") || []
