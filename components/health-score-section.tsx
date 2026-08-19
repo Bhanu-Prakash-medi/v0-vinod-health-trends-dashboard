@@ -166,13 +166,13 @@ export default function HealthScoreSection({
     <div className="mb-3 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
         <Activity className="h-5 w-5 text-[#156ddc]" />
-        <h2 className="text-base font-semibold text-[#2e3742]">Health Score</h2>
+        <h2 className="text-base font-semibold text-[#2e3742]">Health Risk Score</h2>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <button
           type="button"
           onClick={() => openExternalUrl("https://youtu.be/cyWgR1VsmWo?si=RJuAOuH2MsMmFzo_")}
-          aria-label="Watch how your Health Score is calculated"
+          aria-label="Watch how your Health Risk Score is calculated"
           className="inline-flex items-center gap-1 rounded-full border border-[#f2d4d4] bg-[#fdf2f2] px-2.5 py-1 text-xs font-medium text-[#d1495b] transition-colors hover:bg-[#fbe8e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d1495b]/30"
         >
           <Youtube className="h-3.5 w-3.5" />

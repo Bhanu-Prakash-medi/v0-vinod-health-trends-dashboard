@@ -16,6 +16,8 @@ import FeedbackSection from "@/components/feedback-section"
 import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
 import HealthScoreSection from "@/components/health-score-section"
+import FeatureComingSoon from "@/components/feature-coming-soon"
+import { isAppAccessAllowed } from "@/lib/health-trends-access-allowlist"
 import EmptyState from "@/components/empty-state"
 import ReportProblemButton from "@/components/report-problem-button"
 import {
@@ -536,7 +538,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = ""
+        const DEBUG_TOKEN = "3c49738274c843c18ffe21fa9ff973d5"
 
         let cookieToken: string | null = null
         try {
@@ -771,6 +773,14 @@ export default function HealthDashboard() {
     )
   }
 
+  // App-level access gate. For the restricted org (pmEntityId 1006639) only
+  // allowlisted emails may use the app; everyone else from that org sees a
+  // "feature coming soon" screen. Any other org is unrestricted. Reached only
+  // after beneficiaries loaded (so pmEntityId + userEmail are populated).
+  if (!isAppAccessAllowed(pmEntityId, userEmail)) {
+    return <FeatureComingSoon />
+  }
+
   const activeBeneficiary = beneficiaries[activeBeneficiaryIndex]
   const rawProfileData = activeBeneficiary ? beneficiaryReports.get(activeBeneficiary.patientName) : null
   // Ensure patient_info.gender/age is populated from the active beneficiary
@@ -950,8 +960,9 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-                {/* Health Score is shown only for the Self profile, not for
-                    other family beneficiaries. */}
+                {/* Health Risk Score is shown only for the Self profile, not for
+                    other family beneficiaries. App-wide access (including this
+                    section) is gated earlier for restricted orgs. */}
                 {activeBeneficiary?.relation?.toLowerCase() === "self" && (
                   <HealthScoreSection
                     patientData={currentProfileData}

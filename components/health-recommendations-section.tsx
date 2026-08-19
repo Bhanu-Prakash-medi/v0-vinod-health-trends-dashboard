@@ -17,8 +17,10 @@ import {
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
+import { isNativeAppPlatform } from "@/lib/api"
 import { openExternalUrl } from "@/lib/open-external"
 import { resolveParameterStatus } from "@/lib/parameter-status"
+import { useMemo } from "react"
 
 interface HealthRecommendationsSectionProps {
   patientData: ApiHealthReport
@@ -33,27 +35,34 @@ interface ServiceLink {
 }
 
 // MediBuddy service deep links mapped to each recommendation type.
-const SERVICE_LINKS: Record<ServiceKey, ServiceLink> = {
-  meds: {
-    label: "Order Medicines",
-    url: "https://www.medibuddy.in/order-medicines",
-    icon: <Pill className="h-3.5 w-3.5" />,
-  },
-  labs: {
-    label: "Book Lab Test",
-    url: "https://www.medibuddy.in/labsLandingPage",
-    icon: <FlaskConical className="h-3.5 w-3.5" />,
-  },
-  online: {
-    label: "Online Consultation",
-    url: "https://www.medibuddy.in/ask",
-    icon: <Video className="h-3.5 w-3.5" />,
-  },
-  clinic: {
-    label: "In-Clinic Consultation",
-    url: "https://www.medibuddy.in/doctor-consultations/landing",
-    icon: <Building2 className="h-3.5 w-3.5" />,
-  },
+//
+// In the native-app WebViews (platform cookie IOS_mv / android_mv) we keep the
+// existing in-app deep links. On the web (any other platform) Labs and Online
+// Consultation redirect to their web destinations instead; Meds and Clinic are
+// unchanged on both.
+function getServiceLinks(nativeApp: boolean): Record<ServiceKey, ServiceLink> {
+  return {
+    meds: {
+      label: "Order Medicines",
+      url: "https://www.medibuddy.in/order-medicines",
+      icon: <Pill className="h-3.5 w-3.5" />,
+    },
+    labs: {
+      label: "Book Lab Test",
+      url: nativeApp ? "https://www.medibuddy.in/labsLandingPage" : "https://medibuddy.in/consumerLabs",
+      icon: <FlaskConical className="h-3.5 w-3.5" />,
+    },
+    online: {
+      label: "Online Consultation",
+      url: nativeApp ? "https://www.medibuddy.in/ask" : "https://doctor.medibuddy.in/main.html#home",
+      icon: <Video className="h-3.5 w-3.5" />,
+    },
+    clinic: {
+      label: "In-Clinic Consultation",
+      url: "https://www.medibuddy.in/doctor-consultations/landing",
+      icon: <Building2 className="h-3.5 w-3.5" />,
+    },
+  }
 }
 
 interface Recommendation {
@@ -189,6 +198,8 @@ function generateRecommendations(patientData: ApiHealthReport): Recommendation[]
 export default function HealthRecommendationsSection({ patientData }: HealthRecommendationsSectionProps) {
   const recommendations = generateRecommendations(patientData)
   const latestDate = patientData?.latestReportDate || patientData?.lab_reports?.[0]?.report_date || ""
+  // Resolve service links once per mount based on the platform cookie.
+  const serviceLinks = useMemo(() => getServiceLinks(isNativeAppPlatform()), [])
 
   if (recommendations.length === 0) return null
 
@@ -224,7 +235,7 @@ export default function HealthRecommendationsSection({ patientData }: HealthReco
               {rec.services && rec.services.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {rec.services.map((key) => {
-                    const service = SERVICE_LINKS[key]
+                    const service = serviceLinks[key]
                     return (
                       <a
                         key={key}
