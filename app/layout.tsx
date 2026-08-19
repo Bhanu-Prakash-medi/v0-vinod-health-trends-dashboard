@@ -4,6 +4,7 @@ import { Lexend_Deca } from "next/font/google"
 import HotjarLoader from "@/components/hotjar-loader"
 import "./globals.css"
 import InitAnalytics from "@/lib/analytics/InitAnalytics"
+import { AnalyticsProvider } from "./providers"
 
 const lexendDeca = Lexend_Deca({ subsets: ["latin"] })
 
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${lexendDeca.className} antialiased`}>
-        {children}
+        <AnalyticsProvider>{children}</AnalyticsProvider>
         <InitAnalytics hotjarJS={process.env.hotjarJS} />
         <HotjarLoader />
       </body>
