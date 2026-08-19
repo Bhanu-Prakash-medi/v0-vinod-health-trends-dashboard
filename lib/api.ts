@@ -157,6 +157,37 @@ export function getPmEntityIdFromCookie(): string {
   return "0"
 }
 
+/**
+ * Read the MediBuddy platform cookie ("trk-mb-platform"). In the native app
+ * WebViews this is set to values like "IOS_mv" / "android_mv"; on the web it is
+ * typically "web" (or absent). Returned verbatim (empty string when absent).
+ */
+export function getPlatformFromCookie(): string {
+  if (typeof document === "undefined") {
+    return ""
+  }
+
+  const cookies = document.cookie.split(";")
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split("=")
+    if (name === "trk-mb-platform") {
+      return decodeURIComponent(value || "")
+    }
+  }
+
+  return ""
+}
+
+/**
+ * True when the current platform is a native-app WebView (iOS/Android), where
+ * the existing in-app deep links should be used for service redirects. Any
+ * other platform (web, unknown, or absent) should use the web fallbacks.
+ */
+export function isNativeAppPlatform(platform?: string): boolean {
+  const p = (platform ?? getPlatformFromCookie()).trim().toLowerCase()
+  return p === "ios_mv" || p === "android_mv"
+}
+
 export type HealthConsentStatus = "agreed" | "not_agreed" | "unknown"
 
 /**
