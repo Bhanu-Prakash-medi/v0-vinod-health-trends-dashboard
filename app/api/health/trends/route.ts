@@ -35,6 +35,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "vasBenefId is required" }, { status: 400 })
   }
 
+  // The backend expects mbUserId and vasBenefId as numbers, not strings.
+  const mbUserIdNum = Number(mbUserId)
+  const vasBenefIdNum = Number(vasBenefId)
+  if (Number.isNaN(mbUserIdNum) || Number.isNaN(vasBenefIdNum)) {
+    return NextResponse.json({ error: "mbUserId and vasBenefId must be numeric" }, { status: 400 })
+  }
+
   try {
     const response = await fetchWithTimeout(`${TRENDS_BACKEND}/health/trends`, {
       method: "POST",
@@ -42,7 +49,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
         ...(accessToken ? { accesstoken: accessToken } : {}),
       },
-      body: JSON.stringify({ mbUserId, vasBenefId }),
+      body: JSON.stringify({ mbUserId: mbUserIdNum, vasBenefId: vasBenefIdNum }),
     })
 
     const text = await response.text()
