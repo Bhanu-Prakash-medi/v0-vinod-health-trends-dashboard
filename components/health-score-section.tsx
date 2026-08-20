@@ -171,7 +171,7 @@ export default function HealthScoreSection({
       <div className="flex shrink-0 items-center gap-1.5">
         <button
           type="button"
-          onClick={() => openExternalUrl("https://youtu.be/cyWgR1VsmWo?si=RJuAOuH2MsMmFzo_")}
+          onClick={() => openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")}
           aria-label="Watch how your Health Risk Score is calculated"
           className="inline-flex items-center gap-1 rounded-full border border-[#f2d4d4] bg-[#fdf2f2] px-2.5 py-1 text-xs font-medium text-[#d1495b] transition-colors hover:bg-[#fbe8e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d1495b]/30"
         >
