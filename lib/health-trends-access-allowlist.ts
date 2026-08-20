@@ -179,18 +179,32 @@ function normalizeEmail(email: string | null | undefined): string {
   return value.trim().toLowerCase()
 }
 
+/**
+ * A profile can carry MULTIPLE emails in a single string, separated by comma
+ * (or semicolon/space) — e.g. "work@tcs.com,personal@gmail.com". Split those
+ * apart and normalize each so we can match against any of them.
+ */
+function normalizeEmailList(email: string | null | undefined): string[] {
+  if (!email) return []
+  return String(email)
+    .split(/[,;]+/)
+    .map((part) => normalizeEmail(part))
+    .filter(Boolean)
+}
+
 const allowedEmailSet = new Set(RESTRICTED_ORG_ALLOWED_EMAILS.map((e) => normalizeEmail(e)))
 
 /**
  * Whether the current user may access the full app.
  *
  * - Any pmEntityId other than RESTRICTED_PM_ENTITY_ID => always allowed.
- * - RESTRICTED_PM_ENTITY_ID => allowed only if the email is on the allowlist.
+ * - RESTRICTED_PM_ENTITY_ID => allowed if ANY of the profile's emails is on
+ *   the allowlist (the profile email field may contain several addresses).
  */
 export function isAppAccessAllowed(pmEntityId: string | number | null | undefined, email: string | null | undefined): boolean {
   const pm = String(pmEntityId ?? "").trim()
   if (pm !== RESTRICTED_PM_ENTITY_ID) {
     return true
   }
-  return allowedEmailSet.has(normalizeEmail(email))
+  return normalizeEmailList(email).some((e) => allowedEmailSet.has(e))
 }
