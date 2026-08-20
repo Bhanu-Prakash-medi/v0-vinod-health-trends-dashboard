@@ -158,9 +158,9 @@ export function getPmEntityIdFromCookie(): string {
 }
 
 /**
- * Read the MediBuddy platform cookie ("trk-mb-platform"). In the native app
- * WebViews this is set to values like "IOS_mv" / "android_mv"; on the web it is
- * typically "web" (or absent). Returned verbatim (empty string when absent).
+ * Read the MediBuddy platform cookie ("platform"). In the native app WebViews
+ * this is set to values like "IOS_mv" / "android_mv"; on the web it is
+ * typically absent. Returned verbatim (empty string when absent).
  */
 export function getPlatformFromCookie(): string {
   if (typeof document === "undefined") {
@@ -170,7 +170,7 @@ export function getPlatformFromCookie(): string {
   const cookies = document.cookie.split(";")
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split("=")
-    if (name === "trk-mb-platform") {
+    if (name === "platform") {
       return decodeURIComponent(value || "")
     }
   }
