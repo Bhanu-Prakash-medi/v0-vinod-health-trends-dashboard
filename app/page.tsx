@@ -779,8 +779,9 @@ export default function HealthDashboard() {
   // after beneficiaries loaded (so pmEntityId + userEmail are populated).
   console.log("[v0] access gate check", {
     pmEntityId,
-    pmEntityIdType: typeof pmEntityId,
-    userEmail,
+    // JSON.stringify reveals stray quotes/whitespace/invisible characters in
+    // the raw email that would otherwise be invisible in a plain log.
+    rawUserEmail: JSON.stringify(userEmail),
     allowed: isAppAccessAllowed(pmEntityId, userEmail),
   })
   if (!isAppAccessAllowed(pmEntityId, userEmail)) {
