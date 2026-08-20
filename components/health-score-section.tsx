@@ -180,7 +180,7 @@ export default function HealthScoreSection({
         </button>
         <button
           type="button"
-          onClick={() => openExternalUrl("https://medibuddy.in")}
+          onClick={() => openExternalUrl("https://healthscorelabs-69g616at8-medi-buddy-product-tech.vercel.app")}
           aria-label="Learn more on MediBuddy"
           className="inline-flex items-center gap-1 rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-2.5 py-1 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
         >
