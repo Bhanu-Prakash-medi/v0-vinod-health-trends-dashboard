@@ -54,7 +54,7 @@ function getServiceLinks(nativeApp: boolean): Record<ServiceKey, ServiceLink> {
     },
     online: {
       label: "Online Consultation",
-      url: nativeApp ? "https://www.medibuddy.in/ask" : "https://doctor.medibuddy.in/main.html#home",
+      url: nativeApp ? "https://www.medibuddy.in/ask" : "https://medibuddy.in/doctor-consultations/home",
       icon: <Video className="h-3.5 w-3.5" />,
     },
     clinic: {
