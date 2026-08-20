@@ -54,10 +54,17 @@ interface BeneficiaryError {
   message: string
 }
 
+// The Health Risk Score API accepts at most 15 requestIds per call.
+const MAX_HEALTH_SCORE_REQUEST_IDS = 15
+
 export default function HealthDashboard() {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
   const [activeBeneficiaryIndex, setActiveBeneficiaryIndex] = useState(0)
   const [beneficiaryReports, setBeneficiaryReports] = useState<Map<string, ApiHealthReport>>(new Map())
+  // RequestIds (per beneficiary) whose report-details API returned a non-null
+  // report. Only these are sent to the Health Risk Score API — requests that
+  // returned nothing must be excluded, and the API also rejects >15 ids.
+  const [scoreRequestIds, setScoreRequestIds] = useState<Map<string, string[]>>(new Map())
   const [beneficiaryErrors, setBeneficiaryErrors] = useState<Map<string, BeneficiaryError>>(new Map())
   const [healthSummaryLoading, setHealthSummaryLoading] = useState<Map<string, boolean>>(new Map())
   // Beneficiaries whose report load has fully settled. Needed because the reports
@@ -413,6 +420,25 @@ export default function HealthDashboard() {
         setBeneficiaryReports((prev) => {
           const newMap = new Map(prev)
           newMap.set(beneficiary.patientName, mergedReport)
+          return newMap
+        })
+
+        // Collect only the requestIds whose report-details API returned a
+        // non-null report (fulfilled and not marked failed). These — most
+        // recent first, capped at MAX_HEALTH_SCORE_REQUEST_IDS — are the only
+        // ids sent to the Health Risk Score API (which rejects >15 ids).
+        const successfulRequestIds = results
+          .filter((r) => r.status === "fulfilled" && !failedDocIds.has(r.docId))
+          .map((r) => r.docId)
+          .sort((a, b) => {
+            const da = new Date(requestDateById.get(a) || 0).getTime()
+            const db = new Date(requestDateById.get(b) || 0).getTime()
+            return db - da
+          })
+          .slice(0, MAX_HEALTH_SCORE_REQUEST_IDS)
+        setScoreRequestIds((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(beneficiary.patientName, successfulRequestIds)
           return newMap
         })
 
@@ -779,8 +805,9 @@ export default function HealthDashboard() {
   // after beneficiaries loaded (so pmEntityId + userEmail are populated).
   console.log("[v0] access gate check", {
     pmEntityId,
-    pmEntityIdType: typeof pmEntityId,
-    userEmail,
+    // JSON.stringify reveals stray quotes/whitespace/invisible characters in
+    // the raw email that would otherwise be invisible in a plain log.
+    rawUserEmail: JSON.stringify(userEmail),
     allowed: isAppAccessAllowed(pmEntityId, userEmail),
   })
   if (!isAppAccessAllowed(pmEntityId, userEmail)) {
@@ -973,7 +1000,7 @@ export default function HealthDashboard() {
                   <HealthScoreSection
                     patientData={currentProfileData}
                     vasbenefId={activeBeneficiary?.rVasBenefId}
-                    requestIds={activeBeneficiary?.reportRequests?.map((r) => r.requestId)}
+                    requestIds={activeBeneficiary ? scoreRequestIds.get(activeBeneficiary.patientName) : undefined}
                     accessToken={accessToken}
                     gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
                     age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}

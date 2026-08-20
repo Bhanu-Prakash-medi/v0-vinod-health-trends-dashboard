@@ -158,22 +158,53 @@ const RESTRICTED_ORG_ALLOWED_EMAILS: string[] = [
   "abdul.6@tcs.com",
 ]
 
-const allowedEmailSet = new Set(RESTRICTED_ORG_ALLOWED_EMAILS.map((e) => e.trim().toLowerCase()))
-
+/**
+ * Normalize an email for comparison. This is intentionally defensive because
+ * the profile API value may arrive with surrounding whitespace, mixed case,
+ * zero-width/invisible unicode characters, or wrapped as a display name
+ * ("Full Name <user@tcs.com>"). We strip invisible characters, extract the
+ * actual address token when present, then trim + lowercase.
+ */
 function normalizeEmail(email: string | null | undefined): string {
-  return (email || "").trim().toLowerCase()
+  if (!email) return ""
+  // Remove zero-width and BOM characters that can sneak in from copy/paste
+  // or upstream systems and silently break an otherwise-correct match.
+  let value = String(email).replace(/[\u200B-\u200D\uFEFF]/g, "").trim()
+  // If wrapped like "Name <user@tcs.com>", pull out the address inside <>.
+  const angle = value.match(/<([^>]+)>/)
+  if (angle) value = angle[1].trim()
+  // Otherwise, extract the first email-looking token if there is extra text.
+  const token = value.match(/[^\s<>,;"']+@[^\s<>,;"']+/)
+  if (token) value = token[0]
+  return value.trim().toLowerCase()
 }
+
+/**
+ * A profile can carry MULTIPLE emails in a single string, separated by comma
+ * (or semicolon/space) — e.g. "work@tcs.com,personal@gmail.com". Split those
+ * apart and normalize each so we can match against any of them.
+ */
+function normalizeEmailList(email: string | null | undefined): string[] {
+  if (!email) return []
+  return String(email)
+    .split(/[,;]+/)
+    .map((part) => normalizeEmail(part))
+    .filter(Boolean)
+}
+
+const allowedEmailSet = new Set(RESTRICTED_ORG_ALLOWED_EMAILS.map((e) => normalizeEmail(e)))
 
 /**
  * Whether the current user may access the full app.
  *
  * - Any pmEntityId other than RESTRICTED_PM_ENTITY_ID => always allowed.
- * - RESTRICTED_PM_ENTITY_ID => allowed only if the email is on the allowlist.
+ * - RESTRICTED_PM_ENTITY_ID => allowed if ANY of the profile's emails is on
+ *   the allowlist (the profile email field may contain several addresses).
  */
 export function isAppAccessAllowed(pmEntityId: string | number | null | undefined, email: string | null | undefined): boolean {
   const pm = String(pmEntityId ?? "").trim()
   if (pm !== RESTRICTED_PM_ENTITY_ID) {
     return true
   }
-  return allowedEmailSet.has(normalizeEmail(email))
+  return normalizeEmailList(email).some((e) => allowedEmailSet.has(e))
 }
