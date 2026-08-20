@@ -49,12 +49,12 @@ function getServiceLinks(nativeApp: boolean): Record<ServiceKey, ServiceLink> {
     },
     labs: {
       label: "Book Lab Test",
-      url: nativeApp ? "https://www.medibuddy.in/labsLandingPage" : "https://medibuddy.in/consumerLabs",
+      url: nativeApp ? "https://www.medibuddy.in/labsLandingPage" : "https://www.medibuddy.in/consumerLabs",
       icon: <FlaskConical className="h-3.5 w-3.5" />,
     },
     online: {
       label: "Online Consultation",
-      url: nativeApp ? "https://www.medibuddy.in/ask" : "https://medibuddy.in/doctor-consultations/home",
+      url: nativeApp ? "https://www.medibuddy.in/ask" : "https://www.medibuddy.in/doctor-consultations/home",
       icon: <Video className="h-3.5 w-3.5" />,
     },
     clinic: {
