@@ -43,6 +43,7 @@ import {
   getPmEntityIdFromCookie,
   getHealthConsent,
   submitHealthConsent,
+  pickPrimaryEmail,
   type ApiHealthReport,
   type Beneficiary,
   type TrendAnalysisItem,
@@ -907,7 +908,11 @@ export default function HealthDashboard() {
       {/* Floating "Report a problem" button pinned to the bottom of the app column. */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 pb-5">
         <div className="pointer-events-auto">
-          <ReportProblemButton floating vasbenefId={activeBeneficiary?.rVasBenefId} emailId={userEmail} />
+              <ReportProblemButton
+                floating
+                vasbenefId={activeBeneficiary?.rVasBenefId}
+                emailId={pickPrimaryEmail(userEmail)}
+              />
         </div>
       </div>
       <div className="min-h-screen bg-[#f7f9fa]">
@@ -1042,12 +1047,12 @@ export default function HealthDashboard() {
                 />
               </SectionViewTracker>
                 <FeedbackSection
-            mbUserId={mbUserId}
-            vasbenefId={activeBeneficiary?.rVasBenefId}
-            pmEntityId={pmEntityId}
-            emailId={userEmail}
-            accessToken={accessToken}
-          />
+                  mbUserId={mbUserId}
+                  vasbenefId={activeBeneficiary?.rVasBenefId}
+                  pmEntityId={pmEntityId}
+                  emailId={pickPrimaryEmail(userEmail)}
+                  accessToken={accessToken}
+                />
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
               </div>

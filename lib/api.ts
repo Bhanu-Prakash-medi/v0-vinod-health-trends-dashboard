@@ -257,6 +257,25 @@ export async function getHealthConsent(
 }
 
 /**
+ * The profile email field can contain MULTIPLE addresses separated by comma,
+ * semicolon or whitespace (e.g. "work@tcs.com,personal@gmail.com"). Backend
+ * endpoints such as /health/consent and feedback validate a SINGLE email and
+ * reject the multi-value string ("email must be an email"). This returns the
+ * first valid-looking address, or "" when none is present.
+ */
+export function pickPrimaryEmail(email: string | null | undefined): string {
+  if (!email) return ""
+  const cleaned = String(email).replace(/[\u200B-\u200D\uFEFF]/g, "")
+  for (const part of cleaned.split(/[,;\s]+/)) {
+    const candidate = part.trim()
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate)) {
+      return candidate
+    }
+  }
+  return ""
+}
+
+/**
  * Submit the user's Health Trends data-consent agreement.
  * Proxies POST /health/consent. Returns `true` on success.
  */
@@ -274,7 +293,8 @@ export async function submitHealthConsent(
       body: JSON.stringify({
         mbUserId: payload.mbUserId,
         pmEntityId: payload.pmEntityId ?? null,
-        email: payload.email ?? "",
+        // Send only a single valid email; the profile may carry several.
+        email: pickPrimaryEmail(payload.email),
         isAgreed: true,
         // Current date/time as ISO 8601 in IST, e.g. "2026-08-14T15:26:30.098+05:30".
         agreedDate: formatIstTimestamp(),
