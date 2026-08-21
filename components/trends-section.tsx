@@ -8,7 +8,13 @@ import { getTrendData, hasValidRange } from "@/lib/health-utils"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { getParameterPriority } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import { getParameterBand } from "@/lib/parameter-bands"
+import {
+  getParameterBand,
+  getParameterBandInfo,
+  getParameterReferenceLines,
+  getParameterNormalRange,
+  getParameterPointColor,
+} from "@/lib/parameter-bands"
 
 interface TrendsSectionProps {
   onViewAll?: () => void
@@ -162,16 +168,48 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
           const isWorsening = trend.change > 0 && trend.status === "abnormal"
           const isStable = Math.abs(trend.changePercent) < 5
           const rangeData = parseRange(trend.range)
+          const gender = patientData?.patient_info?.gender
 
           // Custom band for the 7 listed parameters (color + granular label).
-          const band = getParameterBand(
-            trend.name,
-            Number.parseFloat(String(trend.current)),
-            patientData?.patient_info?.gender,
-          )
+          const band = getParameterBand(trend.name, Number.parseFloat(String(trend.current)), gender)
 
-          const lineColor = band ? band.color : trend.status === "normal" ? "#2f9a48" : "#d93026"
+          // Multi-range (custom-band) parameter? If so, use the clinical bands
+          // for the reference lines, the displayed range text, and per-point
+          // colors — instead of the raw lab range string, which is wrong for
+          // these (e.g. HbA1c healthy is ≤5.6, not "4.0-5.6").
+          const isBandParam = !!getParameterBandInfo(trend.name, gender)
+          const bandRefLines = isBandParam ? getParameterReferenceLines(trend.name, gender) : null
+          const displayRange = (isBandParam ? getParameterNormalRange(trend.name, gender) : null) || trend.range
           const referenceColor = "#2f9a48"
+
+          // Color for a single reading: band color for band params, else
+          // green/red based on whether the value sits inside the numeric range.
+          const colorForValue = (value: number): string => {
+            if (isBandParam) {
+              const c = getParameterPointColor(trend.name, value, gender)
+              if (c) return c
+            }
+            if (rangeData?.type === "range" && rangeData.min != null && rangeData.max != null) {
+              return value >= rangeData.min && value <= rangeData.max ? "#2f9a48" : "#d93026"
+            }
+            if (rangeData?.type === "max" && rangeData.max != null) {
+              return value <= rangeData.max ? "#2f9a48" : "#d93026"
+            }
+            if (rangeData?.type === "min" && rangeData.min != null) {
+              return value >= rangeData.min ? "#2f9a48" : "#d93026"
+            }
+            return trend.status === "normal" ? "#2f9a48" : "#d93026"
+          }
+
+          // Build an x-axis gradient so the line color transitions through each
+          // point's range color (reflecting how the reading moved between bands).
+          const gradientId = `trend-grad-${String(trend.name).replace(/[^a-zA-Z0-9]/g, "-")}`
+          const nPoints = trend.data.length
+          const gradientStops = trend.data.map((d: any, i: number) => ({
+            offset: nPoints > 1 ? (i / (nPoints - 1)) * 100 : 0,
+            color: colorForValue(Number.parseFloat(String(d.value))),
+          }))
+          const lineColor = colorForValue(Number.parseFloat(String(trend.current)))
 
           return (
             <Card key={trend.name} className="border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -206,7 +244,7 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
                       {trend.current} {trend.unit}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-[#9dabbd]">Normal Range: {trend.range}</p>
+                  <p className="mt-0.5 text-xs text-[#9dabbd]">Normal Range: {displayRange}</p>
                 </div>
                 {band ? (
                   <div
@@ -230,6 +268,13 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
                 <div className="w-full h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trend.data} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                      <defs>
+                        <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                          {gradientStops.map((s, i) => (
+                            <stop key={i} offset={`${s.offset}%`} stopColor={s.color} />
+                          ))}
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                       <XAxis
                         dataKey="timestamp"
@@ -251,37 +296,53 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
                         tickFormatter={(value) => value.toFixed(1)}
                         width={40}
                       />
-                      {rangeData?.type === "range" && (
+                      {bandRefLines ? (
+                        // Multi-range parameter: reference lines at the clinical
+                        // healthy-band bounds (direction-aware).
+                        bandRefLines.map((line) => (
+                          <ReferenceLine
+                            key={`${line.label}-${line.value}`}
+                            y={line.value}
+                            stroke={referenceColor}
+                            strokeDasharray="5 5"
+                            strokeWidth={1}
+                          />
+                        ))
+                      ) : (
                         <>
-                          <ReferenceLine
-                            y={rangeData.min}
-                            stroke={referenceColor}
-                            strokeDasharray="5 5"
-                            strokeWidth={1}
-                          />
-                          <ReferenceLine
-                            y={rangeData.max}
-                            stroke={referenceColor}
-                            strokeDasharray="5 5"
-                            strokeWidth={1}
-                          />
+                          {rangeData?.type === "range" && (
+                            <>
+                              <ReferenceLine
+                                y={rangeData.min}
+                                stroke={referenceColor}
+                                strokeDasharray="5 5"
+                                strokeWidth={1}
+                              />
+                              <ReferenceLine
+                                y={rangeData.max}
+                                stroke={referenceColor}
+                                strokeDasharray="5 5"
+                                strokeWidth={1}
+                              />
+                            </>
+                          )}
+                          {rangeData?.type === "max" && rangeData.max && (
+                            <ReferenceLine
+                              y={rangeData.max}
+                              stroke={referenceColor}
+                              strokeDasharray="5 5"
+                              strokeWidth={1}
+                            />
+                          )}
+                          {rangeData?.type === "min" && rangeData.min && (
+                            <ReferenceLine
+                              y={rangeData.min}
+                              stroke={referenceColor}
+                              strokeDasharray="5 5"
+                              strokeWidth={1}
+                            />
+                          )}
                         </>
-                      )}
-                      {rangeData?.type === "max" && rangeData.max && (
-                        <ReferenceLine
-                          y={rangeData.max}
-                          stroke={referenceColor}
-                          strokeDasharray="5 5"
-                          strokeWidth={1}
-                        />
-                      )}
-                      {rangeData?.type === "min" && rangeData.min && (
-                        <ReferenceLine
-                          y={rangeData.min}
-                          stroke={referenceColor}
-                          strokeDasharray="5 5"
-                          strokeWidth={1}
-                        />
                       )}
                       <Tooltip
                         contentStyle={{
@@ -297,15 +358,24 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
                       <Line
                         type="monotone"
                         dataKey="value"
-                        stroke={lineColor}
+                        stroke={`url(#${gradientId})`}
                         strokeWidth={2}
-                        dot={{
-                          fill: "#fff",
-                          stroke: lineColor,
-                          strokeWidth: 2,
-                          r: 4,
+                        dot={(props: any) => {
+                          const { cx, cy, payload, index } = props
+                          const c = colorForValue(Number.parseFloat(String(payload.value)))
+                          return (
+                            <circle
+                              key={`dot-${index}`}
+                              cx={cx}
+                              cy={cy}
+                              r={4}
+                              fill="#fff"
+                              stroke={c}
+                              strokeWidth={2}
+                            />
+                          )
                         }}
-                        activeDot={{ r: 6, strokeWidth: 2 }}
+                        activeDot={{ r: 6, strokeWidth: 2, stroke: lineColor }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
