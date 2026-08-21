@@ -147,7 +147,7 @@ export default function HealthDashboard() {
 
       setBeneficiaryErrors((prev) => {
         const newMap = new Map(prev)
-        newMap.delete(beneficiary.patientName)
+        newMap.delete(beneficiary.uid)
         return newMap
       })
 
@@ -170,7 +170,7 @@ export default function HealthDashboard() {
             // downstream consumers (trends, health summary).
             setBeneficiaries((prev) =>
               prev.map((b) =>
-                b.rVasBenefId === beneficiary.rVasBenefId
+                b.uid === beneficiary.uid
                   ? { ...b, reportRequests: fetched, dmS_Doc_ID: docIds, reportCount: accurateCount }
                   : b,
               ),
@@ -203,7 +203,7 @@ export default function HealthDashboard() {
           ? fetchTrendsFromApi(trendsMbUserId, trendsVasBenefId, token)
               .then((apiTrends) => {
                 if (apiTrends && apiTrends.length > 0) {
-                  apiTrendsRef.current.set(beneficiary.patientName, apiTrends)
+                  apiTrendsRef.current.set(beneficiary.uid, apiTrends)
                 }
                 return apiTrends
               })
@@ -231,7 +231,7 @@ export default function HealthDashboard() {
         if (allDocIds.length === 0) {
           setBeneficiaryErrors((prev) => {
             const newMap = new Map(prev)
-            newMap.set(beneficiary.patientName, {
+            newMap.set(beneficiary.uid, {
               type: "NO_REPORTS",
               message: "No reports are available",
             })
@@ -240,9 +240,9 @@ export default function HealthDashboard() {
 
           setBeneficiaryReports((prev) => {
             const newMap = new Map(prev)
-            const existingReport = newMap.get(beneficiary.patientName)
+            const existingReport = newMap.get(beneficiary.uid)
             if (existingReport) {
-              newMap.set(beneficiary.patientName, {
+              newMap.set(beneficiary.uid, {
                 ...existingReport,
                 isLoading: false,
               })
@@ -267,7 +267,7 @@ export default function HealthDashboard() {
             hasLoaderBeenShown = true
             setHealthSummaryLoading((prev) => {
               const newMap = new Map(prev)
-              newMap.set(beneficiary.patientName, true)
+              newMap.set(beneficiary.uid, true)
               return newMap
             })
           }
@@ -304,13 +304,13 @@ export default function HealthDashboard() {
             // Merge all loaded reports, but only use effective latest docs for health summary/digital twin
             const mergedReport = attachTrendsToReport(
               mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
-              apiTrendsRef.current.get(beneficiary.patientName),
+              apiTrendsRef.current.get(beneficiary.uid),
             )
             mergedReport.patient_info.relation = beneficiary.relation
 
             setBeneficiaryReports((prev) => {
               const newMap = new Map(prev)
-              newMap.set(beneficiary.patientName, mergedReport)
+              newMap.set(beneficiary.uid, mergedReport)
               return newMap
             })
           }
@@ -323,7 +323,7 @@ export default function HealthDashboard() {
             // Stop loading skeleton once all latest docs are loaded
             setHealthSummaryLoading((prev) => {
               const newMap = new Map(prev)
-              newMap.set(beneficiary.patientName, false)
+              newMap.set(beneficiary.uid, false)
               return newMap
             })
 
@@ -377,7 +377,7 @@ export default function HealthDashboard() {
             if (allLatestProcessed) {
               setHealthSummaryLoading((prev) => {
                 const newMap = new Map(prev)
-                newMap.set(beneficiary.patientName, false)
+                newMap.set(beneficiary.uid, false)
                 return newMap
               })
             }
@@ -386,12 +386,12 @@ export default function HealthDashboard() {
           if (isFailed && loadedReports.length > 0) {
             const mergedReport = attachTrendsToReport(
               mergeReportsKeepLatest(loadedReports, effectiveLatestDocIds, reportDocIdMap),
-              apiTrendsRef.current.get(beneficiary.patientName),
+              apiTrendsRef.current.get(beneficiary.uid),
             )
             mergedReport.patient_info.relation = beneficiary.relation
               setBeneficiaryReports((prev) => {
                 const newMap = new Map(prev)
-                newMap.set(beneficiary.patientName, mergedReport)
+                newMap.set(beneficiary.uid, mergedReport)
                 return newMap
               })
             }
@@ -427,14 +427,14 @@ export default function HealthDashboard() {
           // attachTrendsToReport when the API returned nothing.
           const mergedReport = attachTrendsToReport(
             mergeReportsKeepLatest(successfulReports, effectiveLatestDocIdsFinal, finalReportDocIdMap),
-            apiTrendsRef.current.get(beneficiary.patientName),
+            apiTrendsRef.current.get(beneficiary.uid),
           )
           mergedReport.isLoading = false
         mergedReport.patient_info.relation = beneficiary.relation
 
         setBeneficiaryReports((prev) => {
           const newMap = new Map(prev)
-          newMap.set(beneficiary.patientName, mergedReport)
+          newMap.set(beneficiary.uid, mergedReport)
           return newMap
         })
 
@@ -483,14 +483,14 @@ export default function HealthDashboard() {
         )
         setScoreRequestIds((prev) => {
           const newMap = new Map(prev)
-          newMap.set(beneficiary.patientName, successfulRequestIds)
+          newMap.set(beneficiary.uid, successfulRequestIds)
           return newMap
         })
 
         // Ensure loading is stopped
         setHealthSummaryLoading((prev) => {
           const newMap = new Map(prev)
-          newMap.set(beneficiary.patientName, false)
+          newMap.set(beneficiary.uid, false)
           return newMap
         })
 
@@ -498,7 +498,7 @@ export default function HealthDashboard() {
         // between showing data and showing the empty-report fallback.
         setCompletedBeneficiaries((prev) => {
           const next = new Set(prev)
-          next.add(beneficiary.patientName)
+          next.add(beneficiary.uid)
           return next
         })
 
@@ -542,21 +542,21 @@ export default function HealthDashboard() {
 
         setBeneficiaryErrors((prev) => {
           const newMap = new Map(prev)
-          newMap.set(beneficiary.patientName, errorInfo)
+          newMap.set(beneficiary.uid, errorInfo)
           return newMap
         })
 
         setHealthSummaryLoading((prev) => {
           const newMap = new Map(prev)
-          newMap.set(beneficiary.patientName, false)
+          newMap.set(beneficiary.uid, false)
           return newMap
         })
 
         setBeneficiaryReports((prev) => {
           const newMap = new Map(prev)
-          const existingReport = newMap.get(beneficiary.patientName)
+          const existingReport = newMap.get(beneficiary.uid)
           if (existingReport) {
-            newMap.set(beneficiary.patientName, {
+            newMap.set(beneficiary.uid, {
               ...existingReport,
               isLoading: false,
             })
@@ -569,8 +569,8 @@ export default function HealthDashboard() {
   )
 
   const retryLoadReport = useCallback(
-    (beneficiaryName: string) => {
-      const beneficiary = beneficiaries.find((b) => b.patientName === beneficiaryName)
+    (beneficiaryUid: string) => {
+      const beneficiary = beneficiaries.find((b) => b.uid === beneficiaryUid)
       if (beneficiary && accessToken) {
         trackEvent("health_report_retry_clicked", {
           source: beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member",
@@ -578,7 +578,7 @@ export default function HealthDashboard() {
         })
         setBeneficiaryReports((prev) => {
           const newMap = new Map(prev)
-          newMap.set(beneficiary.patientName, createInitialProfileFromBeneficiary(beneficiary))
+          newMap.set(beneficiary.uid, createInitialProfileFromBeneficiary(beneficiary))
           return newMap
         })
         loadBeneficiaryReport(beneficiary, accessToken)
@@ -689,7 +689,7 @@ export default function HealthDashboard() {
           initialProfile.isLoading = false
           initialProfile.patient_info.age = b.age || 0
           initialProfile.patient_info.gender = b.gender || "Unknown"
-          initialReports.set(b.patientName, initialProfile)
+          initialReports.set(b.uid, initialProfile)
         })
         setBeneficiaryReports(initialReports)
         trackHealthTrendsEvent("Profile Section Loaded")
@@ -717,7 +717,7 @@ export default function HealthDashboard() {
           if (selfBeneficiary.dmS_Doc_ID.length == 0) {
             trackHealthTrendsEvent("No Reports Available")
           }
-          requestedBeneficiariesRef.current.add(selfBeneficiary.patientName)
+          requestedBeneficiariesRef.current.add(selfBeneficiary.uid)
           loadBeneficiaryReport(selfBeneficiary, token)
         }
       } catch (err) {
@@ -750,22 +750,24 @@ export default function HealthDashboard() {
     }
   }, [loadBeneficiaryReport])
 
-  const handleBeneficiaryChange = (name: string) => {
-    const index = beneficiaries.findIndex((b) => b.patientName === name)
+  const handleBeneficiaryChange = (uid: string) => {
+    // Selection is by the beneficiary's stable unique uid — NOT patientName,
+    // which can be shared by two beneficiaries and would select the wrong one.
+    const index = beneficiaries.findIndex((b) => b.uid === uid)
     if (index === -1) return
     setActiveBeneficiaryIndex(index)
 
     // Lazily load this beneficiary's reports the first time they are selected.
     const beneficiary = beneficiaries[index]
-    if (beneficiary && accessToken && !requestedBeneficiariesRef.current.has(beneficiary.patientName)) {
-      requestedBeneficiariesRef.current.add(beneficiary.patientName)
+    if (beneficiary && accessToken && !requestedBeneficiariesRef.current.has(beneficiary.uid)) {
+      requestedBeneficiariesRef.current.add(beneficiary.uid)
       // Show the skeleton right away, then clear the pending flag once the load
       // settles (real data or an error takes over the gating from there).
-      setLazyPending((prev) => new Set(prev).add(beneficiary.patientName))
+      setLazyPending((prev) => new Set(prev).add(beneficiary.uid))
       loadBeneficiaryReport(beneficiary, accessToken).finally(() => {
         setLazyPending((prev) => {
           const next = new Set(prev)
-          next.delete(beneficiary.patientName)
+          next.delete(beneficiary.uid)
           return next
         })
       })
@@ -860,7 +862,7 @@ export default function HealthDashboard() {
   }
 
   const activeBeneficiary = beneficiaries[activeBeneficiaryIndex]
-  const rawProfileData = activeBeneficiary ? beneficiaryReports.get(activeBeneficiary.patientName) : null
+  const rawProfileData = activeBeneficiary ? beneficiaryReports.get(activeBeneficiary.uid) : null
   // Ensure patient_info.gender/age is populated from the active beneficiary
   // (reliable + available early). The report's own patient_info.gender is often
   // "Unknown"/empty, which would make sex-specific bands (e.g. female HDL)
@@ -881,7 +883,7 @@ export default function HealthDashboard() {
         }
       : rawProfileData
   const isReportLoading = currentProfileData?.isLoading ?? true
-  const currentBeneficiaryError = activeBeneficiary ? beneficiaryErrors.get(activeBeneficiary.patientName) : undefined
+  const currentBeneficiaryError = activeBeneficiary ? beneficiaryErrors.get(activeBeneficiary.uid) : undefined
   // A beneficiary "has records" if the profile reported lab report URLs
   // (reportCount) OR we already resolved doc IDs. Driven by the profile count so
   // the loading skeleton shows immediately instead of flashing an empty state.
@@ -890,10 +892,10 @@ export default function HealthDashboard() {
   // True while a lazily-selected beneficiary's reports are still being fetched
   // (their profile report count may be 0 until the reports API responds), so we
   // show the skeleton instead of momentarily flashing the empty state.
-  const isLazyPending = activeBeneficiary ? lazyPending.has(activeBeneficiary.patientName) : false
+  const isLazyPending = activeBeneficiary ? lazyPending.has(activeBeneficiary.uid) : false
 
   const familyMembers = beneficiaries.map((b) => {
-    const report = beneficiaryReports.get(b.patientName)
+    const report = beneficiaryReports.get(b.uid)
     // Prefer the beneficiary's own gender/age (reliable + available early) and
     // fall back to the loaded report. Derive the avatar from that gender so a
     // female never defaults to the male image.
@@ -905,6 +907,7 @@ export default function HealthDashboard() {
     const isDefaultReportImage =
       !reportImage || reportImage.includes("profile-male.svg") || reportImage.includes("profile-female.svg")
     return {
+      uid: b.uid,
       name: b.patientName,
       initial: b.patientName.charAt(0).toUpperCase(),
       age: b.age || report?.patient_info?.age || 0,
@@ -927,7 +930,7 @@ export default function HealthDashboard() {
   // Whether this beneficiary's report load has fully settled (see the
   // completedBeneficiaries state comment). Used to distinguish "still loading"
   // from "loaded but the analysis returned no usable data".
-  const isLoadComplete = activeBeneficiary ? completedBeneficiaries.has(activeBeneficiary.patientName) : false
+  const isLoadComplete = activeBeneficiary ? completedBeneficiaries.has(activeBeneficiary.uid) : false
 
   if (showAllTrends && currentProfileData) {
     return (
@@ -963,7 +966,7 @@ export default function HealthDashboard() {
       <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
         <TopNavigation
           familyMembers={familyMembers}
-          activeFamily={activeBeneficiary?.patientName || ""}
+          activeFamily={activeBeneficiary?.uid || ""}
           setActiveFamily={handleBeneficiaryChange}
         />
         <div className="space-y-6 px-4 py-6">
@@ -1018,7 +1021,7 @@ export default function HealthDashboard() {
               </h3>
               <p className="text-gray-600 text-sm mb-4">{currentBeneficiaryError.message}</p>
               <button
-                onClick={() => retryLoadReport(activeBeneficiary?.patientName || "")}
+                onClick={() => retryLoadReport(activeBeneficiary?.uid || "")}
                 className="rounded-lg bg-[#156ddc] px-5 py-2 text-white text-sm font-medium hover:bg-[#1259b8] transition-colors"
               >
                 Retry
@@ -1051,7 +1054,7 @@ export default function HealthDashboard() {
                   <HealthScoreSection
                     patientData={currentProfileData}
                     vasbenefId={activeBeneficiary?.rVasBenefId}
-                    requestIds={activeBeneficiary ? scoreRequestIds.get(activeBeneficiary.patientName) : undefined}
+                    requestIds={activeBeneficiary ? scoreRequestIds.get(activeBeneficiary.uid) : undefined}
                     accessToken={accessToken}
                     gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
                     age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
