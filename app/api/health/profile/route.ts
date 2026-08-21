@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const HEALTHTRENDS_BACKEND = "https://healthtrends-backend.mbstg.in"
+const HEALTHTRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 20000): Promise<Response> {
   const controller = new AbortController()
