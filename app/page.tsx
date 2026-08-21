@@ -122,7 +122,12 @@ export default function HealthDashboard() {
           hasTrendsEventFiredRef.current = true
           trackHealthTrendsEvent("Trends Graphs Loaded")
         }
-        return { ...report, trend_analysis, lab_reports }
+        // Build the per-report (un-merged) list for the count + Test Reports.
+        // Uses all_reports_raw so same-day reports stay separate; falls back to
+        // the date-merged reports when the raw list isn't present.
+        const rawSeparate = report.all_reports_raw && report.all_reports_raw.length > 0 ? report.all_reports_raw : report.reports || []
+        const { lab_reports: all_reports } = buildTrendsFromReports(rawSeparate)
+        return { ...report, trend_analysis, lab_reports, all_reports }
       } catch {
         // Trends are non-critical; return the report unchanged on failure.
         return report
@@ -948,10 +953,12 @@ export default function HealthDashboard() {
             gender={activeBeneficiary?.gender || "Unknown"}
             initial={activeMember?.initial || "U"}
             reportCount={
-              // Show ONLY the final deduplicated count (lab_reports), matching
-              // the Test Reports section. While reports are still resolving the
-              // count is hidden (see countLoading) so the user never sees the
-              // intermediate filtering values (e.g. 12 -> 5 -> 3).
+              // Show the per-report count (all_reports) so every report with
+              // data is counted separately, even multiple on the same day. This
+              // matches the Test Reports list. While reports are still resolving
+              // the count is hidden (see countLoading) so the user never sees
+              // intermediate filtering values.
+              currentProfileData?.all_reports?.length ||
               currentProfileData?.lab_reports?.length ||
               activeBeneficiary?.reportCount ||
               activeBeneficiary?.dmS_Doc_ID?.length ||

@@ -132,6 +132,21 @@ export interface ApiHealthReport {
   }>
   trend_analysis?: TrendAnalysisItem[]
   lab_reports?: LabReport[]
+  /** Every individual analyzed report that has data, kept SEPARATE (not merged
+   *  by date). Powers the "Health Records" count and the Test Reports list so
+   *  same-day reports each appear on their own. Trends and Summary continue to
+   *  use the date-merged `reports`/`lab_reports`. */
+  all_reports_raw?: Array<{
+    name: string
+    date: string
+    parameters: Record<string, any>
+    fullfilmentDate?: string
+    file?: string
+    contractType?: string | number | null
+  }>
+  /** LabReport[]-shaped, per-report list derived from `all_reports_raw` (each
+   *  report separate). Consumed by the Test Reports section and the count. */
+  all_reports?: LabReport[]
   isLoading?: boolean
   isLoadingMetrics?: boolean
   latestReportDate?: string
@@ -1278,6 +1293,11 @@ export function mergeReportsKeepLatest(
 
   if (reports.length === 1) {
     const only = reports[0]
+    // Keep each report separate for the count / Test Reports (here there is only
+    // one, but the field must always be present for a consistent shape).
+    const onlySeparate = (only.reports || []).filter(
+      (r) => r && r.parameters && Object.keys(r.parameters).length > 0,
+    )
     // Attach a single-entry by-date list so the Health Summary dropdown has a
     // consistent shape even when there is only one report.
     if (only.health_summary && only.health_summary.length > 0) {
@@ -1285,10 +1305,11 @@ export function mergeReportsKeepLatest(
         only.reports?.[0]?.fullfilmentDate || only.reports?.[0]?.date || only.latestReportDate || "unknown"
       return {
         ...only,
+        all_reports_raw: onlySeparate,
         health_summary_by_date: [{ dateKey, health_summary: only.health_summary }],
       }
     }
-    return only
+    return { ...only, all_reports_raw: onlySeparate }
   }
 
   // Find the latest report by comparing fullfilmentDate
@@ -1507,9 +1528,17 @@ export function mergeReportsKeepLatest(
       healthSummaryByDateList.push({ dateKey, health_summary: summary })
     })
 
+  // Every individual report that has data, kept separate (NOT merged by date),
+  // sorted newest first. Drives the "Health Records" count and Test Reports so
+  // same-day reports each appear on their own.
+  const allReportsSeparate = allReportsRaw
+    .slice()
+    .sort((a, b) => parseDate(b.fullfilmentDate || b.date || "").getTime() - parseDate(a.fullfilmentDate || a.date || "").getTime())
+
   return {
     patient_info: latestReport.patient_info,
     reports: latestReportData ? [latestReportData, ...otherReports] : otherReports,
+    all_reports_raw: allReportsSeparate,
     health_summary: mergedHealthSummary,
     health_summary_by_date: healthSummaryByDateList,
     trend_analysis: latestReport.trend_analysis,
