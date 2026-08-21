@@ -264,14 +264,21 @@ export function getParameterBand(
 
   const sex = normalizeGender(gender)
   const bands = filterBandsBySex(def.ranges, sex)
-  for (const band of bands) {
-    const min = band.min ?? Number.NEGATIVE_INFINITY
-    const max = band.max ?? Number.POSITIVE_INFINITY
-    if (value >= min && value <= max) {
-      return { label: band.label, shortLabel: shortBandLabel(band.label), color: band.color }
-    }
-  }
-  return null
+  if (bands.length === 0) return null
+
+  // The band definitions use decimal-truncated boundaries (e.g. HbA1c Normal
+  // ≤ 5.6, Prediabetes ≥ 5.7), which leaves tiny GAPS — a value like 5.64 would
+  // match no band with a strict min/max test. To avoid that, treat the bands as
+  // CONTIGUOUS: order them by their upper bound and pick the first band whose
+  // max covers the value; anything above every bound falls into the last
+  // (open-ended) band. This closes the gaps so every value gets a band.
+  const ordered = bands
+    .map((b) => ({ band: b, max: b.max ?? Number.POSITIVE_INFINITY }))
+    .sort((a, b) => a.max - b.max)
+
+  const matched = ordered.find((o) => value <= o.max) ?? ordered[ordered.length - 1]
+  const band = matched.band
+  return { label: band.label, shortLabel: shortBandLabel(band.label), color: band.color }
 }
 
 // Band colors that represent an in-range / healthy result. Green (#22C55E),

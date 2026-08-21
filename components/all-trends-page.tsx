@@ -283,6 +283,9 @@ export default function AllTrendsPage({
             color: colorForValue(Number.parseFloat(String(d.value))),
           }))
           const lineColor = colorForValue(Number.parseFloat(String(trend.current)))
+          // Badge status from the SAME per-point range check used for coloring,
+          // so the badge stays consistent with the value and chart-point colors.
+          const currentIsNormal = getPointStatus(Number.parseFloat(String(trend.current))) === "normal"
 
           const handleChartClick = (state: any) => {
             const point = state?.activePayload?.[0]?.payload
@@ -346,10 +349,10 @@ export default function AllTrendsPage({
                 ) : (
                   <div
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      trend.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                      currentIsNormal ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
                     }`}
                   >
-                    {trend.status === "normal" ? "Normal" : "Abnormal"}
+                    {currentIsNormal ? "Normal" : "Abnormal"}
                   </div>
                 )}
               </div>

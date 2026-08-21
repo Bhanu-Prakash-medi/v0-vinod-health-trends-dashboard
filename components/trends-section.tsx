@@ -210,6 +210,9 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
             color: colorForValue(Number.parseFloat(String(d.value))),
           }))
           const lineColor = colorForValue(Number.parseFloat(String(trend.current)))
+          // Badge status derived from the SAME range check that colors the value
+          // and chart points, so the badge never contradicts the line color.
+          const currentIsNormal = colorForValue(Number.parseFloat(String(trend.current))) === "#2f9a48"
 
           return (
             <Card key={trend.name} className="border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -256,10 +259,10 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
                 ) : (
                   <div
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      trend.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                      currentIsNormal ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
                     }`}
                   >
-                    {trend.status === "normal" ? "Normal" : "Abnormal"}
+                    {currentIsNormal ? "Normal" : "Abnormal"}
                   </div>
                 )}
               </div>
