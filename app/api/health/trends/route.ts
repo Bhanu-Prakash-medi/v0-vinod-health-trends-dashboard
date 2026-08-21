@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// The trends endpoint on the production Health Trends backend.
-const TRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
+// The trends endpoint on the staging Health Trends backend.
+const TRENDS_BACKEND = "https://healthtrends-backend.mbstg.in"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 30000): Promise<Response> {
   const controller = new AbortController()

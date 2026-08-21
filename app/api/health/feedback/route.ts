@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const BACKEND_URL = "https://healthtrends-backend.medibuddy.in/health/feedback"
+const BACKEND_URL = "https://healthtrends-backend.mbstg.in/health/feedback"
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { RISK_BANDS, getRiskLevel, getBenchmarkForBand } from "@/lib/health-score-benchmarks"
 
-// The overall-risk-score endpoint on the production Health Trends backend.
-const HEALTHSCORE_BACKEND = "https://healthtrends-backend.medibuddy.in"
+// The overall-risk-score endpoint on the staging Health Trends backend.
+const HEALTHSCORE_BACKEND = "https://healthtrends-backend.mbstg.in"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 30000): Promise<Response> {
   const controller = new AbortController()
