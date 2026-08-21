@@ -14,6 +14,10 @@ interface HealthScoreSectionProps {
    *  benchmark. Falls back to patientData.patient_info when not provided. */
   gender?: string
   age?: number
+  /** True while reports are still loading. Reports resolve progressively, but
+   *  the score `requestIds` are only finalized once loading completes — so
+   *  until then we must show the loading state, never the "no score" fallback. */
+  reportsLoading?: boolean
 }
 
 const GAUGE_MAX = 10
@@ -108,6 +112,7 @@ export default function HealthScoreSection({
   accessToken,
   gender: genderProp,
   age: ageProp,
+  reportsLoading,
 }: HealthScoreSectionProps) {
   // Prefer the reliable beneficiary gender/age; fall back to the loaded report.
   // Both feed the population benchmark (Avg marker), so a valid value here is
@@ -191,9 +196,12 @@ export default function HealthScoreSection({
     </div>
   )
 
-  // While the risk score is being fetched, show an explicit loading state so
-  // the section doesn't suddenly pop in "from nowhere" once data arrives.
-  if (riskEnabled && riskLoading && !riskData) {
+  // Show the loading state when EITHER:
+  //  - the risk score is being fetched (SWR in-flight), OR
+  //  - reports are still loading, so the score `requestIds` aren't finalized yet.
+  // The second case prevents the "no score" fallback from flashing during the
+  // window where reports have partially loaded but requestIds isn't set.
+  if ((riskEnabled && riskLoading && !riskData) || (reportsLoading && !hasRisk)) {
     return (
       <section aria-label="Health score, loading" aria-busy="true" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
         {header}

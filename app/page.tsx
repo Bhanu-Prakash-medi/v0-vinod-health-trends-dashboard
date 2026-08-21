@@ -1018,6 +1018,7 @@ export default function HealthDashboard() {
                     accessToken={accessToken}
                     gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
                     age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
+                    reportsLoading={!isLoadComplete}
                   />
                 )}
               <SectionViewTracker section="summary">
