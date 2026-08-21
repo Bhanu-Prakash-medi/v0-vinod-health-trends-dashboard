@@ -120,6 +120,14 @@ export interface ApiHealthReport {
     contractType?: string | number | null
   }>
   health_summary: HealthSummaryItem[]
+  /** Per-report-date health summaries, sorted latest date first. Powers the
+   *  Health Summary date dropdown so users can view historical summaries. The
+   *  first entry corresponds to the same data as `health_summary` (latest). */
+  health_summary_by_date?: Array<{
+    /** Raw date key (fullfilmentDate or date) used for sorting/formatting. */
+    dateKey: string
+    health_summary: HealthSummaryItem[]
+  }>
   trend_analysis?: TrendAnalysisItem[]
   lab_reports?: LabReport[]
   isLoading?: boolean
@@ -1246,7 +1254,18 @@ export function mergeReportsKeepLatest(
   }
 
   if (reports.length === 1) {
-    return reports[0]
+    const only = reports[0]
+    // Attach a single-entry by-date list so the Health Summary dropdown has a
+    // consistent shape even when there is only one report.
+    if (only.health_summary && only.health_summary.length > 0) {
+      const dateKey =
+        only.reports?.[0]?.fullfilmentDate || only.reports?.[0]?.date || only.latestReportDate || "unknown"
+      return {
+        ...only,
+        health_summary_by_date: [{ dateKey, health_summary: only.health_summary }],
+      }
+    }
+    return only
   }
 
   // Find the latest report by comparing fullfilmentDate
@@ -1451,10 +1470,25 @@ export function mergeReportsKeepLatest(
 
   const mergedHealthSummary = Array.from(mergedHealthSummaryMap.values())
 
+  // Build the per-date summary list for the Health Summary date dropdown.
+  // The latest date uses the fully merged summary (matching the default view);
+  // all other dates come straight from healthSummaryByDate. Sorted latest first.
+  const healthSummaryByDateList: Array<{ dateKey: string; health_summary: HealthSummaryItem[] }> = []
+  if (mergedHealthSummary.length > 0) {
+    healthSummaryByDateList.push({ dateKey: latestDateKey, health_summary: mergedHealthSummary })
+  }
+  Array.from(healthSummaryByDate.entries())
+    .filter(([dateKey, summary]) => dateKey !== latestDateKey && summary && summary.length > 0)
+    .sort((a, b) => parseDate(b[0]).getTime() - parseDate(a[0]).getTime())
+    .forEach(([dateKey, summary]) => {
+      healthSummaryByDateList.push({ dateKey, health_summary: summary })
+    })
+
   return {
     patient_info: latestReport.patient_info,
     reports: latestReportData ? [latestReportData, ...otherReports] : otherReports,
     health_summary: mergedHealthSummary,
+    health_summary_by_date: healthSummaryByDateList,
     trend_analysis: latestReport.trend_analysis,
     lab_reports: latestReport.lab_reports,
     isLoading: latestReport.isLoading,

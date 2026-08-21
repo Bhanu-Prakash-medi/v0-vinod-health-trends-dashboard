@@ -18,10 +18,18 @@ import {
   Stethoscope,
   Info,
   ChevronRight,
+  Calendar,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
 import { paramHasRange } from "@/lib/health-utils"
 import { getParameterBand, getParameterNormalRange } from "@/lib/parameter-bands"
@@ -119,7 +127,54 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
   const [selectedCategory, setSelectedCategory] = useState<{ name: string; parameters: any[] } | null>(null)
   const latestDate = patientData?.latestReportDate || patientData?.reports?.[0]?.date || ""
 
-  const healthSummaryFromApi = patientData?.health_summary || []
+  // Per-report-date summaries (latest first). Powers the date dropdown so users
+  // can review historical health summaries. Falls back to the single latest
+  // summary when the by-date list isn't available.
+  const rawSummariesByDate: Array<{ dateKey: string; health_summary: any[] }> =
+    patientData?.health_summary_by_date && patientData.health_summary_by_date.length > 0
+      ? patientData.health_summary_by_date
+      : []
+
+  // Collapse entries that fall on the SAME calendar day (reports taken the same
+  // day can arrive with slightly different timestamps) so each date appears
+  // once in the dropdown. Categories from same-day reports are merged by name.
+  const summariesByDate: Array<{ dateKey: string; health_summary: any[] }> = (() => {
+    const byDay = new Map<string, { dateKey: string; health_summary: any[] }>()
+    for (const entry of rawSummariesByDate) {
+      const parsed = new Date(entry.dateKey)
+      const dayKey = isNaN(parsed.getTime()) ? entry.dateKey : parsed.toDateString()
+      const existing = byDay.get(dayKey)
+      if (!existing) {
+        byDay.set(dayKey, { dateKey: entry.dateKey, health_summary: [...(entry.health_summary || [])] })
+        continue
+      }
+      // Merge categories: append categories not already present for this day.
+      for (const item of entry.health_summary || []) {
+        const categoryName = (item.category || item.name || "").toLowerCase()
+        const already = existing.health_summary.some(
+          (e: any) => (e.category || e.name || "").toLowerCase() === categoryName,
+        )
+        if (!already) existing.health_summary.push(item)
+      }
+    }
+    return Array.from(byDay.values())
+  })()
+
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0)
+
+  // Reset to the latest date whenever the beneficiary or the set of dates
+  // changes, so a stale index never points past the new list.
+  useEffect(() => {
+    setSelectedDateIndex(0)
+  }, [vasbenefId, summariesByDate.length])
+
+  const safeDateIndex = Math.min(selectedDateIndex, Math.max(0, summariesByDate.length - 1))
+  const activeDateKey = summariesByDate[safeDateIndex]?.dateKey || latestDate
+
+  // The summary content for the selected date; when no by-date list exists we
+  // use the default latest summary from the API.
+  const healthSummaryFromApi =
+    summariesByDate.length > 0 ? summariesByDate[safeDateIndex]?.health_summary || [] : patientData?.health_summary || []
 
   // Parameter name normalization (same as Digital Twin)
   const normalizeParamName = (name: string): string => {
@@ -247,7 +302,9 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
               <p className="flex items-start gap-1 text-xs text-[#9dabbd]">
                 <Info className="mt-0.5 h-3 w-3 shrink-0 text-[#9dabbd]" />
                 <span className="text-pretty">
-                  Based on your latest health report{formatSummaryDate(latestDate) ? ` (${formatSummaryDate(latestDate)})` : ""}
+                  {safeDateIndex === 0
+                    ? `Based on your latest health report${formatSummaryDate(activeDateKey) ? ` (${formatSummaryDate(activeDateKey)})` : ""}`
+                    : `Showing health report from ${formatSummaryDate(activeDateKey)}`}
                 </span>
               </p>
             </div>
@@ -260,6 +317,35 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
+
+        {/* Date selector - lets users review historical health summaries */}
+        {summariesByDate.length > 1 && (
+          <div className="mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 shrink-0 text-[#9dabbd]" aria-hidden="true" />
+            <label htmlFor="health-summary-date" className="sr-only">
+              Select report date
+            </label>
+            <Select
+              value={String(safeDateIndex)}
+              onValueChange={(v) => setSelectedDateIndex(Number(v))}
+            >
+              <SelectTrigger
+                id="health-summary-date"
+                className="h-9 w-full max-w-[240px] border-[#e3e8ee] text-sm text-[#2e3742]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {summariesByDate.map((entry, index) => (
+                  <SelectItem key={`${entry.dateKey}-${index}`} value={String(index)}>
+                    {formatSummaryDate(entry.dateKey) || entry.dateKey}
+                    {index === 0 ? " (Latest)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Cards Grid - from API health_summary */}
         <div className="grid grid-cols-2 py-0 gap-4">
