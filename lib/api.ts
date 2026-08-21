@@ -12,7 +12,9 @@ export interface ReportRequest {
   requestId: string
   date: string
   file?: string
-}
+  /** Contract type for this report (from the reports listing endpoint). */
+  contractType?: string | null
+  }
 
 export interface Beneficiary {
   patientName: string
@@ -498,15 +500,36 @@ function parseReportRequests(raw: any): ReportRequest[] {
   const seen = new Set<string>()
   const out: ReportRequest[] = []
   for (const r of raw) {
-    const idRaw = getValueCaseInsensitive(r, "requestId") ?? getValueCaseInsensitive(r, "requestid")
+    // The reports listing endpoint (/beneficiary/{id}/reports) keys each report
+    // by `caseId` (which is the requestId used by the report-details API), while
+    // the profile endpoint uses `requestId`. Accept either so ALL reports are
+    // picked up — not just the profile subset.
+    const idRaw =
+      getValueCaseInsensitive(r, "requestId") ??
+      getValueCaseInsensitive(r, "requestid") ??
+      getValueCaseInsensitive(r, "caseId") ??
+      getValueCaseInsensitive(r, "caseid")
     if (idRaw === undefined || idRaw === null || idRaw === "") continue
     const requestId = String(idRaw)
     if (seen.has(requestId)) continue
     seen.add(requestId)
+    // Date alias: profile uses `date`; the reports listing uses
+    // `actualAppointmentDate`. Fall back through both.
+    const date =
+      getValueCaseInsensitive(r, "date") ||
+      getValueCaseInsensitive(r, "actualAppointmentDate") ||
+      getValueCaseInsensitive(r, "actualappointmentdate") ||
+      ""
+    const contractTypeRaw =
+      getValueCaseInsensitive(r, "contractType") ?? getValueCaseInsensitive(r, "contract_type")
     out.push({
       requestId,
-      date: getValueCaseInsensitive(r, "date") || "",
+      date,
       file: getValueCaseInsensitive(r, "file") || "",
+      contractType:
+        contractTypeRaw === undefined || contractTypeRaw === null || contractTypeRaw === ""
+          ? null
+          : String(contractTypeRaw),
     })
   }
   return out

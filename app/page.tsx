@@ -214,6 +214,11 @@ export default function HealthDashboard() {
         )
         const latestDocIds = sortedRequests.length > 0 ? [sortedRequests[0].requestId] : []
         const requestDateById = new Map(reportRequests.map((r) => [r.requestId, r.date]))
+        // Authoritative contractType per requestId, from the reports listing
+        // endpoint. Used to gate which reports feed the Health Risk Score.
+        const requestContractById = new Map(
+          reportRequests.map((r) => [r.requestId, r.contractType ?? null]),
+        )
         // Original report PDF URL per requestId (from the beneficiary reports API),
         // used to offer an "download original report" action in Test Reports.
         const requestFileById = new Map(reportRequests.map((r) => [r.requestId, r.file || ""]))
@@ -438,7 +443,12 @@ export default function HealthDashboard() {
             (r): r is { status: "fulfilled"; value: ApiHealthReport; docId: string } =>
               r.status === "fulfilled" && !failedDocIds.has(r.docId),
           )
-          .filter((r) => String(r.value.contractType ?? "") === HEALTH_SCORE_CONTRACT_TYPE)
+          .filter((r) => {
+            // Prefer the reports-listing contractType (authoritative per
+            // requestId); fall back to the report-details response value.
+            const contract = requestContractById.get(r.docId) ?? r.value.contractType ?? ""
+            return String(contract) === HEALTH_SCORE_CONTRACT_TYPE
+          })
           .map((r) => r.docId)
           .sort((a, b) => {
             const da = new Date(requestDateById.get(a) || 0).getTime()
