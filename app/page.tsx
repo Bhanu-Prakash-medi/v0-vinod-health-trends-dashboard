@@ -438,29 +438,49 @@ export default function HealthDashboard() {
           return newMap
         })
 
-        // Collect the requestIds sent to the Health Risk Score API. Only reports
-        // that (a) returned a non-null report (fulfilled and not failed) AND
-        // (b) have contractType 9716 qualify — the score is computed exclusively
-        // from that contract type. Sorted most-recent first and capped at
-        // MAX_HEALTH_SCORE_REQUEST_IDS (the API rejects >15 ids).
-        const successfulRequestIds = results
+        // Collect the requestIds sent to the Health Risk Score API. The backend
+        // is the authority on scoreability: it returns `found: true` only for
+        // reports it can score (empirically, the comprehensive AHC reports), and
+        // it picks the latest scored report. So instead of hard-filtering to a
+        // single contractType client-side — which silently hides a valid score
+        // whenever a beneficiary's scoreable report has a different or missing
+        // contractType — we send a PRIORITIZED candidate list and let the backend
+        // decide:
+        //   1. contractType 9716 reports first (the known AHC type — guarantees
+        //      no regression for members who already get a score today), then
+        //   2. every other report with data, as a fallback so the backend can
+        //      still find a score for members whose scoreable report isn't tagged
+        //      9716 (or whose contractType metadata is absent).
+        // Each group is sorted most-recent first, then the combined list is
+        // capped at MAX_HEALTH_SCORE_REQUEST_IDS (the API rejects >15 ids).
+        const byDateDesc = (aDoc: string, bDoc: string) => {
+          const da = new Date(requestDateById.get(aDoc) || 0).getTime()
+          const db = new Date(requestDateById.get(bDoc) || 0).getTime()
+          return db - da
+        }
+        const successfulDocIds = results
           .filter(
             (r): r is { status: "fulfilled"; value: ApiHealthReport; docId: string } =>
               r.status === "fulfilled" && !failedDocIds.has(r.docId),
           )
-          .filter((r) => {
+          .map((r) => ({
+            docId: r.docId,
             // Prefer the reports-listing contractType (authoritative per
             // requestId); fall back to the report-details response value.
-            const contract = requestContractById.get(r.docId) ?? r.value.contractType ?? ""
-            return String(contract) === HEALTH_SCORE_CONTRACT_TYPE
-          })
+            contract: String(requestContractById.get(r.docId) ?? r.value.contractType ?? ""),
+          }))
+        const preferredDocIds = successfulDocIds
+          .filter((r) => r.contract === HEALTH_SCORE_CONTRACT_TYPE)
           .map((r) => r.docId)
-          .sort((a, b) => {
-            const da = new Date(requestDateById.get(a) || 0).getTime()
-            const db = new Date(requestDateById.get(b) || 0).getTime()
-            return db - da
-          })
-          .slice(0, MAX_HEALTH_SCORE_REQUEST_IDS)
+          .sort(byDateDesc)
+        const fallbackDocIds = successfulDocIds
+          .filter((r) => r.contract !== HEALTH_SCORE_CONTRACT_TYPE)
+          .map((r) => r.docId)
+          .sort(byDateDesc)
+        const successfulRequestIds = [...preferredDocIds, ...fallbackDocIds].slice(
+          0,
+          MAX_HEALTH_SCORE_REQUEST_IDS,
+        )
         setScoreRequestIds((prev) => {
           const newMap = new Map(prev)
           newMap.set(beneficiary.patientName, successfulRequestIds)
