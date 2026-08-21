@@ -12,7 +12,9 @@ export interface ReportRequest {
   requestId: string
   date: string
   file?: string
-}
+  /** Contract type for this report (from the reports listing endpoint). */
+  contractType?: string | null
+  }
 
 export interface Beneficiary {
   patientName: string
@@ -115,13 +117,43 @@ export interface ApiHealthReport {
     fullfilmentDate?: string
     /** Original report PDF URL from the beneficiary reports API (for download). */
     file?: string
+    /** Contract type of this report (from /health/reports). Used to gate which
+     *  reports feed the Health Risk Score (only contractType 9716). */
+    contractType?: string | number | null
   }>
   health_summary: HealthSummaryItem[]
+  /** Per-report-date health summaries, sorted latest date first. Powers the
+   *  Health Summary date dropdown so users can view historical summaries. The
+   *  first entry corresponds to the same data as `health_summary` (latest). */
+  health_summary_by_date?: Array<{
+    /** Raw date key (fullfilmentDate or date) used for sorting/formatting. */
+    dateKey: string
+    health_summary: HealthSummaryItem[]
+  }>
   trend_analysis?: TrendAnalysisItem[]
   lab_reports?: LabReport[]
+  /** Every individual analyzed report that has data, kept SEPARATE (not merged
+   *  by date). Powers the "Health Records" count and the Test Reports list so
+   *  same-day reports each appear on their own. Trends and Summary continue to
+   *  use the date-merged `reports`/`lab_reports`. */
+  all_reports_raw?: Array<{
+    name: string
+    date: string
+    parameters: Record<string, any>
+    fullfilmentDate?: string
+    file?: string
+    contractType?: string | number | null
+  }>
+  /** LabReport[]-shaped, per-report list derived from `all_reports_raw` (each
+   *  report separate). Consumed by the Test Reports section and the count. */
+  all_reports?: LabReport[]
   isLoading?: boolean
   isLoadingMetrics?: boolean
   latestReportDate?: string
+  /** Contract type for the single analyzed report returned by /health/reports.
+   *  Only reports with contractType 9716 are sent to the Health Risk Score API;
+   *  summary and trends ignore this field. */
+  contractType?: string | number | null
 }
 
 export function getAccessTokenFromCookie(): string | null {
@@ -483,15 +515,36 @@ function parseReportRequests(raw: any): ReportRequest[] {
   const seen = new Set<string>()
   const out: ReportRequest[] = []
   for (const r of raw) {
-    const idRaw = getValueCaseInsensitive(r, "requestId") ?? getValueCaseInsensitive(r, "requestid")
+    // The reports listing endpoint (/beneficiary/{id}/reports) keys each report
+    // by `caseId` (which is the requestId used by the report-details API), while
+    // the profile endpoint uses `requestId`. Accept either so ALL reports are
+    // picked up — not just the profile subset.
+    const idRaw =
+      getValueCaseInsensitive(r, "requestId") ??
+      getValueCaseInsensitive(r, "requestid") ??
+      getValueCaseInsensitive(r, "caseId") ??
+      getValueCaseInsensitive(r, "caseid")
     if (idRaw === undefined || idRaw === null || idRaw === "") continue
     const requestId = String(idRaw)
     if (seen.has(requestId)) continue
     seen.add(requestId)
+    // Date alias: profile uses `date`; the reports listing uses
+    // `actualAppointmentDate`. Fall back through both.
+    const date =
+      getValueCaseInsensitive(r, "date") ||
+      getValueCaseInsensitive(r, "actualAppointmentDate") ||
+      getValueCaseInsensitive(r, "actualappointmentdate") ||
+      ""
+    const contractTypeRaw =
+      getValueCaseInsensitive(r, "contractType") ?? getValueCaseInsensitive(r, "contract_type")
     out.push({
       requestId,
-      date: getValueCaseInsensitive(r, "date") || "",
+      date,
       file: getValueCaseInsensitive(r, "file") || "",
+      contractType:
+        contractTypeRaw === undefined || contractTypeRaw === null || contractTypeRaw === ""
+          ? null
+          : String(contractTypeRaw),
     })
   }
   return out
@@ -735,6 +788,22 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
   const parametersArray = getValueCaseInsensitive(data, "parameters") || []
   const healthSummaryRaw = getValueCaseInsensitive(data, "health_summary") || []
 
+  // Contract type of this report. Looked up across the top-level response and
+  // report_data with a few key aliases (the backend shape isn't strictly typed
+  // here). Used downstream to gate which reports feed the Health Risk Score.
+  const contractTypeRaw =
+    getValueCaseInsensitive(data, "contractType") ??
+    getValueCaseInsensitive(data, "contract_type") ??
+    getValueCaseInsensitive(data, "contractId") ??
+    getValueCaseInsensitive(reportData, "contractType") ??
+    getValueCaseInsensitive(reportData, "contract_type") ??
+    getValueCaseInsensitive(reportData, "contractId") ??
+    null
+  const contractType =
+    contractTypeRaw === null || contractTypeRaw === undefined || contractTypeRaw === ""
+      ? null
+      : String(contractTypeRaw)
+
   const patientName =
     getValueCaseInsensitive(reportData, "patientName") ||
     getValueCaseInsensitive(patientCard, "name") ||
@@ -841,10 +910,12 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
         parameters: transformedParameters,
         fullfilmentDate,
         file: fileUrl || "",
+        contractType,
       },
     ],
     health_summary: healthSummary,
     latestReportDate: fullfilmentDate,
+    contractType,
   }
 }
 
@@ -1221,7 +1292,24 @@ export function mergeReportsKeepLatest(
   }
 
   if (reports.length === 1) {
-    return reports[0]
+    const only = reports[0]
+    // Keep each report separate for the count / Test Reports (here there is only
+    // one, but the field must always be present for a consistent shape).
+    const onlySeparate = (only.reports || []).filter(
+      (r) => r && r.parameters && Object.keys(r.parameters).length > 0,
+    )
+    // Attach a single-entry by-date list so the Health Summary dropdown has a
+    // consistent shape even when there is only one report.
+    if (only.health_summary && only.health_summary.length > 0) {
+      const dateKey =
+        only.reports?.[0]?.fullfilmentDate || only.reports?.[0]?.date || only.latestReportDate || "unknown"
+      return {
+        ...only,
+        all_reports_raw: onlySeparate,
+        health_summary_by_date: [{ dateKey, health_summary: only.health_summary }],
+      }
+    }
+    return { ...only, all_reports_raw: onlySeparate }
   }
 
   // Find the latest report by comparing fullfilmentDate
@@ -1426,10 +1514,33 @@ export function mergeReportsKeepLatest(
 
   const mergedHealthSummary = Array.from(mergedHealthSummaryMap.values())
 
+  // Build the per-date summary list for the Health Summary date dropdown.
+  // The latest date uses the fully merged summary (matching the default view);
+  // all other dates come straight from healthSummaryByDate. Sorted latest first.
+  const healthSummaryByDateList: Array<{ dateKey: string; health_summary: HealthSummaryItem[] }> = []
+  if (mergedHealthSummary.length > 0) {
+    healthSummaryByDateList.push({ dateKey: latestDateKey, health_summary: mergedHealthSummary })
+  }
+  Array.from(healthSummaryByDate.entries())
+    .filter(([dateKey, summary]) => dateKey !== latestDateKey && summary && summary.length > 0)
+    .sort((a, b) => parseDate(b[0]).getTime() - parseDate(a[0]).getTime())
+    .forEach(([dateKey, summary]) => {
+      healthSummaryByDateList.push({ dateKey, health_summary: summary })
+    })
+
+  // Every individual report that has data, kept separate (NOT merged by date),
+  // sorted newest first. Drives the "Health Records" count and Test Reports so
+  // same-day reports each appear on their own.
+  const allReportsSeparate = allReportsRaw
+    .slice()
+    .sort((a, b) => parseDate(b.fullfilmentDate || b.date || "").getTime() - parseDate(a.fullfilmentDate || a.date || "").getTime())
+
   return {
     patient_info: latestReport.patient_info,
     reports: latestReportData ? [latestReportData, ...otherReports] : otherReports,
+    all_reports_raw: allReportsSeparate,
     health_summary: mergedHealthSummary,
+    health_summary_by_date: healthSummaryByDateList,
     trend_analysis: latestReport.trend_analysis,
     lab_reports: latestReport.lab_reports,
     isLoading: latestReport.isLoading,

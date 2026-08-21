@@ -202,6 +202,49 @@ export function getParameterNormalRange(
   return formatBandRange(healthy)
 }
 
+// Reference lines to draw on a trend chart for a custom-band parameter, taken
+// from the healthy (green) band's clinical bounds instead of the lab report's
+// raw range string. Direction-aware:
+//   - higher_is_worse: draw the healthy band's lower bound (if any) AND upper
+//     limit, since going below or above the healthy band is meaningful.
+//   - lower_is_worse (e.g. HDL): draw ONLY the lower bound — a value above the
+//     healthy band is protective, not "out of range", so no upper line.
+// Returns null for non-band parameters (caller keeps parseRange behavior).
+export function getParameterReferenceLines(
+  name: string | null | undefined,
+  gender?: string | null,
+): { value: number; label: string }[] | null {
+  const def = matchDef(name)
+  if (!def) return null
+  const sex = normalizeGender(gender)
+  const bands = filterBandsBySex(def.ranges, sex)
+  const healthy =
+    bands.find((b) => /^(normal|desirable|optimal)$/i.test(b.label.trim())) ??
+    bands.find((b) => b.color === "#22C55E")
+  if (!healthy) return null
+
+  const lines: { value: number; label: string }[] = []
+  if (healthy.min != null) lines.push({ value: healthy.min, label: "Min" })
+  if (def.direction === "higher_is_worse" && healthy.max != null) {
+    lines.push({ value: healthy.max, label: "Normal Limit" })
+  }
+  return lines
+}
+
+// Resolves the color for a single value on a custom-band parameter's trend line.
+// Returns the matched band color, or a neutral gray when the value falls outside
+// all defined bands. Returns null for non-band parameters.
+export function getParameterPointColor(
+  name: string | null | undefined,
+  value: number | null | undefined,
+  gender?: string | null,
+): string | null {
+  const def = matchDef(name)
+  if (!def) return null
+  const band = getParameterBand(name, value, gender)
+  return band ? band.color : "#9dabbd"
+}
+
 export interface MatchedBand {
   label: string
   shortLabel: string
@@ -221,14 +264,21 @@ export function getParameterBand(
 
   const sex = normalizeGender(gender)
   const bands = filterBandsBySex(def.ranges, sex)
-  for (const band of bands) {
-    const min = band.min ?? Number.NEGATIVE_INFINITY
-    const max = band.max ?? Number.POSITIVE_INFINITY
-    if (value >= min && value <= max) {
-      return { label: band.label, shortLabel: shortBandLabel(band.label), color: band.color }
-    }
-  }
-  return null
+  if (bands.length === 0) return null
+
+  // The band definitions use decimal-truncated boundaries (e.g. HbA1c Normal
+  // ≤ 5.6, Prediabetes ≥ 5.7), which leaves tiny GAPS — a value like 5.64 would
+  // match no band with a strict min/max test. To avoid that, treat the bands as
+  // CONTIGUOUS: order them by their upper bound and pick the first band whose
+  // max covers the value; anything above every bound falls into the last
+  // (open-ended) band. This closes the gaps so every value gets a band.
+  const ordered = bands
+    .map((b) => ({ band: b, max: b.max ?? Number.POSITIVE_INFINITY }))
+    .sort((a, b) => a.max - b.max)
+
+  const matched = ordered.find((o) => value <= o.max) ?? ordered[ordered.length - 1]
+  const band = matched.band
+  return { label: band.label, shortLabel: shortBandLabel(band.label), color: band.color }
 }
 
 // Band colors that represent an in-range / healthy result. Green (#22C55E),

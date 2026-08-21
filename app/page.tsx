@@ -58,6 +58,10 @@ interface BeneficiaryError {
 // The Health Risk Score API accepts at most 15 requestIds per call.
 const MAX_HEALTH_SCORE_REQUEST_IDS = 15
 
+// Only reports with this contract type feed the Health Risk Score. The summary
+// and trends deliberately ignore contract type and use every available report.
+const HEALTH_SCORE_CONTRACT_TYPE = "9716"
+
 export default function HealthDashboard() {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
   const [activeBeneficiaryIndex, setActiveBeneficiaryIndex] = useState(0)
@@ -118,7 +122,12 @@ export default function HealthDashboard() {
           hasTrendsEventFiredRef.current = true
           trackHealthTrendsEvent("Trends Graphs Loaded")
         }
-        return { ...report, trend_analysis, lab_reports }
+        // Build the per-report (un-merged) list for the count + Test Reports.
+        // Uses all_reports_raw so same-day reports stay separate; falls back to
+        // the date-merged reports when the raw list isn't present.
+        const rawSeparate = report.all_reports_raw && report.all_reports_raw.length > 0 ? report.all_reports_raw : report.reports || []
+        const { lab_reports: all_reports } = buildTrendsFromReports(rawSeparate)
+        return { ...report, trend_analysis, lab_reports, all_reports }
       } catch {
         // Trends are non-critical; return the report unchanged on failure.
         return report
@@ -210,6 +219,11 @@ export default function HealthDashboard() {
         )
         const latestDocIds = sortedRequests.length > 0 ? [sortedRequests[0].requestId] : []
         const requestDateById = new Map(reportRequests.map((r) => [r.requestId, r.date]))
+        // Authoritative contractType per requestId, from the reports listing
+        // endpoint. Used to gate which reports feed the Health Risk Score.
+        const requestContractById = new Map(
+          reportRequests.map((r) => [r.requestId, r.contractType ?? null]),
+        )
         // Original report PDF URL per requestId (from the beneficiary reports API),
         // used to offer an "download original report" action in Test Reports.
         const requestFileById = new Map(reportRequests.map((r) => [r.requestId, r.file || ""]))
@@ -424,12 +438,22 @@ export default function HealthDashboard() {
           return newMap
         })
 
-        // Collect only the requestIds whose report-details API returned a
-        // non-null report (fulfilled and not marked failed). These — most
-        // recent first, capped at MAX_HEALTH_SCORE_REQUEST_IDS — are the only
-        // ids sent to the Health Risk Score API (which rejects >15 ids).
+        // Collect the requestIds sent to the Health Risk Score API. Only reports
+        // that (a) returned a non-null report (fulfilled and not failed) AND
+        // (b) have contractType 9716 qualify — the score is computed exclusively
+        // from that contract type. Sorted most-recent first and capped at
+        // MAX_HEALTH_SCORE_REQUEST_IDS (the API rejects >15 ids).
         const successfulRequestIds = results
-          .filter((r) => r.status === "fulfilled" && !failedDocIds.has(r.docId))
+          .filter(
+            (r): r is { status: "fulfilled"; value: ApiHealthReport; docId: string } =>
+              r.status === "fulfilled" && !failedDocIds.has(r.docId),
+          )
+          .filter((r) => {
+            // Prefer the reports-listing contractType (authoritative per
+            // requestId); fall back to the report-details response value.
+            const contract = requestContractById.get(r.docId) ?? r.value.contractType ?? ""
+            return String(contract) === HEALTH_SCORE_CONTRACT_TYPE
+          })
           .map((r) => r.docId)
           .sort((a, b) => {
             const da = new Date(requestDateById.get(a) || 0).getTime()
@@ -929,10 +953,12 @@ export default function HealthDashboard() {
             gender={activeBeneficiary?.gender || "Unknown"}
             initial={activeMember?.initial || "U"}
             reportCount={
-              // Show ONLY the final deduplicated count (lab_reports), matching
-              // the Test Reports section. While reports are still resolving the
-              // count is hidden (see countLoading) so the user never sees the
-              // intermediate filtering values (e.g. 12 -> 5 -> 3).
+              // Show the per-report count (all_reports) so every report with
+              // data is counted separately, even multiple on the same day. This
+              // matches the Test Reports list. While reports are still resolving
+              // the count is hidden (see countLoading) so the user never sees
+              // intermediate filtering values.
+              currentProfileData?.all_reports?.length ||
               currentProfileData?.lab_reports?.length ||
               activeBeneficiary?.reportCount ||
               activeBeneficiary?.dmS_Doc_ID?.length ||
@@ -1009,6 +1035,7 @@ export default function HealthDashboard() {
                     accessToken={accessToken}
                     gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
                     age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
+                    reportsLoading={!isLoadComplete}
                   />
                 )}
               <SectionViewTracker section="summary">

@@ -14,6 +14,10 @@ interface HealthScoreSectionProps {
    *  benchmark. Falls back to patientData.patient_info when not provided. */
   gender?: string
   age?: number
+  /** True while reports are still loading. Reports resolve progressively, but
+   *  the score `requestIds` are only finalized once loading completes — so
+   *  until then we must show the loading state, never the "no score" fallback. */
+  reportsLoading?: boolean
 }
 
 const GAUGE_MAX = 10
@@ -108,6 +112,7 @@ export default function HealthScoreSection({
   accessToken,
   gender: genderProp,
   age: ageProp,
+  reportsLoading,
 }: HealthScoreSectionProps) {
   // Prefer the reliable beneficiary gender/age; fall back to the loaded report.
   // Both feed the population benchmark (Avg marker), so a valid value here is
@@ -163,37 +168,43 @@ export default function HealthScoreSection({
   }, [activeScore, view])
 
   const header = (
-    <div className="mb-3 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
-        <Activity className="h-5 w-5 text-[#156ddc]" />
-        <h2 className="text-base font-semibold text-[#2e3742]">Health Risk Score</h2>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")}
-          aria-label="Watch how your Health Risk Score is calculated"
-          className="inline-flex items-center gap-1 rounded-full border border-[#f2d4d4] bg-[#fdf2f2] px-2.5 py-1 text-xs font-medium text-[#d1495b] transition-colors hover:bg-[#fbe8e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d1495b]/30"
-        >
-          <Youtube className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">How it&apos;s calculated</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => openExternalUrl("https://healthscorelabs-69g616at8-medi-buddy-product-tech.vercel.app")}
-          aria-label="Learn more on MediBuddy"
-          className="inline-flex items-center gap-1 rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-2.5 py-1 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
-        >
-          <Globe className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Learn more</span>
-        </button>
-      </div>
+    <div className="mb-3 flex items-center gap-2">
+      <Activity className="h-5 w-5 shrink-0 text-[#156ddc]" />
+      <h2 className="text-base font-semibold text-[#2e3742]">Health Risk Score</h2>
     </div>
   )
 
-  // While the risk score is being fetched, show an explicit loading state so
-  // the section doesn't suddenly pop in "from nowhere" once data arrives.
-  if (riskEnabled && riskLoading && !riskData) {
+  // Action pills — rendered on their own full-width row beneath the benchmark
+  // card so the labels always fit on one line (they used to crowd the header).
+  const actionPills = (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")}
+        aria-label="Watch how your Health Risk Score is calculated"
+        className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[#f2d4d4] bg-[#fdf2f2] px-3 py-1.5 text-xs font-medium text-[#d1495b] transition-colors hover:bg-[#fbe8e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d1495b]/30"
+      >
+        <Youtube className="h-3.5 w-3.5 shrink-0" />
+        How it&apos;s calculated
+      </button>
+      <button
+        type="button"
+        onClick={() => openExternalUrl("https://healthscorelabs-69g616at8-medi-buddy-product-tech.vercel.app")}
+        aria-label="Learn more on MediBuddy"
+        className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-3 py-1.5 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+      >
+        <Globe className="h-3.5 w-3.5 shrink-0" />
+        Learn more
+      </button>
+    </div>
+  )
+
+  // Show the loading state when EITHER:
+  //  - the risk score is being fetched (SWR in-flight), OR
+  //  - reports are still loading, so the score `requestIds` aren't finalized yet.
+  // The second case prevents the "no score" fallback from flashing during the
+  // window where reports have partially loaded but requestIds isn't set.
+  if ((riskEnabled && riskLoading && !riskData) || (reportsLoading && !hasRisk)) {
     return (
       <section aria-label="Health score, loading" aria-busy="true" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
         {header}
@@ -241,10 +252,10 @@ export default function HealthScoreSection({
         <div className="mb-4 flex items-center justify-between gap-2">
           {reportDate ? (
             <p className="text-xs text-[#9dabbd]">
-              Based on your latest health report <span className="font-medium text-[#4d5c6f]">({reportDate})</span>
+              Based on the last AHC report <span className="font-medium text-[#4d5c6f]">({reportDate})</span>
             </p>
           ) : (
-            <p className="text-xs text-[#9dabbd]">Based on your latest health report</p>
+            <p className="text-xs text-[#9dabbd]">Based on the last AHC report</p>
           )}
           <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#f0f3f5] p-0.5" role="tablist" aria-label="Chart style">
             {VIEW_OPTIONS.map(({ id, label: vLabel, Icon }) => {
@@ -513,6 +524,9 @@ export default function HealthScoreSection({
           )}
           <p className="mt-1.5 pl-6 text-[10px] text-[#9dabbd]">Lower score = lower health risk (0 best, 10 highest risk).</p>
         </div>
+
+        {/* Action pills sit here, after the benchmark card, with room to breathe. */}
+        {actionPills}
       </section>
     )
   }

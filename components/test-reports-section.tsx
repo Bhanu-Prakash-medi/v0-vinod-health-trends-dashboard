@@ -119,7 +119,12 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     return () => window.removeEventListener("scroll-to-latest-report", handleScrollToLatest)
   }, [])
 
-  const labReportsFromApi = patientData?.lab_reports || []
+  // Prefer all_reports (each report separate, incl. same-day) for the list;
+  // fall back to the date-merged lab_reports when it isn't available.
+  const labReportsFromApi =
+    patientData?.all_reports && patientData.all_reports.length > 0
+      ? patientData.all_reports
+      : patientData?.lab_reports || []
   const healthSummaryFromApi = patientData?.health_summary || []
 
   // Helper function to get all parameters from health_summary

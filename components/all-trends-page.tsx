@@ -10,7 +10,13 @@ import { getTrendData, hasValidRange } from "@/lib/health-utils"
 import type { ApiHealthReport } from "@/lib/api"
 import { getParameterPriority } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import { getParameterBand } from "@/lib/parameter-bands"
+import {
+  getParameterBand,
+  getParameterBandInfo,
+  getParameterReferenceLines,
+  getParameterNormalRange,
+  getParameterPointColor,
+} from "@/lib/parameter-bands"
 
 // Helper function to parse dates from various formats
 const parseDate = (dateStr: string): Date => {
@@ -233,14 +239,16 @@ export default function AllTrendsPage({
           const isWorsening = trend.change > 0 && trend.status === "abnormal"
           const isStable = Math.abs(trend.changePercent) < 5
           const rangeData = parseRange(trend.range)
+          const gender = patientData?.patient_info?.gender
 
-          const band = getParameterBand(
-            trend.name,
-            Number.parseFloat(String(trend.current)),
-            patientData?.patient_info?.gender,
-          )
+          const band = getParameterBand(trend.name, Number.parseFloat(String(trend.current)), gender)
 
-          const lineColor = band ? band.color : trend.status === "normal" ? "#2f9a48" : "#d93026"
+          // Multi-range (custom-band) parameter? Use the clinical bands for the
+          // reference lines, range text and per-point colors instead of the raw
+          // lab range string (which is wrong for these parameters).
+          const isBandParam = !!getParameterBandInfo(trend.name, gender)
+          const bandRefLines = isBandParam ? getParameterReferenceLines(trend.name, gender) : null
+          const displayRange = (isBandParam ? getParameterNormalRange(trend.name, gender) : null) || trend.range
           const referenceColor = "#2f9a48"
 
           const getPointStatus = (value: number): "normal" | "abnormal" => {
@@ -256,6 +264,28 @@ export default function AllTrendsPage({
             }
             return "normal"
           }
+
+          // Color for a single reading: band color for band params, else
+          // green/red based on the numeric range check.
+          const colorForValue = (value: number): string => {
+            if (isBandParam) {
+              const c = getParameterPointColor(trend.name, value, gender)
+              if (c) return c
+            }
+            return getPointStatus(value) === "normal" ? "#2f9a48" : "#d93026"
+          }
+
+          // x-axis gradient so the line transitions through each point's color.
+          const gradientId = `all-trend-grad-${String(trend.name).replace(/[^a-zA-Z0-9]/g, "-")}`
+          const nPoints = trend.data.length
+          const gradientStops = trend.data.map((d: any, i: number) => ({
+            offset: nPoints > 1 ? (i / (nPoints - 1)) * 100 : 0,
+            color: colorForValue(Number.parseFloat(String(d.value))),
+          }))
+          const lineColor = colorForValue(Number.parseFloat(String(trend.current)))
+          // Badge status from the SAME per-point range check used for coloring,
+          // so the badge stays consistent with the value and chart-point colors.
+          const currentIsNormal = getPointStatus(Number.parseFloat(String(trend.current))) === "normal"
 
           const handleChartClick = (state: any) => {
             const point = state?.activePayload?.[0]?.payload
@@ -307,7 +337,7 @@ export default function AllTrendsPage({
                       {trend.current} {trend.unit}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-[#9dabbd]">Range: {trend.range}</p>
+                  <p className="mt-0.5 text-xs text-[#9dabbd]">Range: {displayRange}</p>
                 </div>
                 {band ? (
                   <div
@@ -319,10 +349,10 @@ export default function AllTrendsPage({
                 ) : (
                   <div
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      trend.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                      currentIsNormal ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
                     }`}
                   >
-                    {trend.status === "normal" ? "Normal" : "Abnormal"}
+                    {currentIsNormal ? "Normal" : "Abnormal"}
                   </div>
                 )}
               </div>
@@ -336,6 +366,13 @@ export default function AllTrendsPage({
                       onClick={handleChartClick}
                       style={{ cursor: "pointer" }}
                     >
+                      <defs>
+                        <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                          {gradientStops.map((s, i) => (
+                            <stop key={i} offset={`${s.offset}%`} stopColor={s.color} />
+                          ))}
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                       <XAxis
                         dataKey="timestamp"
@@ -357,41 +394,58 @@ export default function AllTrendsPage({
                         tickFormatter={(value) => value.toFixed(1)}
                         width={45}
                       />
-                      {rangeData?.type === "range" && (
+                      {bandRefLines ? (
+                        // Multi-range parameter: reference lines at the clinical
+                        // healthy-band bounds (direction-aware).
+                        bandRefLines.map((line) => (
+                          <ReferenceLine
+                            key={`${line.label}-${line.value}`}
+                            y={line.value}
+                            stroke={referenceColor}
+                            strokeDasharray="5 5"
+                            strokeWidth={1}
+                            label={{ value: line.label, position: "right", fill: referenceColor, fontSize: 10 }}
+                          />
+                        ))
+                      ) : (
                         <>
-                          <ReferenceLine
-                            y={rangeData.min}
-                            stroke={referenceColor}
-                            strokeDasharray="5 5"
-                            strokeWidth={1}
-                            label={{ value: "Min", position: "right", fill: referenceColor, fontSize: 10 }}
-                          />
-                          <ReferenceLine
-                            y={rangeData.max}
-                            stroke={referenceColor}
-                            strokeDasharray="5 5"
-                            strokeWidth={1}
-                            label={{ value: "Normal Limit", position: "right", fill: referenceColor, fontSize: 10 }}
-                          />
+                          {rangeData?.type === "range" && (
+                            <>
+                              <ReferenceLine
+                                y={rangeData.min}
+                                stroke={referenceColor}
+                                strokeDasharray="5 5"
+                                strokeWidth={1}
+                                label={{ value: "Min", position: "right", fill: referenceColor, fontSize: 10 }}
+                              />
+                              <ReferenceLine
+                                y={rangeData.max}
+                                stroke={referenceColor}
+                                strokeDasharray="5 5"
+                                strokeWidth={1}
+                                label={{ value: "Normal Limit", position: "right", fill: referenceColor, fontSize: 10 }}
+                              />
+                            </>
+                          )}
+                          {rangeData?.type === "max" && rangeData.max && (
+                            <ReferenceLine
+                              y={rangeData.max}
+                              stroke={referenceColor}
+                              strokeDasharray="5 5"
+                              strokeWidth={1}
+                              label={{ value: "Max", position: "right", fill: referenceColor, fontSize: 10 }}
+                            />
+                          )}
+                          {rangeData?.type === "min" && rangeData.min && (
+                            <ReferenceLine
+                              y={rangeData.min}
+                              stroke={referenceColor}
+                              strokeDasharray="5 5"
+                              strokeWidth={1}
+                              label={{ value: "Min", position: "right", fill: referenceColor, fontSize: 10 }}
+                            />
+                          )}
                         </>
-                      )}
-                      {rangeData?.type === "max" && rangeData.max && (
-                        <ReferenceLine
-                          y={rangeData.max}
-                          stroke={referenceColor}
-                          strokeDasharray="5 5"
-                          strokeWidth={1}
-                          label={{ value: "Max", position: "right", fill: referenceColor, fontSize: 10 }}
-                        />
-                      )}
-                      {rangeData?.type === "min" && rangeData.min && (
-                        <ReferenceLine
-                          y={rangeData.min}
-                          stroke={referenceColor}
-                          strokeDasharray="5 5"
-                          strokeWidth={1}
-                          label={{ value: "Min", position: "right", fill: referenceColor, fontSize: 10 }}
-                        />
                       )}
                       <Tooltip
                         contentStyle={{
@@ -407,15 +461,24 @@ export default function AllTrendsPage({
                       <Line
                         type="monotone"
                         dataKey="value"
-                        stroke={lineColor}
+                        stroke={`url(#${gradientId})`}
                         strokeWidth={3}
-                        dot={{
-                          fill: "#fff",
-                          stroke: lineColor,
-                          strokeWidth: 3,
-                          r: 6,
+                        dot={(props: any) => {
+                          const { cx, cy, payload, index } = props
+                          const c = colorForValue(Number.parseFloat(String(payload.value)))
+                          return (
+                            <circle
+                              key={`dot-${index}`}
+                              cx={cx}
+                              cy={cy}
+                              r={6}
+                              fill="#fff"
+                              stroke={c}
+                              strokeWidth={3}
+                            />
+                          )
                         }}
-                        activeDot={{ r: 8, strokeWidth: 2 }}
+                        activeDot={{ r: 8, strokeWidth: 2, stroke: lineColor }}
                       />
                     </LineChart>
                   </ResponsiveContainer>

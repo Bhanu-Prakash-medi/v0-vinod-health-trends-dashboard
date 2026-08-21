@@ -1,7 +1,14 @@
 "use client"
 
+import { ChevronRight } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
+
+// Ask the page to scroll to (and highlight) the latest report card. The Test
+// Reports section listens for this event.
+function handleViewLatestReport() {
+  window.dispatchEvent(new CustomEvent("scroll-to-latest-report"))
+}
 
 interface ProfileCardProps {
   name: string
@@ -95,6 +102,19 @@ export default function ProfileCard({
             </div>
           </div>
         </div>
+
+        {/* View latest report — moved here from the Health Summary header. Only
+            shown once at least one report is available. */}
+        {!countLoading && reportCount > 0 && (
+          <button
+            type="button"
+            onClick={handleViewLatestReport}
+            className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 rounded"
+          >
+            View latest report
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
     </div>
