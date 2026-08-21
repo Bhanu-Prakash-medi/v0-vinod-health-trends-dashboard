@@ -1,5 +1,7 @@
 "use client"
 
+// Health Summary section: per-category health cards plus a date dropdown for
+// reviewing historical summaries.
 import {
   Activity,
   HeartPulse,
