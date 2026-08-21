@@ -19,7 +19,6 @@ import {
   Dna,
   Stethoscope,
   Info,
-  ChevronRight,
   Calendar,
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -37,10 +36,6 @@ import { paramHasRange } from "@/lib/health-utils"
 import { getParameterBand, getParameterNormalRange } from "@/lib/parameter-bands"
 import { resolveParameterStatus } from "@/lib/parameter-status"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
-
-function handleViewLatestReport() {
-  window.dispatchEvent(new CustomEvent("scroll-to-latest-report"))
-}
 
 // Format the latest report date into a readable "12 Dec 2025" label.
 // Handles ISO strings, dd/mm/yyyy, and already-formatted values gracefully.
@@ -295,8 +290,9 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
   if (healthSummaryFromApi.length > 0) {
     return (
       <section>
-        {/* Header */}
-        <div className="mb-4 flex items-center justify-between gap-2">
+        {/* Header — date selector sits top-right (where "View latest report"
+            used to be); the button itself now lives in the profile card. */}
+        <div className="mb-4 flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <Activity className="h-6 w-6 shrink-0 text-[#000000]" />
             <div className="min-w-0">
@@ -311,43 +307,33 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
               </p>
             </div>
           </div>
-          <button
-            onClick={handleViewLatestReport}
-            className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80"
-          >
-            View latest report
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
 
-        {/* Date selector - lets users review historical health summaries */}
-        {summariesByDate.length > 1 && (
-          <div className="mb-4 flex items-center gap-2">
-            <Calendar className="h-4 w-4 shrink-0 text-[#9dabbd]" aria-hidden="true" />
-            <label htmlFor="health-summary-date" className="sr-only">
-              Select report date
-            </label>
-            <Select
-              value={String(safeDateIndex)}
-              onValueChange={(v) => setSelectedDateIndex(Number(v))}
-            >
-              <SelectTrigger
-                id="health-summary-date"
-                className="h-9 w-full max-w-[240px] border-[#e3e8ee] text-sm text-[#2e3742]"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {summariesByDate.map((entry, index) => (
-                  <SelectItem key={`${entry.dateKey}-${index}`} value={String(index)}>
-                    {formatSummaryDate(entry.dateKey) || entry.dateKey}
-                    {index === 0 ? " (Latest)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+          {/* Date selector - lets users review historical health summaries */}
+          {summariesByDate.length > 1 && (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Calendar className="h-4 w-4 shrink-0 text-[#9dabbd]" aria-hidden="true" />
+              <label htmlFor="health-summary-date" className="sr-only">
+                Select report date
+              </label>
+              <Select value={String(safeDateIndex)} onValueChange={(v) => setSelectedDateIndex(Number(v))}>
+                <SelectTrigger
+                  id="health-summary-date"
+                  className="h-9 w-[140px] border-[#e3e8ee] text-sm text-[#2e3742] sm:w-[160px]"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {summariesByDate.map((entry, index) => (
+                    <SelectItem key={`${entry.dateKey}-${index}`} value={String(index)}>
+                      {formatSummaryDate(entry.dateKey) || entry.dateKey}
+                      {index === 0 ? " (Latest)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
 
         {/* Cards Grid - from API health_summary */}
         <div className="grid grid-cols-2 py-0 gap-4">
