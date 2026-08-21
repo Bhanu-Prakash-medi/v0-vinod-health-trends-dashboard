@@ -479,8 +479,40 @@ async function fetchBeneficiariesUncached(accessToken: string, _pmEntityId = "0"
   const employee_email =
     getValueCaseInsensitive(root, "email") || getValueCaseInsensitive(root, "employee_email") || ""
 
+  // Some accounts contain placeholder/test beneficiaries created in the
+  // MediBuddy system (e.g. literally named "Test", "Demo", "ABC"). These are
+  // not real family members and shouldn't appear as tabs, so we drop any entry
+  // whose name is a known dummy value (exact, case/space-insensitive match).
+  const PLACEHOLDER_NAMES = new Set([
+    "test",
+    "tests",
+    "testing",
+    "test test",
+    "test user",
+    "dummy",
+    "demo",
+    "sample",
+    "xyz",
+    "abc",
+    "abcd",
+    "asdf",
+    "qwerty",
+    "na",
+    "n/a",
+    "unknown",
+  ])
+  const isPlaceholderName = (name: string) => {
+    const normalized = name.trim().toLowerCase().replace(/\s+/g, " ")
+    return normalized === "" || PLACEHOLDER_NAMES.has(normalized)
+  }
+
   return {
-    beneficiaries: beneficiaries.map((b: any, idx: number) => {
+    beneficiaries: beneficiaries
+      .filter((b: any) => {
+        const name = getValueCaseInsensitive(b, "name") || getValueCaseInsensitive(b, "patientName") || ""
+        return !isPlaceholderName(String(name))
+      })
+      .map((b: any, idx: number) => {
       const requestIds = getValueCaseInsensitive(b, "requestIds") || getValueCaseInsensitive(b, "requestids") || []
       const reportRequests = parseReportRequests(requestIds)
       // The report identifier is now the requestId (used with mbUserId to fetch
