@@ -17,6 +17,14 @@ export interface ReportRequest {
   }
 
 export interface Beneficiary {
+  /**
+   * Stable, guaranteed-unique key for this beneficiary within the list. Used as
+   * the map/set key for every per-beneficiary piece of state (reports, score
+   * requestIds, errors, loading/completed flags, trends). MUST NOT be the
+   * patientName — two beneficiaries can share a name (common in staging), which
+   * would otherwise collide and make them share reports/score/loading state.
+   */
+  uid: string
   patientName: string
   relation: string
   visitType: string
@@ -471,33 +479,70 @@ async function fetchBeneficiariesUncached(accessToken: string, _pmEntityId = "0"
   const employee_email =
     getValueCaseInsensitive(root, "email") || getValueCaseInsensitive(root, "employee_email") || ""
 
+  // Some accounts contain placeholder/test beneficiaries created in the
+  // MediBuddy system (e.g. literally named "Test", "Demo", "ABC"). These are
+  // not real family members and shouldn't appear as tabs, so we drop any entry
+  // whose name is a known dummy value (exact, case/space-insensitive match).
+  const PLACEHOLDER_NAMES = new Set([
+    "test",
+    "tests",
+    "testing",
+    "test test",
+    "test user",
+    "dummy",
+    "demo",
+    "sample",
+    "xyz",
+    "abc",
+    "abcd",
+    "asdf",
+    "qwerty",
+    "na",
+    "n/a",
+    "unknown",
+  ])
+  const isPlaceholderName = (name: string) => {
+    const normalized = name.trim().toLowerCase().replace(/\s+/g, " ")
+    return normalized === "" || PLACEHOLDER_NAMES.has(normalized)
+  }
+
   return {
-    beneficiaries: beneficiaries.map((b: any) => {
+    beneficiaries: beneficiaries
+      .filter((b: any) => {
+        const name = getValueCaseInsensitive(b, "name") || getValueCaseInsensitive(b, "patientName") || ""
+        return !isPlaceholderName(String(name))
+      })
+      .map((b: any, idx: number) => {
       const requestIds = getValueCaseInsensitive(b, "requestIds") || getValueCaseInsensitive(b, "requestids") || []
       const reportRequests = parseReportRequests(requestIds)
       // The report identifier is now the requestId (used with mbUserId to fetch
       // analyzed details); dmS_Doc_ID carries these ids for legacy count/length checks.
       const docIds = reportRequests.map((r) => r.requestId)
 
+      const rVasBenefId =
+        getValueCaseInsensitive(b, "vasBenifId") ??
+        getValueCaseInsensitive(b, "vasbenifid") ??
+        getValueCaseInsensitive(b, "rVasBenefId")
+      const userId =
+        getValueCaseInsensitive(b, "userId") ?? getValueCaseInsensitive(b, "userid") ?? mbuserid
+
       return {
+        // vasBenefId (or userId) prefixed with the list index so the key is
+        // ALWAYS unique — even if two beneficiaries share a vasBenefId, name, or
+        // have none at all. The list order is stable for the session.
+        uid: `${rVasBenefId ?? userId ?? "b"}#${idx}`,
         patientName: getValueCaseInsensitive(b, "name") || getValueCaseInsensitive(b, "patientName") || "Unknown",
         relation: getValueCaseInsensitive(b, "relation") || "Unknown",
         visitType: "",
         dmS_Doc_ID: docIds,
         latestDmsDocIds: [],
-        rVasBenefId:
-          getValueCaseInsensitive(b, "vasBenifId") ??
-          getValueCaseInsensitive(b, "vasbenifid") ??
-          getValueCaseInsensitive(b, "rVasBenefId"),
+        rVasBenefId,
         age: Number.parseInt(String(getValueCaseInsensitive(b, "age") ?? "0"), 10),
         gender: getValueCaseInsensitive(b, "gender") || "Unknown",
         // Total health records come from the profile's lab report URLs.
         reportCount: reportRequests.length,
         // Account user id -> mbUserId for the report-details API.
-        userId:
-          getValueCaseInsensitive(b, "userId") ??
-          getValueCaseInsensitive(b, "userid") ??
-          mbuserid,
+        userId,
         reportRequests,
       }
     }),

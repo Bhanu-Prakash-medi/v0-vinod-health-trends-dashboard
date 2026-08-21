@@ -163,7 +163,7 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
 
       {/* Trend Cards - Original Design */}
       <div className="space-y-3">
-        {displayedTrends.map((trend) => {
+        {displayedTrends.map((trend, trendIndex) => {
           const isImproving = trend.change < 0 && trend.status === "abnormal"
           const isWorsening = trend.change > 0 && trend.status === "abnormal"
           const isStable = Math.abs(trend.changePercent) < 5
@@ -203,7 +203,10 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
 
           // Build an x-axis gradient so the line color transitions through each
           // point's range color (reflecting how the reading moved between bands).
-          const gradientId = `trend-grad-${String(trend.name).replace(/[^a-zA-Z0-9]/g, "-")}`
+          // Include the row index so the SVG gradient id is unique even when two
+          // trends happen to share the same parameter name (which would also
+          // otherwise trigger a duplicate React key below).
+          const gradientId = `trend-grad-${String(trend.name).replace(/[^a-zA-Z0-9]/g, "-")}-${trendIndex}`
           const nPoints = trend.data.length
           const gradientStops = trend.data.map((d: any, i: number) => ({
             offset: nPoints > 1 ? (i / (nPoints - 1)) * 100 : 0,
@@ -215,7 +218,7 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
           const currentIsNormal = colorForValue(Number.parseFloat(String(trend.current))) === "#2f9a48"
 
           return (
-            <Card key={trend.name} className="border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md">
+            <Card key={`${trend.name}-${trendIndex}`} className="border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md">
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">

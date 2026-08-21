@@ -234,7 +234,7 @@ export default function AllTrendsPage({
         </div>
 
         <div className="space-y-3 p-4">
-        {filteredTrends.map((trend) => {
+        {filteredTrends.map((trend, trendIndex) => {
           const isImproving = trend.change < 0 && trend.status === "abnormal"
           const isWorsening = trend.change > 0 && trend.status === "abnormal"
           const isStable = Math.abs(trend.changePercent) < 5
@@ -276,7 +276,8 @@ export default function AllTrendsPage({
           }
 
           // x-axis gradient so the line transitions through each point's color.
-          const gradientId = `all-trend-grad-${String(trend.name).replace(/[^a-zA-Z0-9]/g, "-")}`
+          // Index-suffixed so the id stays unique even if two trends share a name.
+          const gradientId = `all-trend-grad-${String(trend.name).replace(/[^a-zA-Z0-9]/g, "-")}-${trendIndex}`
           const nPoints = trend.data.length
           const gradientStops = trend.data.map((d: any, i: number) => ({
             offset: nPoints > 1 ? (i / (nPoints - 1)) * 100 : 0,
@@ -305,7 +306,7 @@ export default function AllTrendsPage({
           }
 
           return (
-            <Card key={trend.name} className="border border-[#f0f3f5] p-4 shadow-sm">
+            <Card key={`${trend.name}-${trendIndex}`} className="border border-[#f0f3f5] p-4 shadow-sm">
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
