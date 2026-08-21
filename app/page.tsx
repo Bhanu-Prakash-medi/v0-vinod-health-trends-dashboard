@@ -58,6 +58,10 @@ interface BeneficiaryError {
 // The Health Risk Score API accepts at most 15 requestIds per call.
 const MAX_HEALTH_SCORE_REQUEST_IDS = 15
 
+// Only reports with this contract type feed the Health Risk Score. The summary
+// and trends deliberately ignore contract type and use every available report.
+const HEALTH_SCORE_CONTRACT_TYPE = "9716"
+
 export default function HealthDashboard() {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
   const [activeBeneficiaryIndex, setActiveBeneficiaryIndex] = useState(0)
@@ -424,12 +428,17 @@ export default function HealthDashboard() {
           return newMap
         })
 
-        // Collect only the requestIds whose report-details API returned a
-        // non-null report (fulfilled and not marked failed). These — most
-        // recent first, capped at MAX_HEALTH_SCORE_REQUEST_IDS — are the only
-        // ids sent to the Health Risk Score API (which rejects >15 ids).
+        // Collect the requestIds sent to the Health Risk Score API. Only reports
+        // that (a) returned a non-null report (fulfilled and not failed) AND
+        // (b) have contractType 9716 qualify — the score is computed exclusively
+        // from that contract type. Sorted most-recent first and capped at
+        // MAX_HEALTH_SCORE_REQUEST_IDS (the API rejects >15 ids).
         const successfulRequestIds = results
-          .filter((r) => r.status === "fulfilled" && !failedDocIds.has(r.docId))
+          .filter(
+            (r): r is { status: "fulfilled"; value: ApiHealthReport; docId: string } =>
+              r.status === "fulfilled" && !failedDocIds.has(r.docId),
+          )
+          .filter((r) => String(r.value.contractType ?? "") === HEALTH_SCORE_CONTRACT_TYPE)
           .map((r) => r.docId)
           .sort((a, b) => {
             const da = new Date(requestDateById.get(a) || 0).getTime()
@@ -565,7 +574,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = ""
+        const DEBUG_TOKEN = "3a0c6bc1d0d34689aa45ea494edb5577"
 
         let cookieToken: string | null = null
         try {

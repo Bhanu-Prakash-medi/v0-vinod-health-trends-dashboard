@@ -115,6 +115,9 @@ export interface ApiHealthReport {
     fullfilmentDate?: string
     /** Original report PDF URL from the beneficiary reports API (for download). */
     file?: string
+    /** Contract type of this report (from /health/reports). Used to gate which
+     *  reports feed the Health Risk Score (only contractType 9716). */
+    contractType?: string | number | null
   }>
   health_summary: HealthSummaryItem[]
   trend_analysis?: TrendAnalysisItem[]
@@ -122,6 +125,10 @@ export interface ApiHealthReport {
   isLoading?: boolean
   isLoadingMetrics?: boolean
   latestReportDate?: string
+  /** Contract type for the single analyzed report returned by /health/reports.
+   *  Only reports with contractType 9716 are sent to the Health Risk Score API;
+   *  summary and trends ignore this field. */
+  contractType?: string | number | null
 }
 
 export function getAccessTokenFromCookie(): string | null {
@@ -735,6 +742,22 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
   const parametersArray = getValueCaseInsensitive(data, "parameters") || []
   const healthSummaryRaw = getValueCaseInsensitive(data, "health_summary") || []
 
+  // Contract type of this report. Looked up across the top-level response and
+  // report_data with a few key aliases (the backend shape isn't strictly typed
+  // here). Used downstream to gate which reports feed the Health Risk Score.
+  const contractTypeRaw =
+    getValueCaseInsensitive(data, "contractType") ??
+    getValueCaseInsensitive(data, "contract_type") ??
+    getValueCaseInsensitive(data, "contractId") ??
+    getValueCaseInsensitive(reportData, "contractType") ??
+    getValueCaseInsensitive(reportData, "contract_type") ??
+    getValueCaseInsensitive(reportData, "contractId") ??
+    null
+  const contractType =
+    contractTypeRaw === null || contractTypeRaw === undefined || contractTypeRaw === ""
+      ? null
+      : String(contractTypeRaw)
+
   const patientName =
     getValueCaseInsensitive(reportData, "patientName") ||
     getValueCaseInsensitive(patientCard, "name") ||
@@ -841,10 +864,12 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
         parameters: transformedParameters,
         fullfilmentDate,
         file: fileUrl || "",
+        contractType,
       },
     ],
     health_summary: healthSummary,
     latestReportDate: fullfilmentDate,
+    contractType,
   }
 }
 
