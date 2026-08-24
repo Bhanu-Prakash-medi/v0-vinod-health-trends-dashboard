@@ -609,7 +609,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "21dc9858b5a545be974223f46303a315"
+        const DEBUG_TOKEN = "c2719a7c72eb4f6fa0bcd228988fbc59"
 
         let cookieToken: string | null = null
         try {
@@ -978,14 +978,19 @@ export default function HealthDashboard() {
             reportCount={
               // Show the per-report count (all_reports) so every report with
               // data is counted separately, even multiple on the same day. This
-              // matches the Test Reports list. While reports are still resolving
-              // the count is hidden (see countLoading) so the user never sees
-              // intermediate filtering values.
-              currentProfileData?.all_reports?.length ||
-              currentProfileData?.lab_reports?.length ||
-              activeBeneficiary?.reportCount ||
-              activeBeneficiary?.dmS_Doc_ID?.length ||
-              0
+              // matches the Test Reports list and the Health Summary dropdown.
+              // While reports are still resolving the count is hidden (see
+              // countLoading) so the user never sees intermediate values.
+              //
+              // Once the reports HAVE resolved, the resolved count is authoritative
+              // even when it is 0. A `||` fallback chain was wrong here: a
+              // legitimate 0 is falsy, so it fell through to the RAW profile
+              // record count and a member whose reports all came back
+              // unanalyzable (status Not_Found) showed e.g. "2 Health Records"
+              // directly above a "Report Details Unavailable" empty state.
+              currentProfileData
+                ? (currentProfileData.all_reports?.length ?? currentProfileData.lab_reports?.length ?? 0)
+                : activeBeneficiary?.reportCount || activeBeneficiary?.dmS_Doc_ID?.length || 0
             }
             countLoading={(hasRecordsToLoad || isLazyPending) && !isLoadComplete}
             profileImage={currentProfileData?.patient_info?.profileImage || ""}

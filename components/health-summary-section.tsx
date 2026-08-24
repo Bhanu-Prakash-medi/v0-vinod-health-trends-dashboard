@@ -127,35 +127,13 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
   // Per-report-date summaries (latest first). Powers the date dropdown so users
   // can review historical health summaries. Falls back to the single latest
   // summary when the by-date list isn't available.
-  const rawSummariesByDate: Array<{ dateKey: string; health_summary: any[] }> =
+  // One entry per individual report, newest first. Reports that fall on the SAME
+  // date are intentionally kept SEPARATE (never collapsed/merged) so each one is
+  // selectable on its own — same-date entries are told apart by their report name.
+  const summariesByDate: Array<{ dateKey: string; reportName?: string; health_summary: any[] }> =
     patientData?.health_summary_by_date && patientData.health_summary_by_date.length > 0
       ? patientData.health_summary_by_date
       : []
-
-  // Collapse entries that fall on the SAME calendar day (reports taken the same
-  // day can arrive with slightly different timestamps) so each date appears
-  // once in the dropdown. Categories from same-day reports are merged by name.
-  const summariesByDate: Array<{ dateKey: string; health_summary: any[] }> = (() => {
-    const byDay = new Map<string, { dateKey: string; health_summary: any[] }>()
-    for (const entry of rawSummariesByDate) {
-      const parsed = new Date(entry.dateKey)
-      const dayKey = isNaN(parsed.getTime()) ? entry.dateKey : parsed.toDateString()
-      const existing = byDay.get(dayKey)
-      if (!existing) {
-        byDay.set(dayKey, { dateKey: entry.dateKey, health_summary: [...(entry.health_summary || [])] })
-        continue
-      }
-      // Merge categories: append categories not already present for this day.
-      for (const item of entry.health_summary || []) {
-        const categoryName = (item.category || item.name || "").toLowerCase()
-        const already = existing.health_summary.some(
-          (e: any) => (e.category || e.name || "").toLowerCase() === categoryName,
-        )
-        if (!already) existing.health_summary.push(item)
-      }
-    }
-    return Array.from(byDay.values())
-  })()
 
   const [selectedDateIndex, setSelectedDateIndex] = useState(0)
 
@@ -318,17 +296,25 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
               <Select value={String(safeDateIndex)} onValueChange={(v) => setSelectedDateIndex(Number(v))}>
                 <SelectTrigger
                   id="health-summary-date"
-                  className="h-9 w-[140px] border-[#e3e8ee] text-sm text-[#2e3742] sm:w-[160px]"
+                  className="h-9 w-[150px] border-[#e3e8ee] text-sm text-[#2e3742] sm:w-[210px]"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {summariesByDate.map((entry, index) => (
-                    <SelectItem key={`${entry.dateKey}-${index}`} value={String(index)}>
-                      {formatSummaryDate(entry.dateKey) || entry.dateKey}
-                      {index === 0 ? " (Latest)" : ""}
-                    </SelectItem>
-                  ))}
+                  {summariesByDate.map((entry, index) => {
+                    const label = formatSummaryDate(entry.dateKey) || entry.dateKey
+                    // Several reports can share one date (kept separate), so append
+                    // the report name to those entries to tell them apart.
+                    const sharesDate =
+                      summariesByDate.filter((e) => (formatSummaryDate(e.dateKey) || e.dateKey) === label).length > 1
+                    return (
+                      <SelectItem key={`${entry.dateKey}-${index}`} value={String(index)}>
+                        {label}
+                        {sharesDate && entry.reportName ? ` · ${entry.reportName}` : ""}
+                        {index === 0 ? " (Latest)" : ""}
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
