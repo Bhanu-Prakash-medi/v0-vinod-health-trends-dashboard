@@ -1123,9 +1123,14 @@ export function buildTrendsFromReports(
   // One lab report entry per analyzed report (used to label trend data points by date).
   // Newest first for display; the first entry is the latest report, tagged so the
   // Test Reports section can mark it and "View latest report" can scroll to it.
+  // Newest first via a STABLE descending sort by date. `.reverse()` was wrong for
+  // same-date reports: it flipped their relative order, so the report tagged
+  // "Latest_report" here disagreed with the one marked "(Latest)" in the Health
+  // Summary dropdown (which stable-sorts descending). A stable sort keeps
+  // same-date reports in their original order in both places.
   const lab_reports: LabReport[] = entries
     .slice()
-    .reverse() // newest first for display
+    .sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime())
     .map((e, index) => ({
       report_name: [e.name || "Lab Report"],
       report_date: e.date,
@@ -1343,8 +1348,11 @@ export function mergeReportsKeepLatest(
     const only = reports[0]
     // Keep each report separate for the count / Test Reports (here there is only
     // one, but the field must always be present for a consistent shape).
+    // Same rule as the multi-report path: a report counts when it has measured
+    // parameters OR an analyzed health summary (not parameters alone).
+    const onlyHasSummary = Array.isArray(only.health_summary) && only.health_summary.length > 0
     const onlySeparate = (only.reports || []).filter(
-      (r) => r && r.parameters && Object.keys(r.parameters).length > 0,
+      (r) => r && ((r.parameters && Object.keys(r.parameters).length > 0) || onlyHasSummary),
     )
     // Attach a single-entry by-date list so the Health Summary dropdown has a
     // consistent shape even when there is only one report.
@@ -1374,10 +1382,29 @@ export function mergeReportsKeepLatest(
     }
   }
 
-  // Collect all reports and merge by fullfilmentDate
+  // Collect all reports and merge by fullfilmentDate. Trends/lab_reports are
+  // built from measured values, so this list stays restricted to reports that
+  // actually carry parameters.
   const allReportsRaw = reports
     .flatMap((r) => r.reports)
     .filter((r) => r && r.parameters && Object.keys(r.parameters).length > 0)
+
+  // Separate list used for the "Health Records" COUNT and the Test Reports list.
+  // A report counts as a real health record if it has EITHER measured parameters
+  // OR an analyzed health summary. Filtering on parameters alone undercounted:
+  // e.g. a CRP report can come back analyzed (status Completed, one summary
+  // category) with zero numeric parameters, and was previously dropped — so the
+  // profile card showed "1 Health Record" while the Health Summary dropdown
+  // listed 2. Reports the backend can't analyze at all (status Not_Found, no
+  // parameters and no summary — e.g. a COVID swab) are still excluded.
+  const reportsWithContent = reports.flatMap((parsed) => {
+    const hasSummary = Array.isArray(parsed.health_summary) && parsed.health_summary.length > 0
+    return (parsed.reports || []).filter((r) => {
+      if (!r) return false
+      const hasParams = r.parameters && Object.keys(r.parameters).length > 0
+      return Boolean(hasParams || hasSummary)
+    })
+  })
 
   // Group reports by fullfilmentDate and merge their parameters
   const reportsByDate = new Map<string, { name: string; date: string; parameters: Record<string, any>; fullfilmentDate?: string; file?: string }>()
@@ -1591,7 +1618,7 @@ export function mergeReportsKeepLatest(
   // Every individual report that has data, kept separate (NOT merged by date),
   // sorted newest first. Drives the "Health Records" count and Test Reports so
   // same-day reports each appear on their own.
-  const allReportsSeparate = allReportsRaw
+  const allReportsSeparate = reportsWithContent
     .slice()
     .sort((a, b) => parseDate(b.fullfilmentDate || b.date || "").getTime() - parseDate(a.fullfilmentDate || a.date || "").getTime())
 
