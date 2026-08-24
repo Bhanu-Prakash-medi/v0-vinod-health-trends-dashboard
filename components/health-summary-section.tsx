@@ -18,7 +18,6 @@ import {
   Wind,
   Dna,
   Stethoscope,
-  Info,
   Calendar,
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -167,7 +166,6 @@ export default function HealthSummarySection({
   }, [vasbenefId, summariesByDate.length, isControlled])
 
   const safeDateIndex = Math.min(selectedDateIndex, Math.max(0, summariesByDate.length - 1))
-  const activeDateKey = summariesByDate[safeDateIndex]?.dateKey || latestDate
 
   // The summary content for the selected date; when no by-date list exists we
   // use the default latest summary from the API.
@@ -302,14 +300,6 @@ export default function HealthSummarySection({
             <Activity className="h-6 w-6 shrink-0 text-[#000000]" />
             <div className="min-w-0">
               <h2 className="whitespace-nowrap text-base font-semibold text-[#2e3742]">Health Summary</h2>
-              <p className="flex items-start gap-1 text-xs text-[#9dabbd]">
-                <Info className="mt-0.5 h-3 w-3 shrink-0 text-[#9dabbd]" />
-                <span className="text-pretty">
-                  {safeDateIndex === 0
-                    ? `Based on your latest health report${formatSummaryDate(activeDateKey) ? ` (${formatSummaryDate(activeDateKey)})` : ""}`
-                    : `Showing health report from ${formatSummaryDate(activeDateKey)}`}
-                </span>
-              </p>
             </div>
           </div>
 
