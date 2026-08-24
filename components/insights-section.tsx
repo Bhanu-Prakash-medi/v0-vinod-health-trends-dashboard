@@ -4,9 +4,11 @@ import Musculature3DModel from "@/components/musculature-3d-model"
 interface InsightsSectionProps {
   patientData: any
   vasbenefId?: string | number
+  /** Summary of the report selected in the Health Summary dropdown. */
+  healthSummaryOverride?: any[]
 }
 
-export default function InsightsSection({ patientData, vasbenefId }: InsightsSectionProps) {
+export default function InsightsSection({ patientData, vasbenefId, healthSummaryOverride }: InsightsSectionProps) {
   return (
     <section>
       {/* Header */}
@@ -16,7 +18,11 @@ export default function InsightsSection({ patientData, vasbenefId }: InsightsSec
       </div>
 
       <div className="space-y-4">
-        <Musculature3DModel patientData={patientData} vasbenefId={vasbenefId} />
+        <Musculature3DModel
+          patientData={patientData}
+          vasbenefId={vasbenefId}
+          healthSummaryOverride={healthSummaryOverride}
+        />
       </div>
     </section>
   )

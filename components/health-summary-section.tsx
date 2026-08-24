@@ -57,6 +57,14 @@ function formatSummaryDate(raw: string): string {
 interface HealthSummarySectionProps {
   patientData: any
   vasbenefId?: string | number
+  /**
+   * Index of the selected summary entry. When provided together with
+   * `onSelectedDateIndexChange`, the selection is CONTROLLED by the parent so
+   * other sections (notably the Digital Twin / body twin) can react to the same
+   * report the user picked here. Falls back to internal state when omitted.
+   */
+  selectedDateIndex?: number
+  onSelectedDateIndexChange?: (index: number) => void
 }
 
 const categoryIcons: Record<string, any> = {
@@ -120,7 +128,12 @@ const getIconForCategory = (category: string) => {
   return categoryIcons.default
 }
 
-export default function HealthSummarySection({ patientData, vasbenefId }: HealthSummarySectionProps) {
+export default function HealthSummarySection({
+  patientData,
+  vasbenefId,
+  selectedDateIndex: controlledDateIndex,
+  onSelectedDateIndexChange,
+}: HealthSummarySectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<{ name: string; parameters: any[] } | null>(null)
   const latestDate = patientData?.latestReportDate || patientData?.reports?.[0]?.date || ""
 
@@ -135,13 +148,23 @@ export default function HealthSummarySection({ patientData, vasbenefId }: Health
       ? patientData.health_summary_by_date
       : []
 
-  const [selectedDateIndex, setSelectedDateIndex] = useState(0)
+  const [internalDateIndex, setInternalDateIndex] = useState(0)
+
+  // Controlled when the parent supplies both the value and the change handler,
+  // so the Digital Twin can follow the same selection; uncontrolled otherwise.
+  const isControlled = controlledDateIndex !== undefined && onSelectedDateIndexChange !== undefined
+  const selectedDateIndex = isControlled ? (controlledDateIndex as number) : internalDateIndex
+  const setSelectedDateIndex = (index: number) => {
+    if (isControlled) onSelectedDateIndexChange?.(index)
+    else setInternalDateIndex(index)
+  }
 
   // Reset to the latest date whenever the beneficiary or the set of dates
-  // changes, so a stale index never points past the new list.
+  // changes, so a stale index never points past the new list. When controlled,
+  // the parent owns this reset.
   useEffect(() => {
-    setSelectedDateIndex(0)
-  }, [vasbenefId, summariesByDate.length])
+    if (!isControlled) setInternalDateIndex(0)
+  }, [vasbenefId, summariesByDate.length, isControlled])
 
   const safeDateIndex = Math.min(selectedDateIndex, Math.max(0, summariesByDate.length - 1))
   const activeDateKey = summariesByDate[safeDateIndex]?.dateKey || latestDate

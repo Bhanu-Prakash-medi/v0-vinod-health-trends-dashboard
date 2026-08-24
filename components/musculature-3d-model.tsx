@@ -1,7 +1,7 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Info, Activity, Heart, Droplets, Bone, X, Beaker } from "lucide-react"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { paramHasRange } from "@/lib/health-utils"
@@ -137,15 +137,22 @@ const collectOrganTests = (
   return { tests, abnormal }
 }
 
-const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
+const analyzeOrganStatus = (patientData: any, healthSummaryOverride?: any[]): OrganGroup[] => {
   const organs: OrganGroup[] = []
   const gender = patientData?.patient_info?.gender
 
   let params: Record<string, any> = {}
 
-  // Get parameters from health_summary - this contains merged data from latest reports only
-  if (patientData?.health_summary && patientData.health_summary.length > 0) {
-    for (const category of patientData.health_summary) {
+  // When the user picks a specific report in the Health Summary date dropdown,
+  // that summary is passed in here so the body twin reflects the SELECTED report
+  // instead of always the latest merged one.
+  const summary =
+    healthSummaryOverride !== undefined ? healthSummaryOverride : patientData?.health_summary
+  const hasOverride = healthSummaryOverride !== undefined
+
+  // Get parameters from the active summary (selected report, or latest merged).
+  if (summary && summary.length > 0) {
+    for (const category of summary) {
       const categoryParams = category.parameters || []
       for (const p of categoryParams) {
         const name = p.name || p.metric_name || ""
@@ -164,8 +171,11 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
     }
   }
 
-  // Fallback: try lab_reports with Latest_report tag
-  if (Object.keys(params).length === 0 && patientData?.lab_reports) {
+  // Fallback: try lab_reports with Latest_report tag. Skipped when a specific
+  // report is selected — otherwise picking a report that carries no measured
+  // parameters would silently fall back to the LATEST report's values, which is
+  // exactly the "twin still shows the previous one" bug.
+  if (!hasOverride && Object.keys(params).length === 0 && patientData?.lab_reports) {
     const labReports = Array.isArray(patientData.lab_reports) ? patientData.lab_reports : []
     const latestLabReport =
       labReports.find((lr: any) => {
@@ -435,14 +445,27 @@ const analyzeOrganStatus = (patientData: any): OrganGroup[] => {
 interface Musculature3DModelProps {
   patientData: any
   vasbenefId?: string | number
+  /** Summary of the report selected in the Health Summary dropdown. */
+  healthSummaryOverride?: any[]
 }
 
-export default function Musculature3DModel({ patientData, vasbenefId }: Musculature3DModelProps) {
+export default function Musculature3DModel({
+  patientData,
+  vasbenefId,
+  healthSummaryOverride,
+}: Musculature3DModelProps) {
   const [rotation, setRotation] = useState(0)
   const [selectedOrgan, setSelectedOrgan] = useState<string | null>(null)
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false)
 
-  const organGroups = analyzeOrganStatus(patientData)
+  const organGroups = analyzeOrganStatus(patientData, healthSummaryOverride)
+
+  // Close the organ detail sheet when the selected report changes, so it never
+  // keeps showing organ values from the previously selected report.
+  useEffect(() => {
+    setSelectedOrgan(null)
+    setIsBottomSheetOpen(false)
+  }, [healthSummaryOverride])
 
   const handleReset = () => {
     setRotation(0)
