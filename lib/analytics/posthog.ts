@@ -82,9 +82,15 @@ export function initPostHog() {
       // Never send the visitor IP for a health application.
       mask_personal_data_properties: true,
       // Strip query strings/fragments from URL properties before sending.
-      before_send: scrubEventUrls,
+      before_send: (e: CaptureResult | null) => {
+        console.log("[v0] before_send called for:", e?.event)
+        const out = scrubEventUrls(e)
+        console.log("[v0] before_send returning:", out?.event)
+        return out
+      },
     })
     initialized = true
+    ;(window as any).__phDebug = posthog
   } catch (error) {
     console.log("[v0] PostHog init failed (non-blocking):", error)
   }
@@ -128,9 +134,27 @@ export interface AnalyticsEventProperties {
  * or blocks the UI.
  */
 export function trackEvent(name: AnalyticsEventName, properties?: AnalyticsEventProperties) {
+  console.log("[v0] trackEvent called:", name, "initialized=", initialized)
   if (typeof window === "undefined" || !initialized) return
   try {
-    posthog.capture(name, properties)
+    const ph = posthog as any
+    console.log(
+      "[v0] guards:",
+      JSON.stringify({
+        loaded: !!ph.__loaded,
+        persistence: !!ph.persistence,
+        sessionPersistence: !!ph.sessionPersistence,
+        is_capturing: typeof ph.is_capturing === "function" ? ph.is_capturing() : "n/a",
+        opted_out: typeof ph.has_opted_out_capturing === "function" ? ph.has_opted_out_capturing() : "n/a",
+        consent: ph.consent && typeof ph.consent.isOptedOut === "function" ? ph.consent.isOptedOut() : "n/a",
+      }),
+    )
+    const res = posthog.capture(name, properties)
+    console.log(
+      "[v0] posthog.capture returned:",
+      name,
+      res ? "uuid=" + (res as any).uuid + " event=" + (res as any).event : String(res),
+    )
   } catch (error) {
     console.log("[v0] PostHog capture failed (non-blocking):", error)
   }
