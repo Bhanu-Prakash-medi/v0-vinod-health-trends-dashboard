@@ -290,14 +290,18 @@ export default function HealthSummarySection({
   // If we have health_summary from API, use it directly
   if (healthSummaryFromApi.length > 0) {
     return (
-      <section>
+      // @container: this section renders inside a narrow column, so the header
+      // responds to its own width rather than the viewport.
+      <section className="@container">
         {/* Header — date selector sits top-right (where "View latest report"
             used to be); the button itself now lives in the profile card. */}
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="mb-4 flex flex-col gap-3 @lg:flex-row @lg:items-start @lg:justify-between @lg:gap-2">
+          {/* flex-1 so the heading takes the leftover width instead of
+              collapsing to min-content next to the fixed-width selector. */}
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <Activity className="h-6 w-6 shrink-0 text-[#000000]" />
             <div className="min-w-0">
-              <h2 className="text-base font-semibold text-[#2e3742]">Health Summary</h2>
+              <h2 className="whitespace-nowrap text-base font-semibold text-[#2e3742]">Health Summary</h2>
               <p className="flex items-start gap-1 text-xs text-[#9dabbd]">
                 <Info className="mt-0.5 h-3 w-3 shrink-0 text-[#9dabbd]" />
                 <span className="text-pretty">
@@ -311,7 +315,7 @@ export default function HealthSummarySection({
 
           {/* Date selector - lets users review historical health summaries */}
           {summariesByDate.length > 1 && (
-            <div className="flex w-full min-w-0 items-center gap-1.5 sm:w-auto sm:shrink-0">
+            <div className="flex w-full min-w-0 max-w-[260px] items-center gap-1.5 @lg:w-auto @lg:max-w-none @lg:shrink-0">
               <Calendar className="h-4 w-4 shrink-0 text-[#9dabbd]" aria-hidden="true" />
               <label htmlFor="health-summary-date" className="sr-only">
                 Select report date
@@ -319,7 +323,7 @@ export default function HealthSummarySection({
               <Select value={String(safeDateIndex)} onValueChange={(v) => setSelectedDateIndex(Number(v))}>
                 <SelectTrigger
                   id="health-summary-date"
-                  className="h-9 w-full min-w-0 border-[#e3e8ee] text-sm text-[#2e3742] sm:w-[210px]"
+                  className="h-9 w-full min-w-0 border-[#e3e8ee] text-sm text-[#2e3742] @lg:w-[210px]"
                 >
                   {/*
                    * Explicit trigger label. The options render on two lines, and
