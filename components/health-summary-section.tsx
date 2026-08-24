@@ -293,7 +293,7 @@ export default function HealthSummarySection({
       <section>
         {/* Header — date selector sits top-right (where "View latest report"
             used to be); the button itself now lives in the profile card. */}
-        <div className="mb-4 flex items-start justify-between gap-2">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <Activity className="h-6 w-6 shrink-0 text-[#000000]" />
             <div className="min-w-0">
@@ -311,7 +311,7 @@ export default function HealthSummarySection({
 
           {/* Date selector - lets users review historical health summaries */}
           {summariesByDate.length > 1 && (
-            <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex w-full min-w-0 items-center gap-1.5 sm:w-auto sm:shrink-0">
               <Calendar className="h-4 w-4 shrink-0 text-[#9dabbd]" aria-hidden="true" />
               <label htmlFor="health-summary-date" className="sr-only">
                 Select report date
@@ -319,11 +319,24 @@ export default function HealthSummarySection({
               <Select value={String(safeDateIndex)} onValueChange={(v) => setSelectedDateIndex(Number(v))}>
                 <SelectTrigger
                   id="health-summary-date"
-                  className="h-9 min-w-0 flex-1 border-[#e3e8ee] text-sm text-[#2e3742] [&>span]:truncate sm:w-[210px] sm:flex-none"
+                  className="h-9 w-full min-w-0 border-[#e3e8ee] text-sm text-[#2e3742] sm:w-[210px]"
                 >
-                  <SelectValue />
+                  {/*
+                   * Explicit trigger label. The options render on two lines, and
+                   * letting SelectValue mirror that markup made the closed trigger
+                   * grow past the viewport, so the trigger shows a compact
+                   * single-line summary instead.
+                   */}
+                  <SelectValue>
+                    <span className="truncate">
+                      {formatSummaryDate(summariesByDate[safeDateIndex]?.dateKey) ||
+                        summariesByDate[safeDateIndex]?.dateKey ||
+                        ""}
+                      {safeDateIndex === 0 ? " (Latest)" : ""}
+                    </span>
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="max-w-[calc(100vw-2rem)]">
+                <SelectContent className="max-w-[min(20rem,calc(100vw-2rem))]">
                   {summariesByDate.map((entry, index) => {
                     const label = formatSummaryDate(entry.dateKey) || entry.dateKey
                     // Several reports can share one date (kept separate), so append
@@ -331,14 +344,21 @@ export default function HealthSummarySection({
                     const sharesDate =
                       summariesByDate.filter((e) => (formatSummaryDate(e.dateKey) || e.dateKey) === label).length > 1
                     return (
-                      <SelectItem
-                        key={`${entry.dateKey}-${index}`}
-                        value={String(index)}
-                        className="whitespace-nowrap"
-                      >
-                        {label}
-                        {sharesDate && entry.reportName ? ` · ${entry.reportName}` : ""}
-                        {index === 0 ? " (Latest)" : ""}
+                      <SelectItem key={`${entry.dateKey}-${index}`} value={String(index)} className="min-w-0">
+                        {/*
+                         * Date and report name are stacked rather than joined into
+                         * one long string: the dropdown clips horizontal overflow,
+                         * so a single line would silently cut the name off.
+                         */}
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate">
+                            {label}
+                            {index === 0 ? " (Latest)" : ""}
+                          </span>
+                          {sharesDate && entry.reportName ? (
+                            <span className="truncate text-xs text-[#9dabbd]">{entry.reportName}</span>
+                          ) : null}
+                        </span>
                       </SelectItem>
                     )
                   })}
