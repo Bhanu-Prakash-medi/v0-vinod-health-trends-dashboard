@@ -1,8 +1,51 @@
 "use client"
 
-import posthog from "posthog-js"
+import posthog, { type CaptureResult } from "posthog-js"
 
 let initialized = false
+
+/**
+ * Event properties PostHog fills with URLs. Even with autocapture and pageview
+ * capture disabled, these are attached to every explicitly captured event.
+ */
+const URL_PROPERTY_KEYS = [
+  "$current_url",
+  "$pathname",
+  "$referrer",
+  "$referring_domain",
+  "$initial_current_url",
+  "$initial_pathname",
+  "$initial_referrer",
+  "$initial_referring_domain",
+]
+
+/**
+ * Drop the query string and fragment from a URL-ish value, keeping only
+ * origin + path. This dashboard is opened from the MediBuddy app, so the
+ * landing URL and referrer can carry access tokens, member ids, or other
+ * identifiers that must never leave the client.
+ */
+function stripUrlSensitiveParts(value: string): string {
+  try {
+    const parsed = new URL(value)
+    return `${parsed.origin}${parsed.pathname}`
+  } catch {
+    // Relative values such as $pathname, or sentinels like "$direct".
+    return value.split(/[?#]/)[0]
+  }
+}
+
+/** Remove query strings/fragments from all URL properties on an event. */
+function scrubEventUrls(event: CaptureResult | null): CaptureResult | null {
+  if (!event?.properties) return event
+  for (const key of URL_PROPERTY_KEYS) {
+    const value = event.properties[key]
+    if (typeof value === "string" && value) {
+      event.properties[key] = stripUrlSensitiveParts(value)
+    }
+  }
+  return event
+}
 
 /**
  * Initialize PostHog once, client-side only. No-ops (safe for SSR/build and
@@ -36,6 +79,10 @@ export function initPostHog() {
       capture_pageleave: false,
       disable_session_recording: true,
       person_profiles: "identified_only",
+      // Never send the visitor IP for a health application.
+      mask_personal_data_properties: true,
+      // Strip query strings/fragments from URL properties before sending.
+      before_send: scrubEventUrls,
     })
     initialized = true
   } catch (error) {
