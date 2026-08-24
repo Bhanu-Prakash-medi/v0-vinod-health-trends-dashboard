@@ -136,6 +136,9 @@ export interface ApiHealthReport {
   health_summary_by_date?: Array<{
     /** Raw date key (fullfilmentDate or date) used for sorting/formatting. */
     dateKey: string
+    /** Name of the individual report this summary came from. Used to tell apart
+     *  multiple reports that fall on the SAME date (they are kept separate). */
+    reportName?: string
     health_summary: HealthSummaryItem[]
   }>
   trend_analysis?: TrendAnalysisItem[]
@@ -1351,7 +1354,9 @@ export function mergeReportsKeepLatest(
       return {
         ...only,
         all_reports_raw: onlySeparate,
-        health_summary_by_date: [{ dateKey, health_summary: only.health_summary }],
+        health_summary_by_date: [
+          { dateKey, reportName: only.reports?.[0]?.name || "", health_summary: only.health_summary },
+        ],
       }
     }
     return { ...only, all_reports_raw: onlySeparate }
@@ -1559,19 +1564,29 @@ export function mergeReportsKeepLatest(
 
   const mergedHealthSummary = Array.from(mergedHealthSummaryMap.values())
 
-  // Build the per-date summary list for the Health Summary date dropdown.
-  // The latest date uses the fully merged summary (matching the default view);
-  // all other dates come straight from healthSummaryByDate. Sorted latest first.
-  const healthSummaryByDateList: Array<{ dateKey: string; health_summary: HealthSummaryItem[] }> = []
-  if (mergedHealthSummary.length > 0) {
-    healthSummaryByDateList.push({ dateKey: latestDateKey, health_summary: mergedHealthSummary })
-  }
-  Array.from(healthSummaryByDate.entries())
-    .filter(([dateKey, summary]) => dateKey !== latestDateKey && summary && summary.length > 0)
-    .sort((a, b) => parseDate(b[0]).getTime() - parseDate(a[0]).getTime())
-    .forEach(([dateKey, summary]) => {
-      healthSummaryByDateList.push({ dateKey, health_summary: summary })
+  // Build the summary list for the Health Summary date dropdown, with ONE ENTRY
+  // PER INDIVIDUAL REPORT. Reports that share the same date are deliberately
+  // NOT merged — each one gets its own selectable entry (disambiguated by its
+  // report name), so a member with several reports on the same day can review
+  // each separately. Sorted latest first.
+  const healthSummaryByDateList: Array<{
+    dateKey: string
+    reportName?: string
+    health_summary: HealthSummaryItem[]
+  }> = reports
+    .filter((apiReport) => apiReport.health_summary && apiReport.health_summary.length > 0)
+    .map((apiReport) => {
+      const source = apiReport.reports?.[0]
+      return {
+        dateKey: source?.fullfilmentDate || source?.date || "unknown",
+        reportName: source?.name || "",
+        health_summary: apiReport.health_summary!.map((item) => ({
+          ...item,
+          parameters: item.parameters ? [...item.parameters] : [],
+        })),
+      }
     })
+    .sort((a, b) => parseDate(b.dateKey).getTime() - parseDate(a.dateKey).getTime())
 
   // Every individual report that has data, kept separate (NOT merged by date),
   // sorted newest first. Drives the "Health Records" count and Test Reports so
