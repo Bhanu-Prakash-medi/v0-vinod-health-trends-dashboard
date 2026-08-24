@@ -319,11 +319,11 @@ export default function HealthSummarySection({
               <Select value={String(safeDateIndex)} onValueChange={(v) => setSelectedDateIndex(Number(v))}>
                 <SelectTrigger
                   id="health-summary-date"
-                  className="h-9 w-[150px] border-[#e3e8ee] text-sm text-[#2e3742] sm:w-[210px]"
+                  className="h-9 min-w-0 flex-1 border-[#e3e8ee] text-sm text-[#2e3742] [&>span]:truncate sm:w-[210px] sm:flex-none"
                 >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[calc(100vw-2rem)]">
                   {summariesByDate.map((entry, index) => {
                     const label = formatSummaryDate(entry.dateKey) || entry.dateKey
                     // Several reports can share one date (kept separate), so append
@@ -331,7 +331,11 @@ export default function HealthSummarySection({
                     const sharesDate =
                       summariesByDate.filter((e) => (formatSummaryDate(e.dateKey) || e.dateKey) === label).length > 1
                     return (
-                      <SelectItem key={`${entry.dateKey}-${index}`} value={String(index)}>
+                      <SelectItem
+                        key={`${entry.dateKey}-${index}`}
+                        value={String(index)}
+                        className="whitespace-nowrap"
+                      >
                         {label}
                         {sharesDate && entry.reportName ? ` · ${entry.reportName}` : ""}
                         {index === 0 ? " (Latest)" : ""}
