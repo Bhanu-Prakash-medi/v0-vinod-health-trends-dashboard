@@ -65,6 +65,10 @@ const HEALTH_SCORE_CONTRACT_TYPE = "9716"
 export default function HealthDashboard() {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
   const [activeBeneficiaryIndex, setActiveBeneficiaryIndex] = useState(0)
+  // Which report is selected in the Health Summary date dropdown. Owned here
+  // (not inside HealthSummarySection) so the Digital Twin / body twin renders
+  // the SAME report the user picked instead of always the latest one.
+  const [selectedSummaryIndex, setSelectedSummaryIndex] = useState(0)
   const [beneficiaryReports, setBeneficiaryReports] = useState<Map<string, ApiHealthReport>>(new Map())
   // RequestIds (per beneficiary) whose report-details API returned a non-null
   // report. Only these are sent to the Health Risk Score API — requests that
@@ -609,7 +613,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "c2719a7c72eb4f6fa0bcd228988fbc59"
+        const DEBUG_TOKEN = ""
 
         let cookieToken: string | null = null
         try {
@@ -756,6 +760,8 @@ export default function HealthDashboard() {
     const index = beneficiaries.findIndex((b) => b.uid === uid)
     if (index === -1) return
     setActiveBeneficiaryIndex(index)
+    // Reset the Health Summary/twin selection back to the latest report.
+    setSelectedSummaryIndex(0)
 
     // Lazily load this beneficiary's reports the first time they are selected.
     const beneficiary = beneficiaries[index]
@@ -893,6 +899,18 @@ export default function HealthDashboard() {
   // (their profile report count may be 0 until the reports API responds), so we
   // show the skeleton instead of momentarily flashing the empty state.
   const isLazyPending = activeBeneficiary ? lazyPending.has(activeBeneficiary.uid) : false
+
+  // Per-report summaries (newest first) backing the Health Summary dropdown.
+  const summariesByDate: Array<{ dateKey: string; reportName?: string; health_summary: any[] }> =
+    currentProfileData?.health_summary_by_date && currentProfileData.health_summary_by_date.length > 0
+      ? currentProfileData.health_summary_by_date
+      : []
+  // Clamp so a stale index can never point past a shorter list after switching.
+  const safeSummaryIndex = Math.min(selectedSummaryIndex, Math.max(0, summariesByDate.length - 1))
+  // The summary the twin should render. Undefined when there's no by-date list,
+  // which makes the twin fall back to its default latest-merged behaviour.
+  const selectedHealthSummary =
+    summariesByDate.length > 0 ? summariesByDate[safeSummaryIndex]?.health_summary || [] : undefined
 
   const familyMembers = beneficiaries.map((b) => {
     const report = beneficiaryReports.get(b.uid)
@@ -1067,10 +1085,19 @@ export default function HealthDashboard() {
                   />
                 )}
               <SectionViewTracker section="summary">
-                <HealthSummarySection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
-              </SectionViewTracker>
-              <SectionViewTracker section="insights">
-                <InsightsSection patientData={currentProfileData} vasbenefId={activeBeneficiary?.rVasBenefId} />
+                      <HealthSummarySection
+                        patientData={currentProfileData}
+                        vasbenefId={activeBeneficiary?.rVasBenefId}
+                        selectedDateIndex={safeSummaryIndex}
+                        onSelectedDateIndexChange={setSelectedSummaryIndex}
+                      />
+                    </SectionViewTracker>
+                    <SectionViewTracker section="insights">
+                      <InsightsSection
+                        patientData={currentProfileData}
+                        vasbenefId={activeBeneficiary?.rVasBenefId}
+                        healthSummaryOverride={selectedHealthSummary}
+                      />
               </SectionViewTracker>
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && (

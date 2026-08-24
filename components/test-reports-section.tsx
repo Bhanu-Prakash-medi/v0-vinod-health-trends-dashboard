@@ -46,6 +46,21 @@ function isLatestReportTag(tag: string) {
   return normalizedTag === "latestreport" || normalizedTag === "latest"
 }
 
+/**
+ * Display file name for a report. The backend often returns no `file_name`, and
+ * the old fallback was built from the DATE alone — so two reports from the same
+ * day both rendered "Medibuddy_Report_2025-06-18.pdf" and the cards looked like
+ * duplicates of each other. Including the report name keeps them distinct.
+ */
+function getReportFileName(report: any): string {
+  if (report?.file_name) return report.file_name
+  const date = String(report?.date || "").replace(/\//g, "_")
+  const name = String(getReportNames(report?.report_names ?? report?.report_name)[0] ?? "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+  return name ? `Medibuddy_${name}_${date}.pdf` : `Medibuddy_Report_${date}.pdf`
+}
+
 function getReportNames(reportName: any): string[] {
   if (Array.isArray(reportName)) {
     return reportName.filter((name) => name && typeof name === "string")
@@ -127,13 +142,16 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
       : patientData?.lab_reports || []
   const healthSummaryFromApi = patientData?.health_summary || []
 
-  // Helper function to get all parameters from health_summary
-  const getAllHealthSummaryParams = (): any[] => {
+  // Per-report summaries (one entry per individual report, same-day kept separate).
+  const summariesByDate: any[] = patientData?.health_summary_by_date || []
+
+  // Flatten a list of health_summary categories into display parameters.
+  const paramsFromSummary = (summary: any[]): any[] => {
     const params: any[] = []
     const seenNames = new Set<string>()
-    
-    for (const category of healthSummaryFromApi) {
-      const categoryParams = category.parameters || []
+
+    for (const category of summary || []) {
+      const categoryParams = category?.parameters || []
       for (const param of categoryParams) {
         const paramName = (param.name || param.metric_name || "").toLowerCase()
         if (paramName && !seenNames.has(paramName)) {
@@ -151,27 +169,49 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     return params
   }
 
-  // Merge parameters from trends API with health_summary parameters
-  const mergeParameters = (trendsParams: any[]): any[] => {
-    const healthParams = getAllHealthSummaryParams()
+  // Resolve THIS report's OWN summary parameters, matched by report name + raw date.
+  //
+  // The backend often returns a report with an empty `parameters` map while the
+  // measured values live in that report's health_summary, so the summary has to
+  // fill them in. Previously this pulled from the MERGED, cross-report
+  // `health_summary` and only for the latest report — which injected the other
+  // report's values into it. With two same-day reports (CRP with no numeric
+  // params + CBC with 19) both rows ended up showing the identical 19 CBC
+  // parameters. Scoping the lookup to the report's own entry fixes that.
+  const getOwnSummaryParams = (lr: any): any[] => {
+    const name = String(getReportNames(lr.report_name)[0] ?? "")
+      .trim()
+      .toLowerCase()
+    const date = String(lr.report_date || lr.date || "").trim()
+    const match = summariesByDate.find(
+      (e) => String(e?.reportName || "").trim().toLowerCase() === name && String(e?.dateKey || "").trim() === date,
+    )
+    if (match) return paramsFromSummary(match.health_summary)
+    // With a single report the merged summary IS this report's summary, so it's
+    // a safe fallback. With several, guessing would re-introduce the mix-up.
+    return summariesByDate.length <= 1 ? paramsFromSummary(healthSummaryFromApi) : []
+  }
+
+  // Merge a report's own trends parameters with its own summary parameters.
+  const mergeParameters = (trendsParams: any[], ownSummaryParams: any[]): any[] => {
     const merged: any[] = [...trendsParams]
     const seenNames = new Set<string>()
-    
+
     // Track existing parameter names from trends
     for (const param of trendsParams) {
       const paramName = (param.metric_name || param.name || "").toLowerCase()
       if (paramName) seenNames.add(paramName)
     }
-    
-    // Add health_summary parameters that don't exist in trends
-    for (const param of healthParams) {
+
+    // Add this report's summary parameters that aren't already present
+    for (const param of ownSummaryParams) {
       const paramName = (param.metric_name || param.name || "").toLowerCase()
       if (paramName && !seenNames.has(paramName)) {
         seenNames.add(paramName)
         merged.push(param)
       }
     }
-    
+
     return merged
   }
 
@@ -179,11 +219,11 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
 
   if (labReportsFromApi.length > 0) {
     reports = labReportsFromApi.map((lr: any) => {
-      const isLatest = isLatestReportTag(lr.tag || "")
       const baseParams = lr.parameters || []
-      
-      // For latest report, merge with health_summary parameters to ensure all params are shown
-      const parameters = isLatest ? mergeParameters(baseParams) : baseParams
+
+      // Every report is filled in from its OWN summary (not just the latest, and
+      // never from the merged cross-report summary) so each row shows its own data.
+      const parameters = mergeParameters(baseParams, getOwnSummaryParams(lr))
       
       return {
         date: formatDate(lr.report_date || lr.date || ""),
@@ -363,8 +403,8 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="h-4 w-4 shrink-0 text-[#9dabbd]" />
                   <p className="max-w-[200px] truncate text-xs text-[#9dabbd]">
-                    {report.file_name || `Medibuddy_Report_${(report.date || "").replace(/\//g, "_")}.pdf`}
-                  </p>
+                          {getReportFileName(report)}
+                        </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <span className="text-xs text-[#9dabbd]">{report.date}</span>
@@ -374,9 +414,9 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                       onClick={(e) =>
                         handleDownloadReport(
                           e,
-                          report.file,
-                          report.file_name || `Medibuddy_Report_${(report.date || "").replace(/\//g, "_")}.pdf`,
-                        )
+                              report.file,
+                              getReportFileName(report),
+                            )
                       }
                       className="flex h-8 w-8 items-center justify-center rounded-full text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
                       aria-label="Download original report"
@@ -433,10 +473,9 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                     onClick={(e) =>
                       handleDownloadReport(
                         e,
-                        reports[selectedReportIndex].file,
-                        reports[selectedReportIndex].file_name ||
-                          `Medibuddy_Report_${(reports[selectedReportIndex].date || "").replace(/\//g, "_")}.pdf`,
-                      )
+                    reports[selectedReportIndex].file,
+                    getReportFileName(reports[selectedReportIndex]),
+                  )
                     }
                     className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
                     aria-label="Download original report"
