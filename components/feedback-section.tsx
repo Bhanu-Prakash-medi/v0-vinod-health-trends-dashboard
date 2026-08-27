@@ -117,7 +117,7 @@ export default function FeedbackSection({
     // Counts feedback submissions. Only the numeric rating and whether it
     // persisted are sent — the free-text comment and selected reasons stay out
     // of PostHog because users can type anything, including health details.
-    trackEvent("health_feedback_submitted", { rating, saved: feedbackSaved })
+    trackEvent("feedback_submit_click", { rating, saved: feedbackSaved })
 
     setIsSubmitting(false)
     setSubmitted(true)

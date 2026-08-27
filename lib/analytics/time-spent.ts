@@ -29,7 +29,7 @@ function flushOnce(useBeacon = false) {
   const seconds = Math.floor(totalMs / 1000)
   if (seconds < 1) return
   flushed = true
-  trackEvent("health_trends_time_spent", { active_seconds: seconds }, { useBeacon })
+  trackEvent("dashboard_time_spent", { active_seconds: seconds }, { useBeacon })
 }
 
 function handleVisibilityChange() {

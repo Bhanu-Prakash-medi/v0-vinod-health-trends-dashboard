@@ -532,7 +532,7 @@ export default function HealthDashboard() {
           errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
         }
 
-        trackEvent("health_report_load_failed", {
+        trackEvent("dashboard_load_failed", {
           source: analyticsSource,
           success: false,
           duration_ms: Date.now() - loadStartedAt,
@@ -570,9 +570,8 @@ export default function HealthDashboard() {
     (beneficiaryUid: string) => {
       const beneficiary = beneficiaries.find((b) => b.uid === beneficiaryUid)
       if (beneficiary && accessToken) {
-        trackEvent("health_report_retry_clicked", {
+        trackEvent("dashboard_retry_click", {
           source: beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member",
-          action: "retry_report_load",
         })
         setBeneficiaryReports((prev) => {
           const newMap = new Map(prev)
@@ -668,7 +667,7 @@ export default function HealthDashboard() {
         })
         // trackEventOnce is module-scoped, so a remount can't double-count
         // this user in the DAU metric.
-        trackEventOnce("health_trends_viewed")
+        trackEventOnce("dashboard_view")
 
         // Consent gate: mbUserId comes from the profile response, pmEntityId
         // from the cookie, email from the profile. Check existing consent; if
@@ -809,11 +808,11 @@ export default function HealthDashboard() {
   // "viewed" moment is simply the state flip that renders them (unlike the
   // in-page sections below, which use scroll-into-view via SectionViewTracker).
   useEffect(() => {
-    if (showAllTrends) trackEvent("health_trends_section_viewed", { section: "trends" })
+    if (showAllTrends) trackEvent("trends_view")
   }, [showAllTrends])
 
   useEffect(() => {
-    if (showAllParameters) trackEvent("health_trends_section_viewed", { section: "all_parameters" })
+    if (showAllParameters) trackEvent("all_parameters_view")
   }, [showAllParameters])
 
   if (isBeneficiariesLoading) {
@@ -1113,7 +1112,7 @@ export default function HealthDashboard() {
                 <SectionViewTracker section="trends">
                   <TrendsSection
                     onViewAll={() => {
-                      trackEvent("health_trends_action_clicked", { action: "view_all_trends" })
+                      trackEvent("trends_view_all_click")
                       setShowAllTrends(true)
                     }}
                     patientData={currentProfileData}
@@ -1124,7 +1123,7 @@ export default function HealthDashboard() {
               <AllParametersSection
                 patientData={currentProfileData}
                 onViewAll={() => {
-                  trackEvent("health_trends_action_clicked", { action: "view_all_parameters" })
+                  trackEvent("all_parameters_view_all_click")
                   setShowAllParameters(true)
                 }}
                 vasbenefId={activeBeneficiary?.rVasBenefId}

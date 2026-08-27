@@ -135,35 +135,57 @@ export function identifyUser(user: {
   }
 }
 
-/** Controlled set of dashboard "section" values used by health_trends_section_viewed. */
+/** Controlled set of dashboard "section" values, used to pick a section_view event name. */
 export type TrendsSection = "summary" | "trends" | "all_parameters" | "reports" | "insights"
 
 /**
  * Allow-listed event names — the metrics this dashboard reports on, plus two
- * failure diagnostics. Keep this list in sync with what's instrumented.
+ * failure diagnostics. Naming convention: `{section}_{view|click}` — the
+ * event name itself tells you what section it belongs to and whether it's an
+ * impression or an interaction. Keep this list in sync with what's
+ * instrumented.
  *
- *  health_trends_viewed             -> unique people using Health Trends (DAU)
- *  health_trends_section_viewed     -> impressions (summary / trends / reports / ...)
- *  health_trends_action_clicked     -> "see all" style navigation
- *  health_report_downloaded         -> report downloads
- *  health_recommendation_cta_clicked-> recommendation CTA clicks
- *  health_feedback_submitted        -> feedback submissions
- *  health_digital_twin_clicked      -> digital twin organ clicks
- *  health_trends_time_spent         -> active time in the dashboard
- *  health_report_load_failed        -> diagnostics: dashboard broken for a user
- *  health_report_retry_clicked      -> diagnostics: user retried after a failure
+ *  dashboard_view                    -> unique people using Health Trends (DAU)
+ *  summary_view                      -> Summary section impression
+ *  insights_view                     -> Insights section impression
+ *  trends_view                       -> Trends section impression
+ *  reports_view                      -> Reports section impression
+ *  all_parameters_view               -> All Parameters section impression
+ *  trends_view_all_click             -> "See all" clicked on Trends
+ *  all_parameters_view_all_click     -> "See all" clicked on All Parameters
+ *  reports_download_click            -> report downloaded
+ *  recommendations_click             -> recommendation CTA clicked
+ *  feedback_submit_click             -> feedback submitted
+ *  digital_twin_click                -> digital twin organ clicked
+ *  dashboard_time_spent              -> active time in the dashboard
+ *  dashboard_load_failed             -> diagnostics: dashboard broken for a user
+ *  dashboard_retry_click             -> diagnostics: user retried after a failure
  */
 export type AnalyticsEventName =
-  | "health_trends_viewed"
-  | "health_trends_section_viewed"
-  | "health_trends_action_clicked"
-  | "health_report_downloaded"
-  | "health_recommendation_cta_clicked"
-  | "health_feedback_submitted"
-  | "health_digital_twin_clicked"
-  | "health_trends_time_spent"
-  | "health_report_load_failed"
-  | "health_report_retry_clicked"
+  | "dashboard_view"
+  | "summary_view"
+  | "insights_view"
+  | "trends_view"
+  | "reports_view"
+  | "all_parameters_view"
+  | "trends_view_all_click"
+  | "all_parameters_view_all_click"
+  | "reports_download_click"
+  | "recommendations_click"
+  | "feedback_submit_click"
+  | "digital_twin_click"
+  | "dashboard_time_spent"
+  | "dashboard_load_failed"
+  | "dashboard_retry_click"
+
+/** Maps a TrendsSection to its `{section}_view` event name. */
+export const SECTION_VIEW_EVENTS: Record<TrendsSection, AnalyticsEventName> = {
+  summary: "summary_view",
+  insights: "insights_view",
+  trends: "trends_view",
+  reports: "reports_view",
+  all_parameters: "all_parameters_view",
+}
 
 /**
  * Only low-sensitivity, categorical properties are allowed on events. Never
@@ -176,8 +198,6 @@ export type AnalyticsEventName =
  */
 export interface AnalyticsEventProperties {
   source?: "self" | "family_member"
-  section?: TrendsSection
-  action?: string
   success?: boolean
   duration_ms?: number
   /** Which recommendation CTA was clicked (e.g. "Book Lab Test"). */
@@ -187,7 +207,7 @@ export interface AnalyticsEventProperties {
   saved?: boolean
   /** Digital twin organ identifier (anatomical, not patient data). */
   organ?: string
-  /** Active seconds spent in the dashboard, for health_trends_time_spent. */
+  /** Active seconds spent in the dashboard, for dashboard_time_spent. */
   active_seconds?: number
 }
 

@@ -252,7 +252,7 @@ export default function HealthRecommendationsSection({ patientData }: HealthReco
                           // Which recommendation CTA was clicked. `service.label`
                           // is a fixed catalog value ("Book Lab Test" etc.), not
                           // anything derived from the patient's report.
-                          trackEvent("health_recommendation_cta_clicked", { service: service.label })
+                          trackEvent("recommendations_click", { service: service.label })
                           openExternalUrl(service.url)
                         }}
                         className="inline-flex items-center gap-1.5 rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-3 py-1.5 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"

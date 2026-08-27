@@ -479,7 +479,7 @@ export default function Musculature3DModel({
     setIsBottomSheetOpen(true)
     trackHealthTrendsEvent("Clicked on Digital Twin Organ", vasbenefId)
     // organId is an anatomical group ("heart", "liver"), not patient data.
-    trackEvent("health_digital_twin_clicked", { organ: organId })
+    trackEvent("digital_twin_click", { organ: organId })
   }
 
   const closeBottomSheet = () => {
