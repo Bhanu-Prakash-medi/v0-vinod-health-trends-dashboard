@@ -658,17 +658,17 @@ export default function HealthDashboard() {
         // Identify in PostHog with the same ids Snowplow uses, then record the
         // "used Health Trends" event. Firing it here (rather than on mount)
         // means every DAU event carries mb_user_id / pm_entity_id, so unique
-        // people can be counted and broken down. The email is hashed inside
-        // identifyUser — the raw address never leaves the client.
-        void identifyUser({
+        // people can be counted and broken down.
+        const selfProfileForAnalytics = data.beneficiaries.find((b) => b.relation?.toLowerCase() === "self")
+        identifyUser({
           mbUserId: data.mbuserid || null,
           pmEntityId,
           email: data.employee_email || null,
-        }).then(() => {
-          // trackEventOnce is module-scoped, so a remount can't double-count
-          // this user in the DAU metric.
-          trackEventOnce("health_trends_viewed")
+          name: selfProfileForAnalytics?.patientName || null,
         })
+        // trackEventOnce is module-scoped, so a remount can't double-count
+        // this user in the DAU metric.
+        trackEventOnce("health_trends_viewed")
 
         // Consent gate: mbUserId comes from the profile response, pmEntityId
         // from the cookie, email from the profile. Check existing consent; if
