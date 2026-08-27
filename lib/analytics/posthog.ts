@@ -81,22 +81,8 @@ export function initPostHog() {
       person_profiles: "identified_only",
       // Never send the visitor IP for a health application.
       mask_personal_data_properties: true,
-      opt_out_useragent_filter: true,
       // Strip query strings/fragments from URL properties before sending.
-      before_send: (e: CaptureResult | null) => {
-        const out = scrubEventUrls(e)
-        console.log(
-          "[v0] ph_send",
-          out?.event,
-          JSON.stringify({
-            mb_user_id: out?.properties?.mb_user_id,
-            pm_entity_id: out?.properties?.pm_entity_id,
-            email_sha256: out?.properties?.email_sha256 ? "present" : "absent",
-            distinct_id: out?.properties?.distinct_id,
-          }),
-        )
-        return out
-      },
+      before_send: scrubEventUrls,
     })
     initialized = true
   } catch (error) {
