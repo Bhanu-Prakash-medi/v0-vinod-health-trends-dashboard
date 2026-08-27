@@ -29,7 +29,7 @@ import {
 import { initSnowplow, trackHealthTrendsEvent, setSnowplowUserContext, setSelfVasBenefId } from "@/lib/snowplow"
 import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { identifyUser, trackEvent, trackEventOnce } from "@/lib/analytics/posthog"
 import SectionViewTracker from "@/components/section-view-tracker"
 import {
   fetchBeneficiaries,
@@ -147,7 +147,6 @@ export default function HealthDashboard() {
       const analyticsSource: "self" | "family_member" =
         beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member"
       const loadStartedAt = Date.now()
-      trackEvent("health_report_load_started", { source: analyticsSource })
 
       setBeneficiaryErrors((prev) => {
         const newMap = new Map(prev)
@@ -512,11 +511,6 @@ export default function HealthDashboard() {
           trackHealthTrendsEvent("Health Summary Loaded")
         }
 
-        trackEvent("health_report_load_succeeded", {
-          source: analyticsSource,
-          success: true,
-          duration_ms: Date.now() - loadStartedAt,
-        })
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err)
 
@@ -613,7 +607,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = ""
+        const DEBUG_TOKEN = "6ff674f558b849f29285d18126da422f"
 
         let cookieToken: string | null = null
         try {
@@ -660,6 +654,21 @@ export default function HealthDashboard() {
         setMbUserId(data.mbuserid ? String(data.mbuserid) : "")
         setUserEmail(data.employee_email || "")
         setSnowplowUserContext(data.mbuserid || null, data.employee_email || null)
+
+        // Identify in PostHog with the same ids Snowplow uses, then record the
+        // "used Health Trends" event. Firing it here (rather than on mount)
+        // means every DAU event carries mb_user_id / pm_entity_id, so unique
+        // people can be counted and broken down. The email is hashed inside
+        // identifyUser — the raw address never leaves the client.
+        void identifyUser({
+          mbUserId: data.mbuserid || null,
+          pmEntityId,
+          email: data.employee_email || null,
+        }).then(() => {
+          // trackEventOnce is module-scoped, so a remount can't double-count
+          // this user in the DAU metric.
+          trackEventOnce("health_trends_viewed")
+        })
 
         // Consent gate: mbUserId comes from the profile response, pmEntityId
         // from the cookie, email from the profile. Check existing consent; if
