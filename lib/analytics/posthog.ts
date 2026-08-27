@@ -95,47 +95,26 @@ export function isPostHogReady(): boolean {
 }
 
 /**
- * SHA-256 hex digest, used to send a stable but non-reversible reference to
- * the user's email address. Returns "" when WebCrypto isn't available (e.g. a
- * non-secure context) so a missing digest never blocks identification.
- */
-async function sha256Hex(value: string): Promise<string> {
-  try {
-    const subtle = globalThis.crypto?.subtle
-    if (!subtle) return ""
-    const bytes = new TextEncoder().encode(value)
-    const digest = await subtle.digest("SHA-256", bytes)
-    return Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-  } catch {
-    return ""
-  }
-}
-
-/**
  * Identify the current user so unique-person metrics (DAU) and per-user
  * breakdowns work, and register the ids as super properties so every
  * subsequent event carries them.
  *
- * The raw email address is deliberately NOT sent. This is a health
- * application, so the email is reduced to a SHA-256 digest: it still joins
- * 1:1 with a known address (hash the address you're looking for and match),
- * but PostHog never stores a readable inbox for a health dashboard user.
+ * `email` and `name` are sent as-is (not hashed) at the caller's request.
  * `mbUserId` and `pmEntityId` are the same ids Snowplow sends, so the two
  * datasets can be reconciled.
  */
-export async function identifyUser(user: {
+export function identifyUser(user: {
   mbUserId?: string | number | null
   pmEntityId?: string | number | null
   email?: string | null
+  name?: string | null
 }) {
   if (typeof window === "undefined" || !initialized) return
 
   const mbUserId = user.mbUserId != null && user.mbUserId !== "" ? String(user.mbUserId) : ""
   const pmEntityId = user.pmEntityId != null && user.pmEntityId !== "" ? String(user.pmEntityId) : ""
-  const normalizedEmail = (user.email || "").trim().toLowerCase()
-  const emailHash = normalizedEmail ? await sha256Hex(normalizedEmail) : ""
+  const email = (user.email || "").trim()
+  const name = (user.name || "").trim()
 
   // Without a user id there is no stable person to attach to; stay anonymous
   // rather than inventing an identity.
@@ -143,7 +122,8 @@ export async function identifyUser(user: {
 
   const identity: Record<string, string> = { mb_user_id: mbUserId }
   if (pmEntityId) identity.pm_entity_id = pmEntityId
-  if (emailHash) identity.email_sha256 = emailHash
+  if (email) identity.email = email
+  if (name) identity.name = name
 
   try {
     posthog.identify(mbUserId, identity)
