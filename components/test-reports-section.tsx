@@ -273,7 +273,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     if (!fileUrl) return
     // Counts people who downloaded a report. The file URL is deliberately not
     // sent — it is a pre-signed link to patient report contents.
-    trackEvent("health_report_downloaded")
+    trackEvent("reports_download_click")
     openExternalUrl(fileUrl)
     // The file downloads in the external browser tab, so the OS "download
     // complete" event isn't observable here. Confirm to the user that the
