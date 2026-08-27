@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
+import { trackEvent } from "@/lib/analytics/posthog"
 import { submitHealthFeedback } from "@/lib/api"
 
 interface FeedbackSectionProps {
@@ -112,6 +113,11 @@ export default function FeedbackSection({
       `feedback_submitted | rating:${rating} | reasons:${selectedReasons.join("; ")} | message:${message.trim()} | saved:${feedbackSaved}`,
       vasbenefId,
     )
+
+    // Counts feedback submissions. Only the numeric rating and whether it
+    // persisted are sent — the free-text comment and selected reasons stay out
+    // of PostHog because users can type anything, including health details.
+    trackEvent("health_feedback_submitted", { rating, saved: feedbackSaved })
 
     setIsSubmitting(false)
     setSubmitted(true)

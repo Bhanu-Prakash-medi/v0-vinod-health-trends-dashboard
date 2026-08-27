@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import { Info, Activity, Heart, Droplets, Bone, X, Beaker } from "lucide-react"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
+import { trackEvent } from "@/lib/analytics/posthog"
 import { paramHasRange } from "@/lib/health-utils"
 import { resolveParameterStatus } from "@/lib/parameter-status"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
@@ -477,6 +478,8 @@ export default function Musculature3DModel({
     setSelectedOrgan(organId)
     setIsBottomSheetOpen(true)
     trackHealthTrendsEvent("Clicked on Digital Twin Organ", vasbenefId)
+    // organId is an anatomical group ("heart", "liver"), not patient data.
+    trackEvent("health_digital_twin_clicked", { organ: organId })
   }
 
   const closeBottomSheet = () => {
