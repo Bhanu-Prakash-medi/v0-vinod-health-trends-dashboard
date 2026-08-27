@@ -3,61 +3,55 @@
 import { trackEvent } from "./posthog"
 
 /**
- * Measures how long a user actively spends in the Health Trends dashboard.
- *
- * Only time where the tab is actually visible is counted: the timer pauses on
- * visibilitychange and resumes when the user comes back, so a dashboard left
- * open in a background tab (or a phone in a pocket) doesn't inflate the
- * average. Elapsed time is emitted as incremental `active_seconds` deltas, so
- * total time per user is SUM(active_seconds) and the average is that sum
- * averaged across users.
+ * Measures how long a user actively spends in the Health Trends dashboard and
+ * reports it as a SINGLE event when they actually leave — not once per tab
+ * switch and not on a recurring interval. Switching tabs only pauses the
+ * clock (background time isn't counted); it never triggers its own event.
  */
 
 let tracking = false
 /** Timestamp the current visible stretch began, or null while paused. */
 let segmentStartedAt: number | null = null
-/** Visible milliseconds accumulated but not yet sent. */
-let pendingMs = 0
-
-/** Emit at most one event per 30s of activity so long sessions stay bounded. */
-const FLUSH_INTERVAL_MS = 30_000
-let flushTimer: ReturnType<typeof setInterval> | null = null
+/** Total visible milliseconds accumulated for this session. */
+let totalMs = 0
+/** Guards against sending the final event twice (e.g. pagehide then unmount). */
+let flushed = false
 
 function accumulate() {
   if (segmentStartedAt == null) return
-  pendingMs += Date.now() - segmentStartedAt
+  totalMs += Date.now() - segmentStartedAt
   segmentStartedAt = null
 }
 
-/** Send whatever whole seconds have accrued, keeping the remainder. */
-function flush(useBeacon = false) {
-  const seconds = Math.floor(pendingMs / 1000)
+/** Send the total accumulated time once, as a single final event. */
+function flushOnce(useBeacon = false) {
+  if (flushed) return
+  const seconds = Math.floor(totalMs / 1000)
   if (seconds < 1) return
-  pendingMs -= seconds * 1000
+  flushed = true
   trackEvent("health_trends_time_spent", { active_seconds: seconds }, { useBeacon })
 }
 
 function handleVisibilityChange() {
   if (document.visibilityState === "visible") {
-    // Resuming: start a new visible stretch.
+    // Resuming: start a new visible stretch. No event fires here.
     if (segmentStartedAt == null) segmentStartedAt = Date.now()
   } else {
-    // Backgrounded: bank the time and report it now, because a mobile browser
-    // may never run another event for this page.
+    // Backgrounded: just stop the clock. Don't send anything — a tab switch
+    // isn't "closing" Health Trends, it's just paused.
     accumulate()
-    flush(true)
   }
 }
 
 function handlePageHide() {
   accumulate()
-  flush(true)
+  flushOnce(true)
 }
 
 /**
  * Begin tracking. Safe to call more than once — subsequent calls are ignored,
  * so React Strict Mode's double-invoked effects don't double-count.
- * Returns a cleanup function that flushes any remaining time.
+ * Returns a cleanup function that sends the single final event.
  */
 export function startTimeSpentTracking(): () => void {
   if (typeof window === "undefined" || tracking) return () => {}
@@ -68,22 +62,11 @@ export function startTimeSpentTracking(): () => void {
   document.addEventListener("visibilitychange", handleVisibilityChange)
   window.addEventListener("pagehide", handlePageHide)
 
-  flushTimer = setInterval(() => {
-    // Bank the in-progress stretch, report it, then keep timing.
-    accumulate()
-    flush()
-    if (document.visibilityState === "visible") segmentStartedAt = Date.now()
-  }, FLUSH_INTERVAL_MS)
-
   return () => {
-    if (flushTimer) {
-      clearInterval(flushTimer)
-      flushTimer = null
-    }
     document.removeEventListener("visibilitychange", handleVisibilityChange)
     window.removeEventListener("pagehide", handlePageHide)
     accumulate()
-    flush(true)
+    flushOnce(true)
     tracking = false
   }
 }
