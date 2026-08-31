@@ -106,20 +106,22 @@ export default function UploadReportSection() {
 
   return (
     <>
-      <div className="flex items-center gap-3 rounded-2xl border border-[#f0f3f5] bg-white p-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff]">
-          <FilePlus2 className="h-5 w-5 text-[#156ddc]" aria-hidden="true" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-[#2e3742]">Have a new lab report?</h3>
-          <p className="mt-0.5 text-xs text-[#4d5c6f]">
-            Upload it here and we&apos;ll keep it with your health records.
-          </p>
+      <div className="flex flex-col gap-4 rounded-2xl border border-[#f0f3f5] bg-white p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff]">
+            <FilePlus2 className="h-5 w-5 text-[#156ddc]" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-bold text-[#2e3742]">Have a new lab report?</h3>
+            <p className="mt-0.5 text-xs text-[#4d5c6f]">
+              Upload it here and we&apos;ll keep it with your health records.
+            </p>
+          </div>
         </div>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="shrink-0 whitespace-nowrap rounded-full bg-[#156ddc] px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+          className="w-full rounded-full bg-[#156ddc] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
         >
           Upload Report
         </button>
