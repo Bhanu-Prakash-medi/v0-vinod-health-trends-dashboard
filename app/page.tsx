@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import TopNavigation from "@/components/top-navigation"
 import ProfileCard from "@/components/profile-card"
+import UploadReportSection from "@/components/upload-report-section"
 import HealthSummarySection from "@/components/health-summary-section"
 import InsightsSection from "@/components/insights-section"
 import WhatNextSection from "@/components/what-next-section"
@@ -1026,6 +1027,8 @@ export default function HealthDashboard() {
             abhaId={currentProfileData?.patient_info?.abha_id}
             relation={currentProfileData?.patient_info?.relation}
           />
+
+          <UploadReportSection />
 
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an
