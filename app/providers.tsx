@@ -16,8 +16,6 @@ import { startTimeSpentTracking } from "@/lib/analytics/time-spent"
 export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initPostHog()
-    console.log("[v0] diagnostic: firing test capture")
-    import("@/lib/analytics/posthog").then(({ trackEvent }) => trackEvent("dashboard_view"))
     // startTimeSpentTracking guards against duplicate starts itself, so
     // Strict Mode's double-invoked effect can't double-count time.
     return startTimeSpentTracking()

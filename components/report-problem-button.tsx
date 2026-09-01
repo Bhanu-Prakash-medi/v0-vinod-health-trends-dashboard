@@ -36,7 +36,7 @@ export default function ReportProblemButton({
         className="flex items-center gap-2 rounded-full bg-[#de3d31] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#de3d31]/30 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#de3d31] focus-visible:ring-offset-2"
         aria-label="Report a problem"
       >
-        <Flag className="h-4 w-4" />
+        <Flag className="h-3.5 w-3.5" />
         <span>Report a problem</span>
       </button>
     )

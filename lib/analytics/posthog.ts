@@ -225,11 +225,9 @@ export function trackEvent(
   properties?: AnalyticsEventProperties,
   options?: { useBeacon?: boolean },
 ) {
-  console.log("[v0] trackEvent called:", name, "initialized:", initialized, "typeof window:", typeof window)
   if (typeof window === "undefined" || !initialized) return
   try {
-    const result = posthog.capture(name, properties, options?.useBeacon ? { transport: "sendBeacon" } : undefined)
-    console.log("[v0] posthog.capture returned:", result, "posthog.has_opted_out:", posthog.has_opted_out_capturing?.())
+    posthog.capture(name, properties, options?.useBeacon ? { transport: "sendBeacon" } : undefined)
   } catch (error) {
     console.log("[v0] PostHog capture failed (non-blocking):", error)
   }
