@@ -18,7 +18,7 @@ import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
 import HealthScoreSection from "@/components/health-score-section"
 import FeatureComingSoon from "@/components/feature-coming-soon"
-import { isAppAccessAllowed } from "@/lib/health-trends-access-allowlist"
+import { checkAppAccess } from "@/lib/health-trends-access-allowlist"
 import EmptyState from "@/components/empty-state"
 import ReportProblemButton from "@/components/report-problem-button"
 import {
@@ -92,6 +92,9 @@ export default function HealthDashboard() {
   const [userEmail, setUserEmail] = useState<string>("")
   const [mbUserId, setMbUserId] = useState<string>("")
   const [pmEntityId, setPmEntityId] = useState<string>("0")
+  // App-level access for the restricted org, resolved via the API allowlist.
+  // null = not yet determined; false = denied (show "coming soon").
+  const [appAccessAllowed, setAppAccessAllowed] = useState<boolean | null>(null)
   // Consent gate. Starts hidden until we know the user's consent status:
   // `null` = unknown/checking (no modal yet), `true` = agreed, `false` = must agree.
   const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState<boolean | null>(null)
@@ -718,6 +721,15 @@ export default function HealthDashboard() {
           setActiveBeneficiaryIndex(selfIndex)
         }
 
+        // Resolve app-level access before revealing the app. For the restricted
+        // org this fetches the API allowlist and fails closed on any error;
+        // other orgs resolve to `true` immediately. Awaiting here keeps the
+        // loading skeleton up (instead of flashing the app or "coming soon")
+        // until the decision is known.
+        const allowed = await checkAppAccess(pmEntityId, data.employee_email || "")
+        if (!isMounted) return
+        setAppAccessAllowed(allowed)
+
         setIsBeneficiariesLoading(false)
 
         // Load ONLY the Self beneficiary eagerly on initial load. Other family
@@ -862,17 +874,11 @@ export default function HealthDashboard() {
   }
 
   // App-level access gate. For the restricted org (pmEntityId 1006639) only
-  // allowlisted emails may use the app; everyone else from that org sees a
-  // "feature coming soon" screen. Any other org is unrestricted. Reached only
-  // after beneficiaries loaded (so pmEntityId + userEmail are populated).
-  console.log("[v0] access gate check", {
-    pmEntityId,
-    // JSON.stringify reveals stray quotes/whitespace/invisible characters in
-    // the raw email that would otherwise be invisible in a plain log.
-    rawUserEmail: JSON.stringify(userEmail),
-    allowed: isAppAccessAllowed(pmEntityId, userEmail),
-  })
-  if (!isAppAccessAllowed(pmEntityId, userEmail)) {
+  // emails on the API allowlist may use the app; everyone else from that org
+  // sees a "feature coming soon" screen. Any other org is unrestricted. The
+  // decision is resolved in the load effect (fail closed on API errors), so by
+  // the time beneficiaries have loaded, `appAccessAllowed` is populated.
+  if (appAccessAllowed === false) {
     return <FeatureComingSoon />
   }
 
