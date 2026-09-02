@@ -1034,7 +1034,10 @@ export default function HealthDashboard() {
             relation={currentProfileData?.patient_info?.relation}
           />
 
-          <UploadReportSection />
+          {/* Temporarily hidden — will be re-enabled later.
+              Keep the import and component so this can be restored by simply
+              uncommenting this line. */}
+          {/* <UploadReportSection /> */}
 
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an
