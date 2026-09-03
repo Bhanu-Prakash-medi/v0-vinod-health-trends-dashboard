@@ -610,7 +610,7 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "7a206dba45ad428999cd895509d11732"
+        const DEBUG_TOKEN = "4a4da9d5e1684e8492f0792f4a6eb099"
 
         let cookieToken: string | null = null
         try {
