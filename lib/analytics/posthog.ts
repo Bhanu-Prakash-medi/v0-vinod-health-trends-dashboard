@@ -163,7 +163,7 @@ export type TrendsSection = "summary" | "trends" | "all_parameters" | "reports" 
  * impression or an interaction. Keep this list in sync with what's
  * instrumented.
  *
- *  dashboard_view                    -> unique people using Health Trends (DAU)
+ *  health_trends_view                -> unique people using Health Trends (DAU)
  *  summary_view                      -> Summary section impression
  *  digital_twin_view                 -> Digital Twin section impression
  *  trends_view                       -> Trends section impression
@@ -171,16 +171,24 @@ export type TrendsSection = "summary" | "trends" | "all_parameters" | "reports" 
  *  all_parameters_view               -> All Parameters section impression
  *  trends_view_all_click             -> "See all" clicked on Trends
  *  all_parameters_view_all_click     -> "See all" clicked on All Parameters
+ *  trend_point_click                 -> a data point on a trend chart clicked
  *  reports_download_click            -> report downloaded
+ *  no_reports                        -> a beneficiary has no lab reports available
  *  recommendations_click             -> recommendation CTA clicked
  *  feedback_submit_click             -> feedback submitted
  *  digital_twin_click                -> digital twin organ clicked
- *  dashboard_time_spent              -> active time in the dashboard
- *  dashboard_load_failed             -> diagnostics: dashboard broken for a user
- *  dashboard_retry_click             -> diagnostics: user retried after a failure
+ *  youtube_video_click               -> "How it's calculated" YouTube link clicked
+ *  website_click                     -> "Learn more" external website link clicked
+ *  health_trends_time_spent          -> total active time in Health Trends for
+ *                                        the whole session (covers every
+ *                                        in-page view — summary, See All
+ *                                        Trends/Parameters, reports, etc. —
+ *                                        not just the initial dashboard view)
+ *  health_trends_load_failed         -> diagnostics: Health Trends broken for a user
+ *  health_trends_retry_click         -> diagnostics: user retried after a failure
  */
 export type AnalyticsEventName =
-  | "dashboard_view"
+  | "health_trends_view"
   | "summary_view"
   | "digital_twin_view"
   | "trends_view"
@@ -188,13 +196,17 @@ export type AnalyticsEventName =
   | "all_parameters_view"
   | "trends_view_all_click"
   | "all_parameters_view_all_click"
+  | "trend_point_click"
   | "reports_download_click"
+  | "no_reports"
   | "recommendations_click"
   | "feedback_submit_click"
   | "digital_twin_click"
-  | "dashboard_time_spent"
-  | "dashboard_load_failed"
-  | "dashboard_retry_click"
+  | "youtube_video_click"
+  | "website_click"
+  | "health_trends_time_spent"
+  | "health_trends_load_failed"
+  | "health_trends_retry_click"
 
 /** Maps a TrendsSection to its `{section}_view` event name. */
 export const SECTION_VIEW_EVENTS: Record<TrendsSection, AnalyticsEventName> = {
@@ -225,7 +237,7 @@ export interface AnalyticsEventProperties {
   saved?: boolean
   /** Digital twin organ identifier (anatomical, not patient data). */
   organ?: string
-  /** Active seconds spent in the dashboard, for dashboard_time_spent. */
+  /** Active seconds spent in Health Trends, for health_trends_time_spent. */
   active_seconds?: number
 }
 

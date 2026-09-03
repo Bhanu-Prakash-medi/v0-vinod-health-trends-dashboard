@@ -525,22 +525,29 @@ export default function HealthDashboard() {
           return
         } else if (errorMessage === "NO_REPORTS_404") {
           errorInfo = { type: "NO_REPORTS", message: "Sorry Lab Reports are Not Available" }
-        } else if (
-          errorMessage.includes("504") ||
-          errorMessage.includes("timeout") ||
-          errorMessage.includes("Time-out") ||
-          errorMessage.includes("TIMEOUT")
-        ) {
-          errorInfo = { type: "TIMEOUT", message: "The server is taking too long to respond. Please try again." }
+          // Having no lab reports is a valid empty state, not a load failure —
+          // track it distinctly from health_trends_load_failed so failure
+          // diagnostics aren't polluted by beneficiaries who simply have no
+          // reports yet.
+          trackEvent("no_reports", { source: analyticsSource })
         } else {
-          errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
-        }
+          if (
+            errorMessage.includes("504") ||
+            errorMessage.includes("timeout") ||
+            errorMessage.includes("Time-out") ||
+            errorMessage.includes("TIMEOUT")
+          ) {
+            errorInfo = { type: "TIMEOUT", message: "The server is taking too long to respond. Please try again." }
+          } else {
+            errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
+          }
 
-        trackEvent("dashboard_load_failed", {
-          source: analyticsSource,
-          success: false,
-          duration_ms: Date.now() - loadStartedAt,
-        })
+          trackEvent("health_trends_load_failed", {
+            source: analyticsSource,
+            success: false,
+            duration_ms: Date.now() - loadStartedAt,
+          })
+        }
 
         setBeneficiaryErrors((prev) => {
           const newMap = new Map(prev)
@@ -574,7 +581,7 @@ export default function HealthDashboard() {
     (beneficiaryUid: string) => {
       const beneficiary = beneficiaries.find((b) => b.uid === beneficiaryUid)
       if (beneficiary && accessToken) {
-        trackEvent("dashboard_retry_click", {
+        trackEvent("health_trends_retry_click", {
           source: beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member",
         })
         setBeneficiaryReports((prev) => {
@@ -671,7 +678,7 @@ export default function HealthDashboard() {
         })
         // trackEventOnce is module-scoped, so a remount can't double-count
         // this user in the DAU metric.
-        trackEventOnce("dashboard_view")
+        trackEventOnce("health_trends_view")
 
         // Consent gate: mbUserId comes from the profile response, pmEntityId
         // from the cookie, email from the profile. Check existing consent; if
