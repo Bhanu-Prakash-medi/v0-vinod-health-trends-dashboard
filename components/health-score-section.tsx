@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
 import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus, Youtube, Globe } from "lucide-react"
 import { openExternalUrl } from "@/lib/open-external"
+import { trackEvent } from "@/lib/analytics/posthog"
 
 interface HealthScoreSectionProps {
   patientData: any
@@ -180,7 +181,10 @@ export default function HealthScoreSection({
     <div className="mt-3 flex flex-wrap items-center gap-2">
       <button
         type="button"
-        onClick={() => openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")}
+        onClick={() => {
+          trackEvent("youtube_video_click")
+          openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")
+        }}
         aria-label="Watch how your Health Risk Score is calculated"
         className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[#f2d4d4] bg-[#fdf2f2] px-3 py-1.5 text-xs font-medium text-[#d1495b] transition-colors hover:bg-[#fbe8e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d1495b]/30"
       >
@@ -189,7 +193,10 @@ export default function HealthScoreSection({
       </button>
       <button
         type="button"
-        onClick={() => openExternalUrl("https://healthscorelabs.medibuddy.in")}
+        onClick={() => {
+          trackEvent("website_click")
+          openExternalUrl("https://healthscorelabs.medibuddy.in")
+        }}
         aria-label="Learn more on MediBuddy"
         className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-3 py-1.5 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
       >

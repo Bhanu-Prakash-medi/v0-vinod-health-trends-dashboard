@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import TopNavigation from "@/components/top-navigation"
 import ProfileCard from "@/components/profile-card"
+import UploadReportSection from "@/components/upload-report-section"
 import HealthSummarySection from "@/components/health-summary-section"
 import InsightsSection from "@/components/insights-section"
 import WhatNextSection from "@/components/what-next-section"
@@ -17,7 +18,7 @@ import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
 import HealthScoreSection from "@/components/health-score-section"
 import FeatureComingSoon from "@/components/feature-coming-soon"
-import { isAppAccessAllowed } from "@/lib/health-trends-access-allowlist"
+import { checkAppAccess } from "@/lib/health-trends-access-allowlist"
 import EmptyState from "@/components/empty-state"
 import ReportProblemButton from "@/components/report-problem-button"
 import {
@@ -91,6 +92,9 @@ export default function HealthDashboard() {
   const [userEmail, setUserEmail] = useState<string>("")
   const [mbUserId, setMbUserId] = useState<string>("")
   const [pmEntityId, setPmEntityId] = useState<string>("0")
+  // App-level access for the restricted org, resolved via the API allowlist.
+  // null = not yet determined; false = denied (show "coming soon").
+  const [appAccessAllowed, setAppAccessAllowed] = useState<boolean | null>(null)
   // Consent gate. Starts hidden until we know the user's consent status:
   // `null` = unknown/checking (no modal yet), `true` = agreed, `false` = must agree.
   const [hasAcceptedHealthConsent, setHasAcceptedHealthConsent] = useState<boolean | null>(null)
@@ -521,22 +525,29 @@ export default function HealthDashboard() {
           return
         } else if (errorMessage === "NO_REPORTS_404") {
           errorInfo = { type: "NO_REPORTS", message: "Sorry Lab Reports are Not Available" }
-        } else if (
-          errorMessage.includes("504") ||
-          errorMessage.includes("timeout") ||
-          errorMessage.includes("Time-out") ||
-          errorMessage.includes("TIMEOUT")
-        ) {
-          errorInfo = { type: "TIMEOUT", message: "The server is taking too long to respond. Please try again." }
+          // Having no lab reports is a valid empty state, not a load failure —
+          // track it distinctly from health_trends_load_failed so failure
+          // diagnostics aren't polluted by beneficiaries who simply have no
+          // reports yet.
+          trackEvent("no_reports", { source: analyticsSource })
         } else {
-          errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
-        }
+          if (
+            errorMessage.includes("504") ||
+            errorMessage.includes("timeout") ||
+            errorMessage.includes("Time-out") ||
+            errorMessage.includes("TIMEOUT")
+          ) {
+            errorInfo = { type: "TIMEOUT", message: "The server is taking too long to respond. Please try again." }
+          } else {
+            errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
+          }
 
-        trackEvent("dashboard_load_failed", {
-          source: analyticsSource,
-          success: false,
-          duration_ms: Date.now() - loadStartedAt,
-        })
+          trackEvent("health_trends_load_failed", {
+            source: analyticsSource,
+            success: false,
+            duration_ms: Date.now() - loadStartedAt,
+          })
+        }
 
         setBeneficiaryErrors((prev) => {
           const newMap = new Map(prev)
@@ -570,7 +581,7 @@ export default function HealthDashboard() {
     (beneficiaryUid: string) => {
       const beneficiary = beneficiaries.find((b) => b.uid === beneficiaryUid)
       if (beneficiary && accessToken) {
-        trackEvent("dashboard_retry_click", {
+        trackEvent("health_trends_retry_click", {
           source: beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member",
         })
         setBeneficiaryReports((prev) => {
@@ -667,7 +678,7 @@ export default function HealthDashboard() {
         })
         // trackEventOnce is module-scoped, so a remount can't double-count
         // this user in the DAU metric.
-        trackEventOnce("dashboard_view")
+        trackEventOnce("health_trends_view")
 
         // Consent gate: mbUserId comes from the profile response, pmEntityId
         // from the cookie, email from the profile. Check existing consent; if
@@ -716,6 +727,15 @@ export default function HealthDashboard() {
         if (selfIndex !== -1) {
           setActiveBeneficiaryIndex(selfIndex)
         }
+
+        // Resolve app-level access before revealing the app. For the restricted
+        // org this fetches the API allowlist and fails closed on any error;
+        // other orgs resolve to `true` immediately. Awaiting here keeps the
+        // loading skeleton up (instead of flashing the app or "coming soon")
+        // until the decision is known.
+        const allowed = await checkAppAccess(pmEntityId, data.employee_email || "")
+        if (!isMounted) return
+        setAppAccessAllowed(allowed)
 
         setIsBeneficiariesLoading(false)
 
@@ -861,17 +881,11 @@ export default function HealthDashboard() {
   }
 
   // App-level access gate. For the restricted org (pmEntityId 1006639) only
-  // allowlisted emails may use the app; everyone else from that org sees a
-  // "feature coming soon" screen. Any other org is unrestricted. Reached only
-  // after beneficiaries loaded (so pmEntityId + userEmail are populated).
-  console.log("[v0] access gate check", {
-    pmEntityId,
-    // JSON.stringify reveals stray quotes/whitespace/invisible characters in
-    // the raw email that would otherwise be invisible in a plain log.
-    rawUserEmail: JSON.stringify(userEmail),
-    allowed: isAppAccessAllowed(pmEntityId, userEmail),
-  })
-  if (!isAppAccessAllowed(pmEntityId, userEmail)) {
+  // emails on the API allowlist may use the app; everyone else from that org
+  // sees a "feature coming soon" screen. Any other org is unrestricted. The
+  // decision is resolved in the load effect (fail closed on API errors), so by
+  // the time beneficiaries have loaded, `appAccessAllowed` is populated.
+  if (appAccessAllowed === false) {
     return <FeatureComingSoon />
   }
 
@@ -1027,6 +1041,11 @@ export default function HealthDashboard() {
             relation={currentProfileData?.patient_info?.relation}
           />
 
+          {/* Temporarily hidden — will be re-enabled later.
+              Keep the import and component so this can be restored by simply
+              uncommenting this line. */}
+          {/* <UploadReportSection /> */}
+
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an
               error arrives. */}
@@ -1034,13 +1053,24 @@ export default function HealthDashboard() {
             <HealthSummarySkeleton />
           )}
 
-          {/* Genuinely no records for this beneficiary. */}
+          {/* Genuinely no records for this beneficiary. Still show the
+              feedback form here — having no reports is a valid state, not a
+              reason to hide the user's ability to leave feedback. */}
           {!hasRecordsToLoad && currentBeneficiaryError && (
-            <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
-              <div className="mb-3 text-4xl">📋</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Lab Reports Available</h3>
-              <p className="text-gray-600 text-sm mb-4">{currentBeneficiaryError.message}</p>
-            </div>
+            <>
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
+                <div className="mb-3 text-4xl">📋</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Lab Reports Available</h3>
+                <p className="text-gray-600 text-sm mb-4">{currentBeneficiaryError.message}</p>
+              </div>
+              <FeedbackSection
+                mbUserId={mbUserId}
+                vasbenefId={activeBeneficiary?.rVasBenefId}
+                pmEntityId={pmEntityId}
+                emailId={pickPrimaryEmail(userEmail)}
+                accessToken={accessToken}
+              />
+            </>
           )}
 
           {/* Records exist but loading failed — offer a retry. */}
@@ -1100,7 +1130,7 @@ export default function HealthDashboard() {
                         onSelectedDateIndexChange={setSelectedSummaryIndex}
                       />
                     </SectionViewTracker>
-                    <SectionViewTracker section="insights">
+                    <SectionViewTracker section="digital_twin">
                       <InsightsSection
                         patientData={currentProfileData}
                         vasbenefId={activeBeneficiary?.rVasBenefId}
