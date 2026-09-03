@@ -1053,13 +1053,24 @@ export default function HealthDashboard() {
             <HealthSummarySkeleton />
           )}
 
-          {/* Genuinely no records for this beneficiary. */}
+          {/* Genuinely no records for this beneficiary. Still show the
+              feedback form here — having no reports is a valid state, not a
+              reason to hide the user's ability to leave feedback. */}
           {!hasRecordsToLoad && currentBeneficiaryError && (
-            <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
-              <div className="mb-3 text-4xl">📋</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Lab Reports Available</h3>
-              <p className="text-gray-600 text-sm mb-4">{currentBeneficiaryError.message}</p>
-            </div>
+            <>
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
+                <div className="mb-3 text-4xl">📋</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Lab Reports Available</h3>
+                <p className="text-gray-600 text-sm mb-4">{currentBeneficiaryError.message}</p>
+              </div>
+              <FeedbackSection
+                mbUserId={mbUserId}
+                vasbenefId={activeBeneficiary?.rVasBenefId}
+                pmEntityId={pmEntityId}
+                emailId={pickPrimaryEmail(userEmail)}
+                accessToken={accessToken}
+              />
+            </>
           )}
 
           {/* Records exist but loading failed — offer a retry. */}
