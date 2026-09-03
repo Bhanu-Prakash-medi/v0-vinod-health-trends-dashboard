@@ -1,8 +1,22 @@
 "use client"
 
 import posthog, { type CaptureResult } from "posthog-js"
+import { getPlatformFromCookie } from "@/lib/api"
 
 let initialized = false
+
+/**
+ * Normalize the raw "platform" cookie value into the three buckets every
+ * PostHog event should be broken down by. The cookie is set by the native
+ * app WebViews to "android_mv" / "iOS_mv"; anything else (absent, unknown,
+ * or a plain web session) is reported as "web".
+ */
+function resolvePlatform(): "android_mv" | "iOS_mv" | "web" {
+  const raw = getPlatformFromCookie().trim().toLowerCase()
+  if (raw === "android_mv") return "android_mv"
+  if (raw === "ios_mv") return "iOS_mv"
+  return "web"
+}
 
 /**
  * Event properties PostHog fills with URLs. Even with autocapture and pageview
@@ -85,6 +99,10 @@ export function initPostHog() {
       before_send: scrubEventUrls,
     })
     initialized = true
+    // Super property: attach the platform to every event captured from here
+    // on (including identify() calls), so every metric can be broken down
+    // by android_mv / iOS_mv / web without each call site passing it.
+    posthog.register({ platform: resolvePlatform() })
   } catch (error) {
     console.log("[v0] PostHog init failed (non-blocking):", error)
   }
