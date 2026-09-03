@@ -154,7 +154,7 @@ export function identifyUser(user: {
 }
 
 /** Controlled set of dashboard "section" values, used to pick a section_view event name. */
-export type TrendsSection = "summary" | "trends" | "all_parameters" | "reports" | "insights"
+export type TrendsSection = "summary" | "trends" | "all_parameters" | "reports" | "digital_twin"
 
 /**
  * Allow-listed event names — the metrics this dashboard reports on, plus two
@@ -165,7 +165,7 @@ export type TrendsSection = "summary" | "trends" | "all_parameters" | "reports" 
  *
  *  dashboard_view                    -> unique people using Health Trends (DAU)
  *  summary_view                      -> Summary section impression
- *  insights_view                     -> Insights section impression
+ *  digital_twin_view                 -> Digital Twin section impression
  *  trends_view                       -> Trends section impression
  *  reports_view                      -> Reports section impression
  *  all_parameters_view               -> All Parameters section impression
@@ -182,7 +182,7 @@ export type TrendsSection = "summary" | "trends" | "all_parameters" | "reports" 
 export type AnalyticsEventName =
   | "dashboard_view"
   | "summary_view"
-  | "insights_view"
+  | "digital_twin_view"
   | "trends_view"
   | "reports_view"
   | "all_parameters_view"
@@ -199,7 +199,7 @@ export type AnalyticsEventName =
 /** Maps a TrendsSection to its `{section}_view` event name. */
 export const SECTION_VIEW_EVENTS: Record<TrendsSection, AnalyticsEventName> = {
   summary: "summary_view",
-  insights: "insights_view",
+  digital_twin: "digital_twin_view",
   trends: "trends_view",
   reports: "reports_view",
   all_parameters: "all_parameters_view",

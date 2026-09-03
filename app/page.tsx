@@ -1112,7 +1112,7 @@ export default function HealthDashboard() {
                         onSelectedDateIndexChange={setSelectedSummaryIndex}
                       />
                     </SectionViewTracker>
-                    <SectionViewTracker section="insights">
+                    <SectionViewTracker section="digital_twin">
                       <InsightsSection
                         patientData={currentProfileData}
                         vasbenefId={activeBeneficiary?.rVasBenefId}
