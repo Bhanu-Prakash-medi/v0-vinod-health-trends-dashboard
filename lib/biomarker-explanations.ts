@@ -24,6 +24,14 @@ const EXPLANATIONS: RawEntry[] = rawData as RawEntry[]
 
 const STOPWORDS = new Set(["the", "a", "an", "of", "and", "with", "test", "level", "levels", "serum", "s", "blood"])
 
+// Generic qualifiers that describe a REPORT SUB-FIELD or SIDE/TIMING variant
+// ("ECG (Remark)", "FVC (Post)", "Vision Glasses (LT)") rather than a real
+// abbreviation of the biomarker itself ("Thyroid Stimulating Hormone (TSH)").
+// These must never become standalone lookup keys: a bare "ECG"/"FVC"/"LT"
+// value should resolve to the correct general entry (or nothing), never to
+// an arbitrary sub-field's explanation.
+const QUALIFIER_WORDS = new Set(["remark", "result", "pre", "post", "lt", "rt", "bpm"])
+
 // Collapse to alphanumeric-only, lowercased.
 function normFull(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "")
@@ -32,6 +40,13 @@ function normFull(s: string): string {
 // Portion before the first parenthesis/bracket.
 function preParen(s: string): string {
   return s.split(/[([]/)[0]
+}
+
+// The content of this entry's own bracket, if any (e.g. "Remark" from
+// "ECG (Remark)"), lowercased and trimmed.
+function ownParenContent(s: string): string | null {
+  const match = s.match(/[([]([^)\]]+)[)\]]/)
+  return match ? match[1].trim() : null
 }
 
 // Meaningful, order-independent token set (stopwords removed).
@@ -50,17 +65,31 @@ interface IndexEntry {
 }
 
 function buildIndex(): IndexEntry[] {
-  return EXPLANATIONS.map((raw) => {
+  const entries = EXPLANATIONS.map((raw) => {
     const explanation: BiomarkerExplanation = { title: raw.parameter, description: raw.explanation }
-    const candidates = [raw.parameter, preParen(raw.parameter)]
+
+    // If this entry's own bracket is a generic qualifier ("ECG (Remark)",
+    // "FVC (Post)", "Vision Glasses (LT)"), it is a report sub-field/variant,
+    // not the canonical biomarker — don't let its bare prefix ("ECG", "FVC",
+    // "Vision Glasses") register as a key. That prefix belongs to whichever
+    // entry actually represents the general test by that name.
+    const ownContent = ownParenContent(raw.parameter)
+    const isQualifierSuffixed = ownContent ? QUALIFIER_WORDS.has(normFull(ownContent)) : false
+
+    const candidates = [raw.parameter]
+    if (!isQualifierSuffixed) candidates.push(preParen(raw.parameter))
 
     // Also add tokens found inside parentheses/brackets as standalone keys
-    // (e.g. "TSH" from "Thyroid Stimulating Hormone (TSH)").
+    // (e.g. "TSH" from "Thyroid Stimulating Hormone (TSH)"), but never a
+    // generic qualifier word ("Remark"/"Result"/"Pre"/"Post"/"LT"/"RT"/"BPM")
+    // — those describe a sub-field or variant, not the biomarker, and must
+    // never let a bare lookup resolve to the wrong sub-field's explanation.
     const parenMatches = raw.parameter.match(/[([]([^)\]]+)[)\]]/g) ?? []
     for (const m of parenMatches) {
       const inner = m.replace(/[()[\]]/g, "")
       for (const piece of inner.split(/[/,&+]/)) {
-        if (piece.trim()) candidates.push(piece.trim())
+        const trimmed = piece.trim()
+        if (trimmed && !QUALIFIER_WORDS.has(normFull(trimmed))) candidates.push(trimmed)
       }
     }
 
@@ -75,6 +104,39 @@ function buildIndex(): IndexEntry[] {
 
     return { explanation, fullKeys, tokenKeys }
   })
+
+  // Defensive safety net: if a normalized key would resolve to entries for
+  // genuinely different parameters (not just duplicate rows of the same
+  // parameter authored with slightly different wording), matching cannot
+  // pick the "right" one with confidence — drop that key from every entry
+  // so the lookup returns null (no info button) instead of a plausible-
+  // looking but potentially wrong biomarker explanation. Duplicate rows
+  // that share the exact same parameter name are treated as one identity,
+  // so their key is kept and either row's text is fine to show.
+  function dropAmbiguousKeys(keyOf: (e: (typeof entries)[number]) => Set<string>) {
+    const identitiesByKey = new Map<string, Set<string>>()
+    entries.forEach((entry, i) => {
+      const identity = normFull(EXPLANATIONS[i].parameter)
+      for (const key of keyOf(entry)) {
+        if (!identitiesByKey.has(key)) identitiesByKey.set(key, new Set())
+        identitiesByKey.get(key)!.add(identity)
+      }
+    })
+    const ambiguousKeys = new Set(
+      Array.from(identitiesByKey.entries())
+        .filter(([, ids]) => ids.size > 1)
+        .map(([key]) => key),
+    )
+    if (ambiguousKeys.size === 0) return
+    for (const entry of entries) {
+      for (const key of ambiguousKeys) keyOf(entry).delete(key)
+    }
+  }
+
+  dropAmbiguousKeys((e) => e.fullKeys)
+  dropAmbiguousKeys((e) => e.tokenKeys)
+
+  return entries
 }
 
 const INDEX = buildIndex()
