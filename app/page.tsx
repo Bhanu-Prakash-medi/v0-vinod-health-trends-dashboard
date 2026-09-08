@@ -617,8 +617,6 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = "adf9331e144a4f468acca48e4cc52c4f"
-
         let cookieToken: string | null = null
         try {
           cookieToken = getAccessTokenFromCookie()
@@ -626,32 +624,18 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
-        // Prefer the real token from the cookie; fall back to the debug token.
-        let token = cookieToken || DEBUG_TOKEN
-
-  const pmEntityId = getPmEntityIdFromCookie()
-  setPmEntityId(pmEntityId)
-
-  let data
-        try {
-          data = await fetchBeneficiaries(token, pmEntityId)
-        } catch (fetchErr) {
-          // A stale/expired cookie token (e.g. "session expired") should not
-          // block access when a debug token is available: retry once with it.
-          if (
-            fetchErr instanceof Error &&
-            fetchErr.message === "UNAUTHORIZED" &&
-            cookieToken &&
-            cookieToken !== DEBUG_TOKEN
-          ) {
-            token = DEBUG_TOKEN
-            data = await fetchBeneficiaries(token, pmEntityId)
-          } else {
-            throw fetchErr
-          }
+        if (!cookieToken) {
+          throw new Error("UNAUTHORIZED")
         }
 
-        // Persist whichever token actually succeeded for subsequent report loads.
+        const token = cookieToken
+
+        const pmEntityId = getPmEntityIdFromCookie()
+        setPmEntityId(pmEntityId)
+
+        const data = await fetchBeneficiaries(token, pmEntityId)
+
+        // Persist the token for subsequent report loads.
         setAccessToken(token)
 
         if (!isMounted) return
