@@ -49,7 +49,7 @@ import {
   type Beneficiary,
   type TrendAnalysisItem,
 } from "@/lib/api"
-import { genderAvatar } from "@/lib/health-utils"
+import { genderAvatar, hasVisibleTrends } from "@/lib/health-utils"
 
 interface BeneficiaryError {
   type: "TIMEOUT" | "GENERAL" | "NO_REPORTS"
@@ -959,7 +959,12 @@ export default function HealthDashboard() {
 
   const activeMember = familyMembers[activeBeneficiaryIndex]
   const hasReports = (currentProfileData?.reports?.length || 0) > 0
-  const hasTrends = (currentProfileData?.trend_analysis?.length || 0) > 0
+  // Uses hasVisibleTrends (not a raw length check) because trend_analysis can
+  // be non-empty yet contain only single-reading or range-less metrics, which
+  // TrendsSection filters out and renders nothing for. Gating on raw length
+  // would wrap that empty section in SectionViewTracker and fire a
+  // trends_view impression for a section the user never actually saw.
+  const hasTrends = hasVisibleTrends(currentProfileData?.trend_analysis)
   // A report-details response can come back "Completed" but empty (report_data
   // null, parameters [], health_summary []). In that case hasReports is still
   // true, so guard on whether there is any actually usable data before rendering
