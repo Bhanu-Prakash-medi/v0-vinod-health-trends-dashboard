@@ -41,6 +41,23 @@ export function paramHasRange(param: any): boolean {
   return hasValidRange(param.range ?? param.normal_range ?? param.normalRange)
 }
 
+// A trend_analysis entry is only a real, renderable trend when it has more
+// than one data point AND a valid numeric normal range — this mirrors the
+// exact filter TrendsSection applies before deciding what to render. A
+// beneficiary can have a non-empty trend_analysis array made up entirely of
+// single-reading or range-less metrics, in which case TrendsSection renders
+// nothing (returns null). Anything that gates whether the Trends section is
+// shown/tracked (e.g. the `hasTrends` flag in app/page.tsx) MUST use this
+// helper instead of a raw `trend_analysis.length > 0` check, otherwise it
+// wraps an empty, invisible section in SectionViewTracker and fires a
+// trends_view impression for a section the user never actually saw.
+export function hasVisibleTrends(trendAnalysis?: Array<{ data_points?: unknown[]; normal_range?: string | null }> | null): boolean {
+  if (!Array.isArray(trendAnalysis)) return false
+  return trendAnalysis.some(
+    (item) => Array.isArray(item?.data_points) && item.data_points.length > 1 && hasValidRange(item?.normal_range),
+  )
+}
+
 // Helper function to determine if a parameter is within normal range.
 // Handles the range formats seen in reports: "13.0 - 17.0", "0.3-1.0",
 // "< 200", "<= 200", "≤ 1.2", "> 40", ">= 40", "≥ 40", and "upto 40".

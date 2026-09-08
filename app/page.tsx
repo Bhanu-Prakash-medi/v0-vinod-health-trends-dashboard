@@ -49,7 +49,7 @@ import {
   type Beneficiary,
   type TrendAnalysisItem,
 } from "@/lib/api"
-import { genderAvatar } from "@/lib/health-utils"
+import { genderAvatar, hasVisibleTrends } from "@/lib/health-utils"
 
 interface BeneficiaryError {
   type: "TIMEOUT" | "GENERAL" | "NO_REPORTS"
@@ -617,8 +617,6 @@ export default function HealthDashboard() {
         setIsBeneficiariesLoading(true)
         setGlobalError(null)
 
-        const DEBUG_TOKEN = ""
-
         let cookieToken: string | null = null
         try {
           cookieToken = getAccessTokenFromCookie()
@@ -626,32 +624,18 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
-        // Prefer the real token from the cookie; fall back to the debug token.
-        let token = cookieToken || DEBUG_TOKEN
-
-  const pmEntityId = getPmEntityIdFromCookie()
-  setPmEntityId(pmEntityId)
-
-  let data
-        try {
-          data = await fetchBeneficiaries(token, pmEntityId)
-        } catch (fetchErr) {
-          // A stale/expired cookie token (e.g. "session expired") should not
-          // block access when a debug token is available: retry once with it.
-          if (
-            fetchErr instanceof Error &&
-            fetchErr.message === "UNAUTHORIZED" &&
-            cookieToken &&
-            cookieToken !== DEBUG_TOKEN
-          ) {
-            token = DEBUG_TOKEN
-            data = await fetchBeneficiaries(token, pmEntityId)
-          } else {
-            throw fetchErr
-          }
+        if (!cookieToken) {
+          throw new Error("UNAUTHORIZED")
         }
 
-        // Persist whichever token actually succeeded for subsequent report loads.
+        const token = cookieToken
+
+        const pmEntityId = getPmEntityIdFromCookie()
+        setPmEntityId(pmEntityId)
+
+        const data = await fetchBeneficiaries(token, pmEntityId)
+
+        // Persist the token for subsequent report loads.
         setAccessToken(token)
 
         if (!isMounted) return
@@ -959,7 +943,12 @@ export default function HealthDashboard() {
 
   const activeMember = familyMembers[activeBeneficiaryIndex]
   const hasReports = (currentProfileData?.reports?.length || 0) > 0
-  const hasTrends = (currentProfileData?.trend_analysis?.length || 0) > 0
+  // Uses hasVisibleTrends (not a raw length check) because trend_analysis can
+  // be non-empty yet contain only single-reading or range-less metrics, which
+  // TrendsSection filters out and renders nothing for. Gating on raw length
+  // would wrap that empty section in SectionViewTracker and fire a
+  // trends_view impression for a section the user never actually saw.
+  const hasTrends = hasVisibleTrends(currentProfileData?.trend_analysis)
   // A report-details response can come back "Completed" but empty (report_data
   // null, parameters [], health_summary []). In that case hasReports is still
   // true, so guard on whether there is any actually usable data before rendering
