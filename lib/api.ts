@@ -479,8 +479,24 @@ async function fetchBeneficiariesUncached(accessToken: string, _pmEntityId = "0"
     getValueCaseInsensitive(root, "userid") ||
     getValueCaseInsensitive(root, "mbuserid") ||
     ""
-  const employee_email =
+  let employee_email =
     getValueCaseInsensitive(root, "email") || getValueCaseInsensitive(root, "employee_email") || ""
+  // Some profiles return an empty root-level email. In that case fall back to
+  // the self beneficiary's primaryEmail so analytics (PostHog identify /
+  // super properties, Snowplow) and email-gated APIs (consent, feedback)
+  // still have an address to work with instead of an empty string.
+  if (!employee_email && Array.isArray(beneficiaries)) {
+    const selfBenef =
+      beneficiaries.find(
+        (b: any) => String(getValueCaseInsensitive(b, "relation") || "").toLowerCase() === "self",
+      ) || beneficiaries[0]
+    if (selfBenef) {
+      employee_email =
+        getValueCaseInsensitive(selfBenef, "primaryEmail") ||
+        getValueCaseInsensitive(selfBenef, "primaryemail") ||
+        ""
+    }
+  }
 
   // Some accounts contain placeholder/test beneficiaries created in the
   // MediBuddy system (e.g. literally named "Test", "Demo", "ABC"). These are
