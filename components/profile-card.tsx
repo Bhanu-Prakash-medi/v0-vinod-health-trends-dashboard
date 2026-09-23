@@ -85,14 +85,14 @@ export default function ProfileCard({
   function handleBmiSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    // Persist the computed BMI and collapse the form — once added, the profile
+    // shows the BMI value instead of the "add height & weight" prompt again.
     setLocalBmi(weightNum / Math.pow(heightNum / 100, 2))
+    setShowBmiForm(false)
   }
 
   function resetBmiForm() {
     setShowBmiForm(false)
-    setHeightCm("")
-    setWeightKg("")
-    setLocalBmi(null)
   }
 
   const backendBmi = typeof bmiData?.bmi === "number" ? bmiData.bmi : null
@@ -173,28 +173,28 @@ export default function ProfileCard({
               )}
             </span>
           </div>
+        ) : localBmi !== null ? (
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium text-[#4d5c6f]">BMI</span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
+              <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+                {bmiCategory(localBmi)}
+              </span>
+            </span>
+          </div>
         ) : showBmiForm ? (
           <form className="space-y-2" onSubmit={handleBmiSubmit}>
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-[#4d5c6f]">Calculate BMI</span>
-              <div className="flex items-center gap-2">
-                {localBmi !== null && (
-                  <span className="flex items-baseline gap-1.5">
-                    <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
-                    <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
-                      {bmiCategory(localBmi)}
-                    </span>
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={resetBmiForm}
-                  aria-label="Close BMI calculator"
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-[#4d5c6f] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={resetBmiForm}
+                aria-label="Close BMI calculator"
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[#4d5c6f] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <label className="flex-1">
@@ -204,10 +204,7 @@ export default function ProfileCard({
                   inputMode="decimal"
                   min="0"
                   value={heightCm}
-                  onChange={(e) => {
-                    setHeightCm(e.target.value)
-                    setLocalBmi(null)
-                  }}
+                  onChange={(e) => setHeightCm(e.target.value)}
                   placeholder="Height (cm)"
                   className="w-full rounded-lg border border-[#e0e6ec] bg-white px-2.5 py-1.5 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
                 />
@@ -219,10 +216,7 @@ export default function ProfileCard({
                   inputMode="decimal"
                   min="0"
                   value={weightKg}
-                  onChange={(e) => {
-                    setWeightKg(e.target.value)
-                    setLocalBmi(null)
-                  }}
+                  onChange={(e) => setWeightKg(e.target.value)}
                   placeholder="Weight (kg)"
                   className="w-full rounded-lg border border-[#e0e6ec] bg-white px-2.5 py-1.5 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
                 />
