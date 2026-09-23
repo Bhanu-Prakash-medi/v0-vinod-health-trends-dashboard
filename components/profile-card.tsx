@@ -206,10 +206,8 @@ export default function ProfileCard({
                 </button>
               </div>
               <p className="text-[11px] leading-relaxed text-[#4d5c6f]">
-                This report is generated using advanced AI models. The insights, trends, and recommendations are
-                intended for informational purposes only and should not be considered medical or clinical advice.
-                Please consult a qualified doctor for medical advice or before acting on any recommendation. If you
-                notice any incorrect or unexpected information, please report it.
+                This report is AI-generated and for information only — it is not medical advice. Always consult a
+                doctor before acting on it. Spot something wrong? Please report it.
               </p>
             </div>
           </>
