@@ -75,11 +75,25 @@ export default function ProfileCard({
   const [showBmiForm, setShowBmiForm] = useState(false)
   const [heightCm, setHeightCm] = useState("")
   const [weightKg, setWeightKg] = useState("")
+  // BMI is computed only on Submit, not live as the user types.
+  const [localBmi, setLocalBmi] = useState<number | null>(null)
 
   const heightNum = Number.parseFloat(heightCm)
   const weightNum = Number.parseFloat(weightKg)
-  const localBmi =
-    heightNum > 0 && weightNum > 0 ? weightNum / Math.pow(heightNum / 100, 2) : null
+  const canSubmit = heightNum > 0 && weightNum > 0
+
+  function handleBmiSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!canSubmit) return
+    setLocalBmi(weightNum / Math.pow(heightNum / 100, 2))
+  }
+
+  function resetBmiForm() {
+    setShowBmiForm(false)
+    setHeightCm("")
+    setWeightKg("")
+    setLocalBmi(null)
+  }
 
   const backendBmi = typeof bmiData?.bmi === "number" ? bmiData.bmi : null
   const backendCategory = bmiData?.category ?? null
@@ -160,7 +174,7 @@ export default function ProfileCard({
             </span>
           </div>
         ) : showBmiForm ? (
-          <div className="space-y-2">
+          <form className="space-y-2" onSubmit={handleBmiSubmit}>
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-[#4d5c6f]">Calculate BMI</span>
               <div className="flex items-center gap-2">
@@ -174,11 +188,7 @@ export default function ProfileCard({
                 )}
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowBmiForm(false)
-                    setHeightCm("")
-                    setWeightKg("")
-                  }}
+                  onClick={resetBmiForm}
                   aria-label="Close BMI calculator"
                   className="flex h-6 w-6 items-center justify-center rounded-full text-[#4d5c6f] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
                 >
@@ -194,7 +204,10 @@ export default function ProfileCard({
                   inputMode="decimal"
                   min="0"
                   value={heightCm}
-                  onChange={(e) => setHeightCm(e.target.value)}
+                  onChange={(e) => {
+                    setHeightCm(e.target.value)
+                    setLocalBmi(null)
+                  }}
                   placeholder="Height (cm)"
                   className="w-full rounded-lg border border-[#e0e6ec] bg-white px-2.5 py-1.5 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
                 />
@@ -206,13 +219,23 @@ export default function ProfileCard({
                   inputMode="decimal"
                   min="0"
                   value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
+                  onChange={(e) => {
+                    setWeightKg(e.target.value)
+                    setLocalBmi(null)
+                  }}
                   placeholder="Weight (kg)"
                   className="w-full rounded-lg border border-[#e0e6ec] bg-white px-2.5 py-1.5 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
                 />
               </label>
             </div>
-          </div>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className="w-full rounded-lg bg-[#156ddc] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1160c4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 disabled:cursor-not-allowed disabled:bg-[#b6cdec]"
+            >
+              Submit
+            </button>
+          </form>
         ) : (
           <button
             type="button"
