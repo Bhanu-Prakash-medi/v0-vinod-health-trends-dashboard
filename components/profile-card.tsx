@@ -50,6 +50,14 @@ const BMI_RANGES: { range: string; category: string }[] = [
   { range: "≥ 30", category: "Obese" },
 ]
 
+/** Format the BMI `measuredat` timestamp as e.g. "23 Sep 2026". */
+function formatBmiDate(value: string | null | undefined): string | null {
+  if (!value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+}
+
 export default function ProfileCard({
   name,
   age,
@@ -156,9 +164,12 @@ export default function ProfileCard({
 
   const backendBmi = typeof bmiData?.bmi === "number" ? bmiData.bmi : null
   const backendCategory = bmiData?.category ?? null
+  const backendBmiDate = formatBmiDate(bmiData?.measuredat)
+  // Locally calculated BMI is measured "now".
+  const localBmiDate = formatBmiDate(new Date().toISOString())
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
+    <div className="relative rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
       {/* Header Section: Avatar + Info */}
       <div className="flex gap-3">
         {/* Avatar with Progress Ring */}
@@ -223,24 +234,30 @@ export default function ProfileCard({
         ) : backendBmi !== null ? (
           <div className="flex items-center justify-between">
             {bmiLabel}
-            <span className="flex items-baseline gap-1.5">
-              <span className="text-sm font-bold text-[#2e3742]">{backendBmi.toFixed(1)}</span>
-              {backendCategory && (
-                <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
-                  {backendCategory}
-                </span>
-              )}
-            </span>
+            <div className="flex flex-col items-end">
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-sm font-bold text-[#2e3742]">{backendBmi.toFixed(1)}</span>
+                {backendCategory && (
+                  <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+                    {backendCategory}
+                  </span>
+                )}
+              </span>
+              {backendBmiDate && <span className="mt-0.5 text-[9px] text-[#9aa7b5]">as of {backendBmiDate}</span>}
+            </div>
           </div>
         ) : localBmi !== null ? (
           <div className="flex items-center justify-between">
             {bmiLabel}
-            <span className="flex items-baseline gap-1.5">
-              <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
-              <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
-                {bmiCategory(localBmi)}
+            <div className="flex flex-col items-end">
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
+                <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+                  {bmiCategory(localBmi)}
+                </span>
               </span>
-            </span>
+              {localBmiDate && <span className="mt-0.5 text-[9px] text-[#9aa7b5]">as of {localBmiDate}</span>}
+            </div>
           </div>
         ) : showBmiForm ? (
           <form className="space-y-2" onSubmit={handleBmiSubmit}>
