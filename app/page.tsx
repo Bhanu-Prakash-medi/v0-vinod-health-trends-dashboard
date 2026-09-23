@@ -41,6 +41,7 @@ import {
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
+  DEBUG_ACCESS_TOKEN,
   getPmEntityIdFromCookie,
   getHealthConsent,
   submitHealthConsent,
@@ -624,8 +625,10 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
+        // Fall back to the debug token when no `redirect` cookie is present
+        // (e.g. the v0 preview) so the dashboard still loads for testing.
         if (!cookieToken) {
-          throw new Error("UNAUTHORIZED")
+          cookieToken = DEBUG_ACCESS_TOKEN
         }
 
         const token = cookieToken
