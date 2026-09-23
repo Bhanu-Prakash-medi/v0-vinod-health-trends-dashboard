@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { ChevronRight, Plus, X } from "lucide-react"
+import { ChevronRight, Info, Plus, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
 import { fetchBmi } from "@/lib/api"
@@ -42,6 +42,14 @@ function bmiCategory(bmi: number): string {
   return "Obese"
 }
 
+/** WHO BMI reference ranges shown in the info popover. */
+const BMI_RANGES: { range: string; category: string }[] = [
+  { range: "< 18.5", category: "Underweight" },
+  { range: "18.5 – 24.9", category: "Normal" },
+  { range: "25 – 29.9", category: "Overweight" },
+  { range: "≥ 30", category: "Obese" },
+]
+
 export default function ProfileCard({
   name,
   age,
@@ -77,6 +85,57 @@ export default function ProfileCard({
   const [weightKg, setWeightKg] = useState("")
   // BMI is computed only on Submit, not live as the user types.
   const [localBmi, setLocalBmi] = useState<number | null>(null)
+  // Toggles the WHO BMI range reference popover.
+  const [showBmiInfo, setShowBmiInfo] = useState(false)
+
+  // "BMI" label with an info button + click-to-toggle range popover. Reused by
+  // both the backend and locally-calculated BMI displays.
+  const bmiLabel = (
+    <span className="relative flex items-center gap-1">
+      <span className="text-[11px] font-medium text-[#4d5c6f]">BMI</span>
+      <button
+        type="button"
+        onClick={() => setShowBmiInfo((v) => !v)}
+        aria-label="BMI category ranges"
+        aria-expanded={showBmiInfo}
+        className="flex h-4 w-4 items-center justify-center rounded-full text-[#9aa7b5] transition-colors hover:text-[#156ddc] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+      >
+        <Info className="h-3.5 w-3.5" />
+      </button>
+      {showBmiInfo && (
+        <>
+          {/* Click-away layer to dismiss the popover. */}
+          <button
+            type="button"
+            aria-label="Close BMI ranges"
+            onClick={() => setShowBmiInfo(false)}
+            className="fixed inset-0 z-10 cursor-default"
+          />
+          <div className="absolute bottom-6 left-0 z-20 w-44 rounded-lg border border-[#e0e6ec] bg-white p-2 shadow-lg">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#4d5c6f]">BMI Categories</span>
+              <button
+                type="button"
+                onClick={() => setShowBmiInfo(false)}
+                aria-label="Close"
+                className="flex h-4 w-4 items-center justify-center rounded-full text-[#9aa7b5] hover:text-[#2e3742]"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            <ul className="space-y-0.5">
+              {BMI_RANGES.map((r) => (
+                <li key={r.category} className="flex items-center justify-between text-[10px]">
+                  <span className="font-semibold text-[#2e3742]">{r.category}</span>
+                  <span className="text-[#4d5c6f]">{r.range}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+    </span>
+  )
 
   const heightNum = Number.parseFloat(heightCm)
   const weightNum = Number.parseFloat(weightKg)
@@ -163,7 +222,7 @@ export default function ProfileCard({
           </div>
         ) : backendBmi !== null ? (
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-[#4d5c6f]">BMI</span>
+            {bmiLabel}
             <span className="flex items-baseline gap-1.5">
               <span className="text-sm font-bold text-[#2e3742]">{backendBmi.toFixed(1)}</span>
               {backendCategory && (
@@ -175,7 +234,7 @@ export default function ProfileCard({
           </div>
         ) : localBmi !== null ? (
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-[#4d5c6f]">BMI</span>
+            {bmiLabel}
             <span className="flex items-baseline gap-1.5">
               <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
               <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
