@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { ChevronRight, Plus } from "lucide-react"
+import { ChevronRight, Plus, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
 import { fetchBmi } from "@/lib/api"
@@ -163,14 +163,28 @@ export default function ProfileCard({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-[#4d5c6f]">Calculate BMI</span>
-              {localBmi !== null && (
-                <span className="flex items-baseline gap-1.5">
-                  <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
-                  <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
-                    {bmiCategory(localBmi)}
+              <div className="flex items-center gap-2">
+                {localBmi !== null && (
+                  <span className="flex items-baseline gap-1.5">
+                    <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
+                    <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+                      {bmiCategory(localBmi)}
+                    </span>
                   </span>
-                </span>
-              )}
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBmiForm(false)
+                    setHeightCm("")
+                    setWeightKg("")
+                  }}
+                  aria-label="Close BMI calculator"
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-[#4d5c6f] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <label className="flex-1">
