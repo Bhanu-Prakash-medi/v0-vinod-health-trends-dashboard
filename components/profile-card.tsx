@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { ChevronRight, Info, Plus, X } from "lucide-react"
+import { ChevronRight, Info, Plus, ShieldAlert, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
 import { fetchBmi } from "@/lib/api"
@@ -95,6 +95,8 @@ export default function ProfileCard({
   const [localBmi, setLocalBmi] = useState<number | null>(null)
   // Toggles the WHO BMI range reference popover.
   const [showBmiInfo, setShowBmiInfo] = useState(false)
+  // Toggles the AI report disclaimer popover.
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
 
   // "BMI" label with an info button + click-to-toggle range popover. Reused by
   // both the backend and locally-calculated BMI displays.
@@ -170,6 +172,50 @@ export default function ProfileCard({
 
   return (
     <div className="relative rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
+      {/* Disclaimer: top-right corner of the profile card */}
+      <div className="absolute right-2 top-2 z-30">
+        <button
+          type="button"
+          onClick={() => setShowDisclaimer((v) => !v)}
+          aria-label="Disclaimer"
+          aria-expanded={showDisclaimer}
+          className="flex items-center gap-1 rounded-full border border-[#e0e6ec] bg-white px-2 py-1 text-[10px] font-semibold text-[#4d5c6f] transition-colors hover:border-[#156ddc]/40 hover:text-[#156ddc] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+        >
+          <ShieldAlert className="h-3 w-3" />
+          Disclaimer
+        </button>
+        {showDisclaimer && (
+          <>
+            {/* Click-away layer to dismiss the popover. */}
+            <button
+              type="button"
+              aria-label="Close disclaimer"
+              onClick={() => setShowDisclaimer(false)}
+              className="fixed inset-0 z-10 cursor-default"
+            />
+            <div className="absolute right-0 top-8 z-20 w-64 rounded-lg border border-[#e0e6ec] bg-white p-3 shadow-lg">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[#4d5c6f]">Disclaimer</span>
+                <button
+                  type="button"
+                  onClick={() => setShowDisclaimer(false)}
+                  aria-label="Close"
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-[#9aa7b5] hover:text-[#2e3742]"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              <p className="text-[11px] leading-relaxed text-[#4d5c6f]">
+                This report is generated using advanced AI models. The insights, trends, and recommendations are
+                intended for informational purposes only and should not be considered medical or clinical advice.
+                Please consult a qualified doctor for medical advice or before acting on any recommendation. If you
+                notice any incorrect or unexpected information, please report it.
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Header Section: Avatar + Info */}
       <div className="flex gap-3">
         {/* Avatar with Progress Ring */}
