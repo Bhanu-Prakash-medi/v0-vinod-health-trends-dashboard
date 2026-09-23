@@ -1,8 +1,11 @@
 "use client"
 
-import { ChevronRight } from "lucide-react"
+import { useState } from "react"
+import useSWR from "swr"
+import { ChevronRight, Plus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
+import { fetchBmi } from "@/lib/api"
 
 // Ask the page to scroll to (and highlight) the latest report card. The Test
 // Reports section listens for this event.
@@ -25,6 +28,18 @@ interface ProfileCardProps {
   weight?: string
   abhaId?: string
   relation?: string
+  /** Beneficiary vasBenefId — used to fetch BMI from GET /health/bmi/{id}. */
+  vasBenefId?: string | number
+  /** Access token forwarded to the BMI proxy (falls back to the debug token). */
+  accessToken?: string | null
+}
+
+/** Standard WHO BMI categories used when the user calculates BMI locally. */
+function bmiCategory(bmi: number): string {
+  if (bmi < 18.5) return "Underweight"
+  if (bmi < 25) return "Normal"
+  if (bmi < 30) return "Overweight"
+  return "Obese"
 }
 
 export default function ProfileCard({
@@ -36,6 +51,8 @@ export default function ProfileCard({
   countLoading = false,
   profileImage,
   relation,
+  vasBenefId,
+  accessToken,
 }: ProfileCardProps) {
   // Pick the avatar strictly from gender via the shared helper (robust to
   // casing/whitespace/variants). Only a *real* uploaded image (not one of the
@@ -45,6 +62,27 @@ export default function ProfileCard({
   const isDefaultAvatar =
     !profileImage || profileImage.includes("profile-male.svg") || profileImage.includes("profile-female.svg")
   const avatarSrc = isDefaultAvatar ? fallbackAvatar : profileImage
+
+  // BMI comes from the backend keyed on the beneficiary's vasBenefId. Re-keying
+  // on the id + token means switching family members refetches the right BMI.
+  const { data: bmiData, isLoading: bmiLoading } = useSWR(
+    vasBenefId ? ["bmi", vasBenefId, accessToken] : null,
+    () => fetchBmi(vasBenefId as string | number, accessToken),
+    { revalidateOnFocus: false },
+  )
+
+  // Local calculator shown when the backend has no height/weight (bmi === null).
+  const [showBmiForm, setShowBmiForm] = useState(false)
+  const [heightCm, setHeightCm] = useState("")
+  const [weightKg, setWeightKg] = useState("")
+
+  const heightNum = Number.parseFloat(heightCm)
+  const weightNum = Number.parseFloat(weightKg)
+  const localBmi =
+    heightNum > 0 && weightNum > 0 ? weightNum / Math.pow(heightNum / 100, 2) : null
+
+  const backendBmi = typeof bmiData?.bmi === "number" ? bmiData.bmi : null
+  const backendCategory = bmiData?.category ?? null
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
@@ -100,6 +138,77 @@ export default function ProfileCard({
             )}
           </div>
         </div>
+      </div>
+
+      {/* BMI row */}
+      <div className="mt-3 border-t border-[#f0f3f5] pt-2.5">
+        {bmiLoading ? (
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-3 w-10 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
+            <span className="text-[10px] text-[#4d5c6f]">Loading BMI</span>
+          </div>
+        ) : backendBmi !== null ? (
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium text-[#4d5c6f]">BMI</span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-sm font-bold text-[#2e3742]">{backendBmi.toFixed(1)}</span>
+              {backendCategory && (
+                <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+                  {backendCategory}
+                </span>
+              )}
+            </span>
+          </div>
+        ) : showBmiForm ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-[#4d5c6f]">Calculate BMI</span>
+              {localBmi !== null && (
+                <span className="flex items-baseline gap-1.5">
+                  <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
+                  <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+                    {bmiCategory(localBmi)}
+                  </span>
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex-1">
+                <span className="sr-only">Height in centimetres</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  value={heightCm}
+                  onChange={(e) => setHeightCm(e.target.value)}
+                  placeholder="Height (cm)"
+                  className="w-full rounded-lg border border-[#e0e6ec] bg-white px-2.5 py-1.5 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
+                />
+              </label>
+              <label className="flex-1">
+                <span className="sr-only">Weight in kilograms</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  value={weightKg}
+                  onChange={(e) => setWeightKg(e.target.value)}
+                  placeholder="Weight (kg)"
+                  className="w-full rounded-lg border border-[#e0e6ec] bg-white px-2.5 py-1.5 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
+                />
+              </label>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowBmiForm(true)}
+            className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-[#156ddc]/40 bg-[#f4f9ff] px-3 py-2 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e8f2ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add height &amp; weight to calculate BMI
+          </button>
+        )}
       </div>
 
       {/* View latest report — its own row so a long name never squeezes or

@@ -1026,9 +1026,11 @@ export default function HealthDashboard() {
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
             weight={currentProfileData?.patient_info?.weight}
-            abhaId={currentProfileData?.patient_info?.abha_id}
-            relation={currentProfileData?.patient_info?.relation}
-          />
+  abhaId={currentProfileData?.patient_info?.abha_id}
+  relation={currentProfileData?.patient_info?.relation}
+  vasBenefId={activeBeneficiary?.rVasBenefId}
+  accessToken={accessToken}
+  />
 
           {/* Temporarily hidden — will be re-enabled later.
               Keep the import and component so this can be restored by simply

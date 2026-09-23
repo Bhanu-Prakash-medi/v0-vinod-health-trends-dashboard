@@ -167,6 +167,51 @@ export interface ApiHealthReport {
   contractType?: string | number | null
 }
 
+/**
+ * Fallback access token for the BMI endpoint, used when no real access token is
+ * available (e.g. the v0 preview where the `redirect` cookie is absent). Lets
+ * the profile section still exercise the BMI API during testing.
+ */
+export const DEBUG_ACCESS_TOKEN = "c7294db1972e4a809511445fbc91845c"
+
+/**
+ * Response shape of GET /health/bmi/{vasBenefId}. `bmi` (and the related fields)
+ * are null when the backend has no height/weight on record for the user.
+ */
+export interface BmiResponse {
+  isSuccess: boolean
+  message?: string
+  userid?: number | string
+  vasbenefid?: number | string
+  height: number | null
+  weight: number | null
+  bmi: number | null
+  category: string | null
+  measuredat: string | null
+}
+
+/**
+ * Fetch the BMI for a beneficiary (by vasBenefId) through the proxy route.
+ * Falls back to the debug token when no access token is supplied. Returns null
+ * on any failure so the caller can degrade gracefully.
+ */
+export async function fetchBmi(
+  vasBenefId: string | number,
+  accessToken?: string | null,
+): Promise<BmiResponse | null> {
+  if (vasBenefId === undefined || vasBenefId === null || vasBenefId === "") return null
+  try {
+    const response = await fetch(`/api/health/bmi/${encodeURIComponent(String(vasBenefId))}`, {
+      method: "GET",
+      headers: { accesstoken: accessToken || DEBUG_ACCESS_TOKEN },
+    })
+    if (!response.ok) return null
+    return (await response.json()) as BmiResponse
+  } catch {
+    return null
+  }
+}
+
 export function getAccessTokenFromCookie(): string | null {
   if (typeof document === "undefined") {
     return null
