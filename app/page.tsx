@@ -14,6 +14,10 @@ import Footer from "@/components/footer"
 import TestReportsSection from "@/components/test-reports-section"
 import HealthRecommendationsSection from "@/components/health-recommendations-section"
 import FeedbackSection from "@/components/feedback-section"
+
+// Temporarily hidden; flip to true to re-enable.
+const SHOW_REPORT_UPLOAD = false
+const SHOW_FEEDBACK_SNACKBAR = false
 import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
 import HealthScoreSection from "@/components/health-score-section"
@@ -1008,14 +1012,16 @@ export default function HealthDashboard() {
       </div>
       {/* Feedback snackbar: mounted once so it auto-opens 10s after the app
           loads, regardless of which report state the dashboard is in. */}
-      <FeedbackSection
-        variant="snackbar"
-        mbUserId={mbUserId}
-        vasbenefId={activeBeneficiary?.rVasBenefId}
-        pmEntityId={pmEntityId}
-        emailId={pickPrimaryEmail(userEmail)}
-        accessToken={accessToken}
-      />
+      {SHOW_FEEDBACK_SNACKBAR && (
+        <FeedbackSection
+          variant="snackbar"
+          mbUserId={mbUserId}
+          vasbenefId={activeBeneficiary?.rVasBenefId}
+          pmEntityId={pmEntityId}
+          emailId={pickPrimaryEmail(userEmail)}
+          accessToken={accessToken}
+        />
+      )}
       <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
         <TopNavigation
@@ -1057,7 +1063,7 @@ export default function HealthDashboard() {
   accessToken={accessToken}
   />
 
-                <UploadReportSection />
+          {SHOW_REPORT_UPLOAD && <UploadReportSection />}
 
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an

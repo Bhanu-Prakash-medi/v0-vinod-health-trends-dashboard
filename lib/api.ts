@@ -172,7 +172,7 @@ export interface ApiHealthReport {
  * available (e.g. the v0 preview where the `redirect` cookie is absent). Lets
  * the profile section still exercise the BMI API during testing.
  */
-export const DEBUG_ACCESS_TOKEN = "131880d261b4439d8c1da6535c546048"
+export const DEBUG_ACCESS_TOKEN = ""
 
 /**
  * Response shape of GET /health/bmi/{vasBenefId}. `bmi` (and the related fields)
