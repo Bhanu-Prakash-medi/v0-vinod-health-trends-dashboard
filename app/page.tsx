@@ -1047,7 +1047,8 @@ export default function HealthDashboard() {
   accessToken={accessToken}
   />
 
-                <UploadReportSection />
+                {/* Report upload temporarily hidden */}
+                {false && <UploadReportSection />}
 
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an
