@@ -41,7 +41,6 @@ import {
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
-  DEBUG_ACCESS_TOKEN,
   getPmEntityIdFromCookie,
   getHealthConsent,
   submitHealthConsent,
@@ -625,30 +624,16 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
-        // Fall back to the debug token when no `redirect` cookie is present
-        // (e.g. the v0 preview) so the dashboard still loads for testing.
         if (!cookieToken) {
-          cookieToken = DEBUG_ACCESS_TOKEN
+          throw new Error("UNAUTHORIZED")
         }
 
-        let token = cookieToken
+        const token = cookieToken
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
 
-        let data
-        try {
-          data = await fetchBeneficiaries(token, pmEntityId)
-        } catch (err) {
-          // An expired `redirect` cookie token would otherwise block the
-          // dashboard; retry once with the debug token.
-          if (err instanceof Error && err.message === "UNAUTHORIZED" && token !== DEBUG_ACCESS_TOKEN) {
-            token = DEBUG_ACCESS_TOKEN
-            data = await fetchBeneficiaries(token, pmEntityId)
-          } else {
-            throw err
-          }
-        }
+        const data = await fetchBeneficiaries(token, pmEntityId)
 
         // Persist the token for subsequent report loads.
         setAccessToken(token)
