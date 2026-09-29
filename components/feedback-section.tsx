@@ -11,7 +11,7 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { trackEvent } from "@/lib/analytics/posthog"
 import { submitHealthFeedback } from "@/lib/api"
 
-const AUTO_OPEN_DELAY_MS = 10_000
+const AUTO_OPEN_DELAY_MS = 30_000
 const THANK_YOU_VISIBLE_MS = 3_000
 
 interface FeedbackSectionProps {
