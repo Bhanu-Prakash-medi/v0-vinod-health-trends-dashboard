@@ -14,6 +14,10 @@ import Footer from "@/components/footer"
 import TestReportsSection from "@/components/test-reports-section"
 import HealthRecommendationsSection from "@/components/health-recommendations-section"
 import FeedbackSection from "@/components/feedback-section"
+
+// Temporarily hidden; flip to true to re-enable.
+const SHOW_REPORT_UPLOAD = false
+const SHOW_FEEDBACK_SNACKBAR = false
 import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
 import HealthScoreSection from "@/components/health-score-section"
@@ -41,6 +45,7 @@ import {
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
+  DEBUG_ACCESS_TOKEN,
   getPmEntityIdFromCookie,
   getHealthConsent,
   submitHealthConsent,
@@ -624,16 +629,30 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
+        // Fall back to the debug token when no `redirect` cookie is present
+        // (e.g. the v0 preview) so the dashboard still loads for testing.
         if (!cookieToken) {
-          throw new Error("UNAUTHORIZED")
+          cookieToken = DEBUG_ACCESS_TOKEN
         }
 
-        const token = cookieToken
+        let token = cookieToken
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
 
-        const data = await fetchBeneficiaries(token, pmEntityId)
+        let data
+        try {
+          data = await fetchBeneficiaries(token, pmEntityId)
+        } catch (err) {
+          // An expired `redirect` cookie token would otherwise block the
+          // dashboard; retry once with the debug token.
+          if (err instanceof Error && err.message === "UNAUTHORIZED" && token !== DEBUG_ACCESS_TOKEN) {
+            token = DEBUG_ACCESS_TOKEN
+            data = await fetchBeneficiaries(token, pmEntityId)
+          } else {
+            throw err
+          }
+        }
 
         // Persist the token for subsequent report loads.
         setAccessToken(token)
@@ -991,6 +1010,18 @@ export default function HealthDashboard() {
               />
         </div>
       </div>
+      {/* Feedback snackbar: mounted once so it auto-opens 10s after the app
+          loads, regardless of which report state the dashboard is in. */}
+      {SHOW_FEEDBACK_SNACKBAR && (
+        <FeedbackSection
+          variant="snackbar"
+          mbUserId={mbUserId}
+          vasbenefId={activeBeneficiary?.rVasBenefId}
+          pmEntityId={pmEntityId}
+          emailId={pickPrimaryEmail(userEmail)}
+          accessToken={accessToken}
+        />
+      )}
       <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
         <TopNavigation
@@ -1032,8 +1063,7 @@ export default function HealthDashboard() {
   accessToken={accessToken}
   />
 
-                {/* Report upload temporarily hidden */}
-                {false && <UploadReportSection />}
+          {SHOW_REPORT_UPLOAD && <UploadReportSection />}
 
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an

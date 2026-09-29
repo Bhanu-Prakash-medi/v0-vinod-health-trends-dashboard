@@ -69,8 +69,8 @@ function scrubEventUrls(event: CaptureResult | null): CaptureResult | null {
  * Deliberately conservative for a health application:
  *  - autocapture / pageview / pageleave capture are OFF. We only send the
  *    explicit, allow-listed events defined below.
- *  - session recording is disabled — recordings could visually expose report
- *    contents, test names/results, or other PII.
+ *  - session recording is enabled with all inputs masked. Elements marked
+ *    with `data-ph-mask` have their text masked; `ph-no-capture` hides them.
  *  - person_profiles is "identified_only" so we don't create/merge person
  *    profiles from anonymous traffic.
  */
@@ -91,7 +91,13 @@ export function initPostHog() {
       autocapture: false,
       capture_pageview: false,
       capture_pageleave: false,
-      disable_session_recording: true,
+      disable_session_recording: false,
+      session_recording: {
+        // Typed values (feedback text, etc.) never appear in recordings.
+        maskAllInputs: true,
+        // Add class="ph-no-capture" / data-ph-mask to any element that must be hidden.
+        maskTextSelector: "[data-ph-mask]",
+      },
       person_profiles: "identified_only",
       // Never send the visitor IP for a health application.
       mask_personal_data_properties: true,
