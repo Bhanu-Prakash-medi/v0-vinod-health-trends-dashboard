@@ -11,6 +11,9 @@ import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { trackEvent } from "@/lib/analytics/posthog"
 import { submitHealthFeedback } from "@/lib/api"
 
+const AUTO_OPEN_DELAY_MS = 10_000
+const THANK_YOU_VISIBLE_MS = 3_000
+
 interface FeedbackSectionProps {
   mbUserId?: string | number
   vasbenefId?: string | number
@@ -75,17 +78,41 @@ export default function FeedbackSection({
   }
 
   useEffect(() => {
+    const autoOpenTimer = window.setTimeout(() => setIsFormOpen(true), AUTO_OPEN_DELAY_MS)
     const handleOpenFeedback = () => {
+      window.clearTimeout(autoOpenTimer)
       setSubmitted(false)
       setIsFormOpen(true)
-      // Wait for the form to render before scrolling it into view
-      window.setTimeout(() => {
-        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-      }, 100)
     }
     window.addEventListener("open-feedback-form", handleOpenFeedback)
-    return () => window.removeEventListener("open-feedback-form", handleOpenFeedback)
+    return () => {
+      window.clearTimeout(autoOpenTimer)
+      window.removeEventListener("open-feedback-form", handleOpenFeedback)
+    }
   }, [])
+
+  const closeSnackbar = () => {
+    setIsFormOpen(false)
+    setRating(-1)
+    setMessage("")
+    setSelectedReasons([])
+    setOptionSet(null)
+  }
+
+  useEffect(() => {
+    if (!isFormOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeSnackbar()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isFormOpen])
+
+  useEffect(() => {
+    if (!submitted || !isFormOpen) return
+    const hideTimer = window.setTimeout(closeSnackbar, THANK_YOU_VISIBLE_MS)
+    return () => window.clearTimeout(hideTimer)
+  }, [submitted, isFormOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -124,20 +151,18 @@ export default function FeedbackSection({
   }
 
   return (
-    <section ref={sectionRef} className="scroll-mt-24">
-      {!isFormOpen && !submitted ? (
-        <div className="flex justify-center">
-          <Button
-            type="button"
-            onClick={() => setIsFormOpen(true)}
-            className="gap-2 bg-[#156ddc] text-white hover:bg-[#1160c4]"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            Share Feedback
-          </Button>
-        </div>
-      ) : (
-      <Card className="border border-[#f0f3f5] p-4 shadow-sm">
+    <section
+      ref={sectionRef}
+      role="dialog"
+      aria-modal="false"
+      aria-label="Share your feedback"
+      aria-hidden={!isFormOpen}
+      inert={!isFormOpen}
+      className={`pointer-events-none fixed inset-x-0 bottom-0 z-50 mx-auto flex max-w-[420px] justify-center px-3 pb-3 transition-all duration-300 ease-out motion-reduce:transition-none ${
+        isFormOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+      }`}
+    >
+      <Card className="pointer-events-auto max-h-[80svh] w-full gap-0 overflow-y-auto rounded-2xl border border-[#f0f3f5] p-4 shadow-[0_-4px_24px_rgba(46,55,66,0.18)]">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -147,22 +172,14 @@ export default function FeedbackSection({
               <p className="text-xs text-[#9dabbd]">Help us improve this feature</p>
             </div>
           </div>
-          {!submitted && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsFormOpen(false)
-                setRating(-1)
-                setMessage("")
-                setSelectedReasons([])
-                setOptionSet(null)
-              }}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
-              aria-label="Close feedback form"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={closeSnackbar}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+            aria-label="Close feedback form"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {submitted ? (
@@ -283,7 +300,6 @@ export default function FeedbackSection({
           </form>
         )}
       </Card>
-      )}
     </section>
   )
 }
