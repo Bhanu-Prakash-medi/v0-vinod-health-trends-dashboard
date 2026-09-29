@@ -16,7 +16,7 @@ import HealthRecommendationsSection from "@/components/health-recommendations-se
 import FeedbackSection from "@/components/feedback-section"
 
 // Temporarily hidden; flip to true to re-enable.
-const SHOW_REPORT_UPLOAD = false
+const SHOW_REPORT_UPLOAD = true
 const SHOW_FEEDBACK_SNACKBAR = false
 import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
