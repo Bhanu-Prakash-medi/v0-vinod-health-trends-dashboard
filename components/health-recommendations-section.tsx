@@ -1,6 +1,19 @@
 "use client"
 
-import { Sparkles, Info, Pill, FlaskConical, Video, Building2, ArrowLeft, ChevronRight } from "lucide-react"
+import {
+  Sparkles,
+  Info,
+  Pill,
+  FlaskConical,
+  Video,
+  Building2,
+  ArrowLeft,
+  ChevronRight,
+  Target,
+  ListChecks,
+  Salad,
+  type LucideIcon,
+} from "lucide-react"
 import type { ApiHealthReport } from "@/lib/api"
 import { isNativeAppPlatform } from "@/lib/api"
 import { openExternalUrl } from "@/lib/open-external"
@@ -45,10 +58,10 @@ function getServiceLinks(nativeApp: boolean): Record<ServiceKey, ServiceLink> {
 }
 
 type Tab = "top" | "full" | "diet"
-const tabs: { key: Tab; label: string }[] = [
-  { key: "top", label: "Top Focus" },
-  { key: "full", label: "Full Protocol" },
-  { key: "diet", label: "Diet and Lifestyle" },
+const tabs: { key: Tab; label: string; icon: LucideIcon }[] = [
+  { key: "top", label: "Top Focus", icon: Target },
+  { key: "full", label: "Full Protocol", icon: ListChecks },
+  { key: "diet", label: "Diet and Lifestyle", icon: Salad },
 ]
 
 export default function HealthRecommendationsSection({ patientData }: HealthRecommendationsSectionProps) {
@@ -112,10 +125,11 @@ export default function HealthRecommendationsSection({ patientData }: HealthReco
       <button
         type="button"
         onClick={openDetail}
-        className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl border border-[#d5e6fb] bg-[#f2f8ff] py-3 text-sm font-semibold text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e8f2ff] bg-[#e8f2ff] py-3 text-sm font-semibold text-[#156ddc] transition-colors hover:border-[#156ddc] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
       >
+        <ListChecks className="h-4 w-4" aria-hidden="true" />
         View detailed recommendations
-        <span className="text-xs font-medium text-[#5a6977]">{`(${recommendations.length})`}</span>
+        <span className="text-xs font-medium text-[#4d5c6f]">{`(${recommendations.length})`}</span>
         <ChevronRight className="h-4 w-4" />
       </button>
 
@@ -124,23 +138,26 @@ export default function HealthRecommendationsSection({ patientData }: HealthReco
           role="dialog"
           aria-modal="true"
           aria-labelledby="rec-detail-title"
-          className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#f8fafb]"
+          className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#f7f9fa]"
         >
           <div className="mx-auto flex w-full max-w-2xl flex-col">
-            <header className="sticky top-0 z-10 flex items-center gap-3 bg-[#fdf2f6] px-4 py-4">
+            <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[#f0f3f5] bg-[#ffffff] px-4 py-4">
               <button
                 type="button"
                 onClick={() => setDetailOpen(false)}
                 aria-label="Back"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffffff] text-[#2e3742] shadow-sm"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f0f3f5] text-[#2e3742] transition-colors hover:bg-[#e5e7eb]"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#156ddc]" aria-hidden="true">
+                <Sparkles className="h-5 w-5" />
+              </span>
               <div className="min-w-0">
                 <h2 id="rec-detail-title" className="text-base font-semibold text-[#2e3742]">
                   Recommendations
                 </h2>
-                {patientName && <p className="truncate text-xs text-[#5a6977]">{`for ${patientName}`}</p>}
+                {patientName && <p className="truncate text-xs text-[#4d5c6f]">{`for ${patientName}`}</p>}
               </div>
             </header>
 
@@ -153,12 +170,13 @@ export default function HealthRecommendationsSection({ patientData }: HealthReco
                     role="tab"
                     aria-selected={tab === t.key}
                     onClick={() => setTab(t.key)}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors ${
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm transition-colors ${
                       tab === t.key
-                        ? "border-[#2e3742] bg-[#2e3742] text-[#ffffff]"
-                        : "border-[#e3e8ec] bg-[#ffffff] text-[#2e3742]"
+                        ? "border-[#156ddc] bg-[#156ddc] text-[#ffffff]"
+                        : "border-[#e5e7eb] bg-[#ffffff] text-[#2e3742]"
                     }`}
                   >
+                    <t.icon className="h-4 w-4" aria-hidden="true" />
                     {t.label}
                   </button>
                 ))}
@@ -173,9 +191,9 @@ export default function HealthRecommendationsSection({ patientData }: HealthReco
                 />
               ))}
 
-              <div className="flex items-start gap-2 rounded-xl border border-[#fde8c9] bg-[#fff8ee] p-3">
-                <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#d97706]" />
-                <p className="text-[11px] leading-relaxed text-[#8a6d3b]">
+              <div className="flex items-start gap-2 rounded-xl border border-[#f0f3f5] bg-[#ffffff] p-3">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#156ddc]" />
+                <p className="text-[11px] leading-relaxed text-[#4d5c6f]">
                   These recommendations are AI-generated based on your report and may not be fully accurate. Please
                   consult a qualified doctor before acting on any suggestion.
                 </p>
