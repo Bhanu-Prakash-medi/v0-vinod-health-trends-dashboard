@@ -1026,14 +1026,14 @@ export default function HealthDashboard() {
             bloodGroup={currentProfileData?.patient_info?.blood_group}
             height={currentProfileData?.patient_info?.height}
             weight={currentProfileData?.patient_info?.weight}
-            abhaId={currentProfileData?.patient_info?.abha_id}
-            relation={currentProfileData?.patient_info?.relation}
-          />
+  abhaId={currentProfileData?.patient_info?.abha_id}
+  relation={currentProfileData?.patient_info?.relation}
+  vasBenefId={activeBeneficiary?.rVasBenefId}
+  accessToken={accessToken}
+  />
 
-          {/* Temporarily hidden — will be re-enabled later.
-              Keep the import and component so this can be restored by simply
-              uncommenting this line. */}
-          {/* <UploadReportSection /> */}
+                {/* Report upload temporarily hidden */}
+                {false && <UploadReportSection />}
 
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an
