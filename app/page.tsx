@@ -1009,6 +1009,7 @@ export default function HealthDashboard() {
       {/* Feedback snackbar: mounted once so it auto-opens 10s after the app
           loads, regardless of which report state the dashboard is in. */}
       <FeedbackSection
+        variant="snackbar"
         mbUserId={mbUserId}
         vasbenefId={activeBeneficiary?.rVasBenefId}
         pmEntityId={pmEntityId}
@@ -1065,14 +1066,24 @@ export default function HealthDashboard() {
             <HealthSummarySkeleton />
           )}
 
-          {/* Genuinely no records for this beneficiary. The feedback snackbar
-              is mounted at the page level, so it still appears here. */}
+          {/* Genuinely no records for this beneficiary. Still show the
+              feedback form here — having no reports is a valid state, not a
+              reason to hide the user's ability to leave feedback. */}
           {!hasRecordsToLoad && currentBeneficiaryError && (
-            <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
-              <div className="mb-3 text-4xl">📋</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Lab Reports Available</h3>
-              <p className="text-gray-600 text-sm mb-4">{currentBeneficiaryError.message}</p>
-            </div>
+            <>
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
+                <div className="mb-3 text-4xl">📋</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Lab Reports Available</h3>
+                <p className="text-gray-600 text-sm mb-4">{currentBeneficiaryError.message}</p>
+              </div>
+              <FeedbackSection
+                mbUserId={mbUserId}
+                vasbenefId={activeBeneficiary?.rVasBenefId}
+                pmEntityId={pmEntityId}
+                emailId={pickPrimaryEmail(userEmail)}
+                accessToken={accessToken}
+              />
+            </>
           )}
 
           {/* Records exist but loading failed — offer a retry. */}
@@ -1168,6 +1179,13 @@ export default function HealthDashboard() {
                   onScrollHandled={() => setPendingReportDate(null)}
                 />
               </SectionViewTracker>
+                <FeedbackSection
+                  mbUserId={mbUserId}
+                  vasbenefId={activeBeneficiary?.rVasBenefId}
+                  pmEntityId={pmEntityId}
+                  emailId={pickPrimaryEmail(userEmail)}
+                  accessToken={accessToken}
+                />
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
               </div>

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useId } from "react"
 import { MessageSquarePlus, CheckCircle2, X } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ interface FeedbackSectionProps {
   pmEntityId?: string | number | null
   emailId?: string
   accessToken?: string | null
+  variant?: "inline" | "snackbar"
 }
 
 interface FeedbackOptionSet {
@@ -34,7 +35,10 @@ export default function FeedbackSection({
   pmEntityId,
   emailId,
   accessToken,
+  variant = "inline",
 }: FeedbackSectionProps) {
+  const isSnackbar = variant === "snackbar"
+  const messageFieldId = useId()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [rating, setRating] = useState(-1)
   const [message, setMessage] = useState("")
@@ -78,20 +82,23 @@ export default function FeedbackSection({
   }
 
   useEffect(() => {
-    const autoOpenTimer = window.setTimeout(() => setIsFormOpen(true), AUTO_OPEN_DELAY_MS)
+    if (isSnackbar) {
+      const autoOpenTimer = window.setTimeout(() => setIsFormOpen(true), AUTO_OPEN_DELAY_MS)
+      return () => window.clearTimeout(autoOpenTimer)
+    }
     const handleOpenFeedback = () => {
-      window.clearTimeout(autoOpenTimer)
       setSubmitted(false)
       setIsFormOpen(true)
+      // Wait for the form to render before scrolling it into view
+      window.setTimeout(() => {
+        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+      }, 100)
     }
     window.addEventListener("open-feedback-form", handleOpenFeedback)
-    return () => {
-      window.clearTimeout(autoOpenTimer)
-      window.removeEventListener("open-feedback-form", handleOpenFeedback)
-    }
-  }, [])
+    return () => window.removeEventListener("open-feedback-form", handleOpenFeedback)
+  }, [isSnackbar])
 
-  const closeSnackbar = () => {
+  const closeForm = () => {
     setIsFormOpen(false)
     setRating(-1)
     setMessage("")
@@ -100,19 +107,19 @@ export default function FeedbackSection({
   }
 
   useEffect(() => {
-    if (!isFormOpen) return
+    if (!isSnackbar || !isFormOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeSnackbar()
+      if (e.key === "Escape") closeForm()
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isFormOpen])
+  }, [isSnackbar, isFormOpen])
 
   useEffect(() => {
-    if (!submitted || !isFormOpen) return
-    const hideTimer = window.setTimeout(closeSnackbar, THANK_YOU_VISIBLE_MS)
+    if (!isSnackbar || !submitted || !isFormOpen) return
+    const hideTimer = window.setTimeout(closeForm, THANK_YOU_VISIBLE_MS)
     return () => window.clearTimeout(hideTimer)
-  }, [submitted, isFormOpen])
+  }, [isSnackbar, submitted, isFormOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -150,19 +157,8 @@ export default function FeedbackSection({
     setSubmitted(true)
   }
 
-  return (
-    <section
-      ref={sectionRef}
-      role="dialog"
-      aria-modal="false"
-      aria-label="Share your feedback"
-      aria-hidden={!isFormOpen}
-      inert={!isFormOpen}
-      className={`pointer-events-none fixed inset-x-0 bottom-0 z-50 mx-auto flex max-w-[420px] justify-center px-3 pb-3 transition-all duration-300 ease-out motion-reduce:transition-none ${
-        isFormOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
-      }`}
-    >
-      <Card className="pointer-events-auto max-h-[80svh] w-full gap-0 overflow-y-auto rounded-2xl border border-[#f0f3f5] p-4 shadow-[0_-4px_24px_rgba(46,55,66,0.18)]">
+  const cardContent = (
+    <>
         {/* Header */}
         <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -172,14 +168,16 @@ export default function FeedbackSection({
               <p className="text-xs text-[#9dabbd]">Help us improve this feature</p>
             </div>
           </div>
+          {(isSnackbar || !submitted) && (
           <button
             type="button"
-            onClick={closeSnackbar}
+            onClick={closeForm}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
             aria-label="Close feedback form"
           >
             <X className="h-4 w-4" />
           </button>
+          )}
         </div>
 
         {submitted ? (
@@ -278,11 +276,11 @@ export default function FeedbackSection({
 
             {/* Message */}
             <div>
-              <label htmlFor="feedback-message" className="mb-2 block text-xs font-medium text-[#2e3742]">
+              <label htmlFor={messageFieldId} className="mb-2 block text-xs font-medium text-[#2e3742]">
                 Any suggestions or feedback to improve this feature?
               </label>
               <Textarea
-                id="feedback-message"
+                id={messageFieldId}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tell us what you liked or what we can do better..."
@@ -299,7 +297,44 @@ export default function FeedbackSection({
             </Button>
           </form>
         )}
-      </Card>
+    </>
+  )
+
+  if (isSnackbar) {
+    return (
+      <section
+        role="dialog"
+        aria-modal="false"
+        aria-label="Share your feedback"
+        aria-hidden={!isFormOpen}
+        inert={!isFormOpen}
+        className={`pointer-events-none fixed inset-x-0 bottom-0 z-50 mx-auto flex max-w-[420px] justify-center px-3 pb-3 transition-all duration-300 ease-out motion-reduce:transition-none ${
+          isFormOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+        }`}
+      >
+        <Card className="pointer-events-auto max-h-[80svh] w-full gap-0 overflow-y-auto rounded-2xl border border-[#f0f3f5] p-4 shadow-[0_-4px_24px_rgba(46,55,66,0.18)]">
+          {cardContent}
+        </Card>
+      </section>
+    )
+  }
+
+  return (
+    <section ref={sectionRef} className="scroll-mt-24">
+      {!isFormOpen && !submitted ? (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            onClick={() => setIsFormOpen(true)}
+            className="gap-2 bg-[#156ddc] text-white hover:bg-[#1160c4]"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+            Share Feedback
+          </Button>
+        </div>
+      ) : (
+        <Card className="border border-[#f0f3f5] p-4 shadow-sm">{cardContent}</Card>
+      )}
     </section>
   )
 }
