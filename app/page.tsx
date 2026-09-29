@@ -631,12 +631,24 @@ export default function HealthDashboard() {
           cookieToken = DEBUG_ACCESS_TOKEN
         }
 
-        const token = cookieToken
+        let token = cookieToken
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
 
-        const data = await fetchBeneficiaries(token, pmEntityId)
+        let data
+        try {
+          data = await fetchBeneficiaries(token, pmEntityId)
+        } catch (err) {
+          // An expired `redirect` cookie token would otherwise block the
+          // dashboard; retry once with the debug token.
+          if (err instanceof Error && err.message === "UNAUTHORIZED" && token !== DEBUG_ACCESS_TOKEN) {
+            token = DEBUG_ACCESS_TOKEN
+            data = await fetchBeneficiaries(token, pmEntityId)
+          } else {
+            throw err
+          }
+        }
 
         // Persist the token for subsequent report loads.
         setAccessToken(token)
