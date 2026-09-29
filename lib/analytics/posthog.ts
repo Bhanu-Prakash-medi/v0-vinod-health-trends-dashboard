@@ -61,6 +61,27 @@ function scrubEventUrls(event: CaptureResult | null): CaptureResult | null {
   return event
 }
 
+const NON_PRODUCTION_HOST_PATTERNS = [
+  /^localhost$/,
+  /^127\.0\.0\.1$/,
+  /\.vusercontent\.net$/,
+  /(^|\.)v0\.app$/,
+  /(^|\.)v0\.dev$/,
+]
+
+/**
+ * Session recordings are only captured for real production traffic. Local
+ * dev, the v0 preview, and Vercel preview deployments are excluded so
+ * development sessions don't pollute (or bill) the recordings.
+ */
+function isProductionSession(): boolean {
+  if (process.env.NODE_ENV !== "production") return false
+  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV
+  if (vercelEnv && vercelEnv !== "production") return false
+  const host = window.location.hostname
+  return !NON_PRODUCTION_HOST_PATTERNS.some((pattern) => pattern.test(host))
+}
+
 /**
  * Initialize PostHog once, client-side only. No-ops (safe for SSR/build and
  * for environments where the project token hasn't been configured yet) when
@@ -69,7 +90,7 @@ function scrubEventUrls(event: CaptureResult | null): CaptureResult | null {
  * Deliberately conservative for a health application:
  *  - autocapture / pageview / pageleave capture are OFF. We only send the
  *    explicit, allow-listed events defined below.
- *  - session recording is enabled with all inputs masked. Elements marked
+ *  - session recording is enabled in production only, with all inputs masked. Elements marked
  *    with `data-ph-mask` have their text masked; `ph-no-capture` hides them.
  *  - person_profiles is "identified_only" so we don't create/merge person
  *    profiles from anonymous traffic.
@@ -91,7 +112,7 @@ export function initPostHog() {
       autocapture: false,
       capture_pageview: false,
       capture_pageleave: false,
-      disable_session_recording: false,
+      disable_session_recording: !isProductionSession(),
       session_recording: {
         // Typed values (feedback text, etc.) never appear in recordings.
         maskAllInputs: true,
