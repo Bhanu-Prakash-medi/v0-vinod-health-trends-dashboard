@@ -275,6 +275,7 @@ export default function FeedbackSection({
             )}
 
             {/* Message */}
+            {!isSnackbar && (
             <div>
               <label htmlFor={messageFieldId} className="mb-2 block text-xs font-medium text-[#2e3742]">
                 Any suggestions or feedback to improve this feature?
@@ -287,6 +288,7 @@ export default function FeedbackSection({
                 className="min-h-24 resize-none border-[#e2e8ef] text-sm text-[#2e3742] placeholder:text-[#9dabbd] focus-visible:ring-[#156ddc]"
               />
             </div>
+            )}
 
             <Button
               type="submit"
