@@ -33,6 +33,7 @@ import {
 } from "@/components/skeletons"
 import { initSnowplow, trackHealthTrendsEvent, setSnowplowUserContext, setSelfVasBenefId } from "@/lib/snowplow"
 import { sendHotjarEvent } from "@/lib/analytics/analytics"
+import { onAnalyticsAllowed, setAnalyticsAccess } from "@/lib/analytics/access-gate"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
 import { identifyUser, trackEvent, trackEventOnce } from "@/lib/analytics/posthog"
 import SectionViewTracker from "@/components/section-view-tracker"
@@ -45,7 +46,7 @@ import {
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
-  DEBUG_ACCESS_TOKEN,
+  getDebugAccessToken,
   getPmEntityIdFromCookie,
   getHealthConsent,
   submitHealthConsent,
@@ -193,7 +194,32 @@ export default function HealthDashboard() {
             setGlobalError({ type: "UNAUTHORIZED", message: "Please login to access the health trends" })
             return
           }
-          // Otherwise fall back to the profile-provided report requests (if any).
+          // Fall back to the profile-provided report requests when available.
+          // If there are none, the list call FAILED — that is not the same as
+          // "no reports", so surface a retryable error instead of the empty state.
+          if (reportRequests.length === 0) {
+            trackEvent("health_trends_load_failed", {
+              source: analyticsSource,
+              success: false,
+              duration_ms: Date.now() - loadStartedAt,
+            })
+            setBeneficiaryErrors((prev) => {
+              const newMap = new Map(prev)
+              newMap.set(beneficiary.uid, {
+                type: "GENERAL",
+                message: "Failed to load health reports. Please try again.",
+              })
+              return newMap
+            })
+            setBeneficiaryReports((prev) => {
+              const newMap = new Map(prev)
+              const existingReport = newMap.get(beneficiary.uid)
+              if (existingReport) newMap.set(beneficiary.uid, { ...existingReport, isLoading: false })
+              return newMap
+            })
+            setCompletedBeneficiaries((prev) => new Set(prev).add(beneficiary.uid))
+            return
+          }
         }
       }
 
@@ -249,6 +275,9 @@ export default function HealthDashboard() {
             })
             return newMap
           })
+          setCompletedBeneficiaries((prev) => new Set(prev).add(beneficiary.uid))
+          trackEvent("no_reports", { source: analyticsSource })
+          if (analyticsSource === "self") trackHealthTrendsEvent("No Reports Available")
 
           setBeneficiaryReports((prev) => {
             const newMap = new Map(prev)
@@ -559,6 +588,7 @@ export default function HealthDashboard() {
           newMap.set(beneficiary.uid, errorInfo)
           return newMap
         })
+        setCompletedBeneficiaries((prev) => new Set(prev).add(beneficiary.uid))
 
         setHealthSummaryLoading((prev) => {
           const newMap = new Map(prev)
@@ -601,9 +631,12 @@ export default function HealthDashboard() {
   )
 
   // Initialize Snowplow on mount
+  // Hotjar only fires once access is confirmed (see onAnalyticsAllowed).
   useEffect(() => {
     initSnowplow()
-    sendHotjarEvent(HOTJAR_EVENTS_NAME.HEALTH_TRENDS_HOTJAR, {})
+    return onAnalyticsAllowed(() => {
+      sendHotjarEvent(HOTJAR_EVENTS_NAME.HEALTH_TRENDS_HOTJAR, {})
+    })
   }, [])
 
   const hasLoadedRef = useRef(false)
@@ -631,8 +664,12 @@ export default function HealthDashboard() {
 
         // Fall back to the debug token when no `redirect` cookie is present
         // (e.g. the v0 preview) so the dashboard still loads for testing.
+        const debugToken = getDebugAccessToken()
         if (!cookieToken) {
-          cookieToken = DEBUG_ACCESS_TOKEN
+          cookieToken = debugToken
+        }
+        if (!cookieToken) {
+          throw new Error("UNAUTHORIZED")
         }
 
         let token = cookieToken
@@ -646,8 +683,8 @@ export default function HealthDashboard() {
         } catch (err) {
           // An expired `redirect` cookie token would otherwise block the
           // dashboard; retry once with the debug token.
-          if (err instanceof Error && err.message === "UNAUTHORIZED" && token !== DEBUG_ACCESS_TOKEN) {
-            token = DEBUG_ACCESS_TOKEN
+          if (err instanceof Error && err.message === "UNAUTHORIZED" && debugToken && token !== debugToken) {
+            token = debugToken
             data = await fetchBeneficiaries(token, pmEntityId)
           } else {
             throw err
@@ -661,6 +698,19 @@ export default function HealthDashboard() {
 
         if (!data.beneficiaries || data.beneficiaries.length === 0) {
           throw new Error("No beneficiaries found")
+        }
+
+        // Resolve Health Trends access FIRST. For the restricted org this hits the
+        // allowlist API and fails closed; other orgs resolve to true instantly.
+        // The analytics gate stays closed until this is known, so users who only
+        // see "coming soon" never emit PostHog / Snowplow / Hotjar events.
+        const allowed = await checkAppAccess(pmEntityId, data.employee_email || "")
+        if (!isMounted) return
+        setAnalyticsAccess(allowed)
+        setAppAccessAllowed(allowed)
+        if (!allowed) {
+          setIsBeneficiariesLoading(false)
+          return
         }
 
         setBeneficiaries(data.beneficiaries)
@@ -731,15 +781,6 @@ export default function HealthDashboard() {
           setActiveBeneficiaryIndex(selfIndex)
         }
 
-        // Resolve app-level access before revealing the app. For the restricted
-        // org this fetches the API allowlist and fails closed on any error;
-        // other orgs resolve to `true` immediately. Awaiting here keeps the
-        // loading skeleton up (instead of flashing the app or "coming soon")
-        // until the decision is known.
-        const allowed = await checkAppAccess(pmEntityId, data.employee_email || "")
-        if (!isMounted) return
-        setAppAccessAllowed(allowed)
-
         setIsBeneficiariesLoading(false)
 
         // Load ONLY the Self beneficiary eagerly on initial load. Other family
@@ -749,9 +790,6 @@ export default function HealthDashboard() {
         // and Self's data appear noticeably faster.
         const selfBeneficiary = sortedBeneficiaries[0]
         if (selfBeneficiary) {
-          if (selfBeneficiary.dmS_Doc_ID.length == 0) {
-            trackHealthTrendsEvent("No Reports Available")
-          }
           requestedBeneficiariesRef.current.add(selfBeneficiary.uid)
           loadBeneficiaryReport(selfBeneficiary, token)
         }
@@ -1075,7 +1113,7 @@ export default function HealthDashboard() {
           {/* Genuinely no records for this beneficiary. Still show the
               feedback form here — having no reports is a valid state, not a
               reason to hide the user's ability to leave feedback. */}
-          {!hasRecordsToLoad && currentBeneficiaryError && (
+          {currentBeneficiaryError?.type === "NO_REPORTS" && !hasReports && (
             <>
               <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
                 <div className="mb-3 text-4xl">📋</div>
@@ -1093,7 +1131,7 @@ export default function HealthDashboard() {
           )}
 
           {/* Records exist but loading failed — offer a retry. */}
-          {hasRecordsToLoad && !hasReports && currentBeneficiaryError && currentBeneficiaryError.type !== "NO_REPORTS" && (
+          {!hasReports && currentBeneficiaryError && currentBeneficiaryError.type !== "NO_REPORTS" && (
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-6 text-center">
               <div className="mb-3 text-4xl">{currentBeneficiaryError.type === "TIMEOUT" ? "⏱️" : "⚠️"}</div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -1110,7 +1148,12 @@ export default function HealthDashboard() {
           )}
 
           {/* Confirmed empty (no records and no records to load). */}
-          {!hasRecordsToLoad && !isLazyPending && !currentBeneficiaryError && <EmptyState />}
+          {/* Only after the reports API has actually answered — never before
+              the call is made (the profile count is 0 for family members). */}
+          {!hasRecordsToLoad && !isLazyPending && !currentBeneficiaryError && isLoadComplete && <EmptyState />}
+          {!hasRecordsToLoad && !isLazyPending && !currentBeneficiaryError && !isLoadComplete && (
+            <HealthSummarySkeleton />
+          )}
 
           {/* Report(s) resolved but the analysis came back empty (report_data
               null, no parameters, no health summary) — show a fallback instead

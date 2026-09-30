@@ -64,6 +64,11 @@ export async function cachedRequest<T>(
   return request
 }
 
+/** Drop a single cached key (exact match). */
+export function invalidateRequest(key: string): void {
+  resultCache.delete(key)
+}
+
 /**
  * Invalidate cached entries. Pass a key prefix to clear a subset (e.g.
  * "reportDetails:") or omit it to clear everything. Useful for an explicit

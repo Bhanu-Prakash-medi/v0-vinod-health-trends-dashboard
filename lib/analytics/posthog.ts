@@ -2,6 +2,7 @@
 
 import posthog, { type CaptureResult } from "posthog-js"
 import { getPlatformFromCookie } from "@/lib/api"
+import { isAnalyticsAllowed, onAnalyticsAllowed } from "@/lib/analytics/access-gate"
 
 let initialized = false
 
@@ -112,7 +113,9 @@ export function initPostHog() {
       autocapture: false,
       capture_pageview: false,
       capture_pageleave: false,
-      disable_session_recording: !isProductionSession(),
+      // Recording starts only after Health Trends access is confirmed (see
+      // below), so users without access are never recorded.
+      disable_session_recording: true,
       session_recording: {
         // Typed values (feedback text, etc.) never appear in recordings.
         maskAllInputs: true,
@@ -130,6 +133,15 @@ export function initPostHog() {
     // on (including identify() calls), so every metric can be broken down
     // by android_mv / iOS_mv / web without each call site passing it.
     posthog.register({ platform: resolvePlatform() })
+    if (isProductionSession()) {
+      onAnalyticsAllowed(() => {
+        try {
+          posthog.startSessionRecording()
+        } catch {
+          // non-blocking
+        }
+      })
+    }
   } catch (error) {
     console.log("[v0] PostHog init failed (non-blocking):", error)
   }
@@ -154,7 +166,7 @@ export function identifyUser(user: {
   email?: string | null
   name?: string | null
 }) {
-  if (typeof window === "undefined" || !initialized) return
+  if (typeof window === "undefined" || !initialized || !isAnalyticsAllowed()) return
 
   const mbUserId = user.mbUserId != null && user.mbUserId !== "" ? String(user.mbUserId) : ""
   const pmEntityId = user.pmEntityId != null && user.pmEntityId !== "" ? String(user.pmEntityId) : ""
@@ -282,7 +294,7 @@ export function trackEvent(
   properties?: AnalyticsEventProperties,
   options?: { useBeacon?: boolean },
 ) {
-  if (typeof window === "undefined" || !initialized) return
+  if (typeof window === "undefined" || !initialized || !isAnalyticsAllowed()) return
   try {
     posthog.capture(name, properties, options?.useBeacon ? { transport: "sendBeacon" } : undefined)
   } catch (error) {
@@ -303,7 +315,7 @@ const firedOnceEvents = new Set<AnalyticsEventName>()
  * actually sent, false when it had already been recorded.
  */
 export function trackEventOnce(name: AnalyticsEventName, properties?: AnalyticsEventProperties): boolean {
-  if (typeof window === "undefined") return false
+  if (typeof window === "undefined" || !isAnalyticsAllowed()) return false
   if (firedOnceEvents.has(name)) return false
   firedOnceEvents.add(name)
   trackEvent(name, properties)

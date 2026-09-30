@@ -1,7 +1,7 @@
 // Types for API responses
 
 import { genderAvatar } from "@/lib/health-utils"
-import { cachedRequest } from "@/lib/request-cache"
+import { cachedRequest, invalidateRequest } from "@/lib/request-cache"
 
 /**
  * A single lab-report reference from the profile / beneficiary reports API.
@@ -172,7 +172,30 @@ export interface ApiHealthReport {
  * available (e.g. the v0 preview where the `redirect` cookie is absent). Lets
  * the profile section still exercise the BMI API during testing.
  */
-export const DEBUG_ACCESS_TOKEN = ""
+export const DEBUG_ACCESS_TOKEN = "64e70f1f16ea4f379b0046eb4ba6f232"
+
+/**
+ * The debug token must never be used for real users: in production a missing
+ * or expired cookie has to show the login error, not the debug user's data.
+ * Only local dev, the v0 preview, and Vercel preview deployments may use it.
+ */
+export function isDebugTokenAllowed(): boolean {
+  if (typeof window === "undefined") return false
+  if (process.env.NODE_ENV !== "production") return true
+  if (process.env.NEXT_PUBLIC_VERCEL_ENV === "preview") return true
+  const host = window.location.hostname
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".vusercontent.net") ||
+    host.endsWith(".v0.dev") ||
+    host.endsWith(".v0.app")
+  )
+}
+
+export function getDebugAccessToken(): string {
+  return isDebugTokenAllowed() ? DEBUG_ACCESS_TOKEN : ""
+}
 
 /**
  * Response shape of GET /health/bmi/{vasBenefId}. `bmi` (and the related fields)
@@ -203,7 +226,7 @@ export async function fetchBmi(
   try {
     const response = await fetch(`/api/health/bmi/${encodeURIComponent(String(vasBenefId))}`, {
       method: "GET",
-      headers: { accesstoken: accessToken || DEBUG_ACCESS_TOKEN },
+      headers: { accesstoken: accessToken || getDebugAccessToken() },
     })
     if (!response.ok) return null
     return (await response.json()) as BmiResponse
@@ -670,9 +693,14 @@ export async function fetchBeneficiaryReportRequests(
 ): Promise<ReportRequest[]> {
   // Cached per beneficiary so re-selecting them (or remounting) reuses the
   // already-resolved report references instead of re-hitting the reports API.
-  return cachedRequest(`reportRequests:${vasBenifId}`, () =>
-    fetchBeneficiaryReportRequestsUncached(accessToken, vasBenifId),
+  const key = `reportRequests:${vasBenifId}`
+  const requests = await cachedRequest(key, () =>
+    withRetry(() => fetchBeneficiaryReportRequestsUncached(accessToken, vasBenifId), 2),
   )
+  // Never pin an empty list in the cache: a transient backend blip would
+  // otherwise show "No reports" for the whole cache lifetime.
+  if (requests.length === 0) invalidateRequest(key)
+  return requests
 }
 
 async function fetchBeneficiaryReportRequestsUncached(
@@ -689,9 +717,15 @@ async function fetchBeneficiaryReportRequestsUncached(
   if (response.status === 401) {
     throw new Error("UNAUTHORIZED")
   }
-  if (!response.ok) {
-    // 403 (vasBenifId not owned) or other errors: treat as no reports available.
+  if (response.status === 403 || response.status === 404) {
+    // Definitive answers from the backend: beneficiary not owned / no reports.
     return []
+  }
+  if (!response.ok) {
+    // 5xx, gateway timeouts, etc. are failures, not "no reports" — throw so
+    // the caller retries and surfaces a retryable error instead.
+    await response.text().catch(() => "")
+    throw new Error(`REPORTS_LIST_FAILED_${response.status}`)
   }
 
   const data = await response.json()

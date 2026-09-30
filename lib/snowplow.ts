@@ -1,5 +1,7 @@
 "use client"
 
+import { isAnalyticsAllowed } from "@/lib/analytics/access-gate"
+
 let snowplowModule: typeof import("@snowplow/browser-tracker") | null = null
 let isInitialized = false
 let initFailed = false
@@ -96,7 +98,7 @@ export async function initSnowplow() {
 }
 
 export function trackHealthTrendsEvent(statusMessage: string, vasbenefId?: string | number) {
-  if (typeof window === "undefined") return
+  if (typeof window === "undefined" || !isAnalyticsAllowed()) return
 
   const sessionId = getCookieValue("trk-mb-session-id") || null
   const pmEntityId = getCookieValue("pmEntityId") || null
