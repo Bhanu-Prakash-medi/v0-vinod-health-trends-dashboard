@@ -139,9 +139,8 @@ export default function HealthSummarySection({
   // Per-report-date summaries (latest first). Powers the date dropdown so users
   // can review historical health summaries. Falls back to the single latest
   // summary when the by-date list isn't available.
-  // One entry per individual report, newest first. Reports that fall on the SAME
-  // date are intentionally kept SEPARATE (never collapsed/merged) so each one is
-  // selectable on its own — same-date entries are told apart by their report name.
+  // One entry per date, newest first. Reports on the SAME date are merged into a
+  // single entry upstream (see mergeSummariesBySameDate in lib/api.ts).
   const summariesByDate: Array<{ dateKey: string; reportName?: string; health_summary: any[] }> =
     patientData?.health_summary_by_date && patientData.health_summary_by_date.length > 0
       ? patientData.health_summary_by_date

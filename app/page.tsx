@@ -35,7 +35,7 @@ import { initSnowplow, trackHealthTrendsEvent, setSnowplowUserContext, setSelfVa
 import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { onAnalyticsAllowed, setAnalyticsAccess } from "@/lib/analytics/access-gate"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
-import { identifyUser, trackEvent, trackEventOnce } from "@/lib/analytics/posthog"
+import { identifyUser, trackAccessDeniedLanding, trackEvent, trackEventOnce } from "@/lib/analytics/posthog"
 import SectionViewTracker from "@/components/section-view-tracker"
 import {
   fetchBeneficiaries,
@@ -709,6 +709,7 @@ export default function HealthDashboard() {
         setAnalyticsAccess(allowed)
         setAppAccessAllowed(allowed)
         if (!allowed) {
+          trackAccessDeniedLanding({ mbUserId: data.mbuserid || null, pmEntityId })
           setIsBeneficiariesLoading(false)
           return
         }
@@ -731,7 +732,7 @@ export default function HealthDashboard() {
         })
         // trackEventOnce is module-scoped, so a remount can't double-count
         // this user in the DAU metric.
-        trackEventOnce("health_trends_view")
+        trackEventOnce("health_trends_view", { has_access: true })
 
         // Consent gate: mbUserId comes from the profile response, pmEntityId
         // from the cookie, email from the profile. Check existing consent; if
@@ -862,7 +863,10 @@ export default function HealthDashboard() {
   }
 
   const consentModal = (
-    <HealthConsentModal open={hasAcceptedHealthConsent === false} onAgree={handleConsentAgree} />
+    <HealthConsentModal
+      open={appAccessAllowed === true && hasAcceptedHealthConsent === false}
+      onAgree={handleConsentAgree}
+    />
   )
 
   // Full-page trends/all-parameters views are dedicated screens, so their

@@ -130,14 +130,20 @@ export interface ApiHealthReport {
     contractType?: string | number | null
   }>
   health_summary: HealthSummaryItem[]
-  /** Per-report-date health summaries, sorted latest date first. Powers the
-   *  Health Summary date dropdown so users can view historical summaries. The
-   *  first entry corresponds to the same data as `health_summary` (latest). */
+  /** Health summaries grouped by DATE, sorted latest first. Reports that share
+   *  a date are MERGED into one entry. Powers the Health Summary dropdown and
+   *  the Digital Twin. */
   health_summary_by_date?: Array<{
     /** Raw date key (fullfilmentDate or date) used for sorting/formatting. */
     dateKey: string
-    /** Name of the individual report this summary came from. Used to tell apart
-     *  multiple reports that fall on the SAME date (they are kept separate). */
+    /** Report name(s) that make up this entry (comma-joined when merged). */
+    reportName?: string
+    health_summary: HealthSummaryItem[]
+  }>
+  /** One summary per INDIVIDUAL report (same-date reports kept separate).
+   *  Used by the Test Reports section to fill in each report's own values. */
+  health_summary_by_report?: Array<{
+    dateKey: string
     reportName?: string
     health_summary: HealthSummaryItem[]
   }>
@@ -172,7 +178,7 @@ export interface ApiHealthReport {
  * available (e.g. the v0 preview where the `redirect` cookie is absent). Lets
  * the profile section still exercise the BMI API during testing.
  */
-export const DEBUG_ACCESS_TOKEN = "64e70f1f16ea4f379b0046eb4ba6f232"
+export const DEBUG_ACCESS_TOKEN = "41b0b9d772f342faa48dcf3e70ce0e3e"
 
 /**
  * The debug token must never be used for real users: in production a missing
@@ -1454,12 +1460,12 @@ export function mergeReportsKeepLatest(
     if (only.health_summary && only.health_summary.length > 0) {
       const dateKey =
         only.reports?.[0]?.fullfilmentDate || only.reports?.[0]?.date || only.latestReportDate || "unknown"
+      const entry = { dateKey, reportName: only.reports?.[0]?.name || "", health_summary: only.health_summary }
       return {
         ...only,
         all_reports_raw: onlySeparate,
-        health_summary_by_date: [
-          { dateKey, reportName: only.reports?.[0]?.name || "", health_summary: only.health_summary },
-        ],
+        health_summary_by_date: [entry],
+        health_summary_by_report: [entry],
       }
     }
     return { ...only, all_reports_raw: onlySeparate }
@@ -1686,12 +1692,9 @@ export function mergeReportsKeepLatest(
 
   const mergedHealthSummary = Array.from(mergedHealthSummaryMap.values())
 
-  // Build the summary list for the Health Summary date dropdown, with ONE ENTRY
-  // PER INDIVIDUAL REPORT. Reports that share the same date are deliberately
-  // NOT merged — each one gets its own selectable entry (disambiguated by its
-  // report name), so a member with several reports on the same day can review
-  // each separately. Sorted latest first.
-  const healthSummaryByDateList: Array<{
+  // One entry per individual report (same-date reports kept separate), newest
+  // first. The Test Reports section uses this to show each report's own values.
+  const healthSummaryByReportList: Array<{
     dateKey: string
     reportName?: string
     health_summary: HealthSummaryItem[]
@@ -1710,6 +1713,8 @@ export function mergeReportsKeepLatest(
     })
     .sort((a, b) => parseDate(b.dateKey).getTime() - parseDate(a.dateKey).getTime())
 
+  const healthSummaryByDateList = mergeSummariesBySameDate(healthSummaryByReportList)
+
   // Every individual report that has data, kept separate (NOT merged by date),
   // sorted newest first. Drives the "Health Records" count and Test Reports so
   // same-day reports each appear on their own.
@@ -1723,6 +1728,7 @@ export function mergeReportsKeepLatest(
     all_reports_raw: allReportsSeparate,
     health_summary: mergedHealthSummary,
     health_summary_by_date: healthSummaryByDateList,
+    health_summary_by_report: healthSummaryByReportList,
     trend_analysis: latestReport.trend_analysis,
     lab_reports: latestReport.lab_reports,
     isLoading: latestReport.isLoading,
@@ -1734,4 +1740,68 @@ export function mergeReportsKeepLatest(
     // first entry) can resolve to a different date and caused a mismatch.
     latestReportDate: latestReportData?.fullfilmentDate || latestReportData?.date || latestReport.latestReportDate,
   }
+}
+
+type SummaryEntry = { dateKey: string; reportName?: string; health_summary: HealthSummaryItem[] }
+
+const ABNORMAL_CATEGORY_STATUSES = new Set(["warning", "abnormal", "high", "low"])
+
+function summaryDateGroupKey(dateKey: string): string {
+  const parsed = parseDate(dateKey)
+  return Number.isNaN(parsed.getTime()) ? dateKey.trim() : parsed.toDateString()
+}
+
+/**
+ * Collapse summaries that fall on the same calendar day into one entry:
+ * categories with the same name are combined, parameters are de-duplicated by
+ * name (the first, i.e. newest-sorted, value wins), and the out-of-range count
+ * and status are recomputed. Input order (newest first) is preserved.
+ */
+function mergeSummariesBySameDate(entries: SummaryEntry[]): SummaryEntry[] {
+  const groups = new Map<string, SummaryEntry[]>()
+  for (const entry of entries) {
+    const key = summaryDateGroupKey(entry.dateKey)
+    const group = groups.get(key)
+    if (group) group.push(entry)
+    else groups.set(key, [entry])
+  }
+
+  return Array.from(groups.values()).map((group) => {
+    if (group.length === 1) return group[0]
+
+    const categories = new Map<string, any>()
+    for (const entry of group) {
+      for (const item of entry.health_summary) {
+        const categoryName = item.category || (item as any).name || "Unknown"
+        const existing = categories.get(categoryName)
+        if (!existing) {
+          categories.set(categoryName, { ...item, parameters: item.parameters ? [...item.parameters] : [] })
+          continue
+        }
+        const seen = new Set(
+          (existing.parameters || []).map((p: any) => String(p.name || p.metric_name || "").toLowerCase()),
+        )
+        for (const param of item.parameters || []) {
+          const paramName = String(param.name || (param as any).metric_name || "").toLowerCase()
+          if (!paramName || seen.has(paramName)) continue
+          seen.add(paramName)
+          existing.parameters.push(param)
+        }
+        existing.out_of_range_count = existing.parameters.filter((p: any) => {
+          const status = String(p.status || "normal").toLowerCase()
+          return status !== "normal" && status !== "in range" && status !== "in_range"
+        }).length
+        if (ABNORMAL_CATEGORY_STATUSES.has(String(item.status || "").toLowerCase())) {
+          existing.status = item.status
+        }
+      }
+    }
+
+    const reportNames = Array.from(new Set(group.map((e) => e.reportName).filter(Boolean)))
+    return {
+      dateKey: group[0].dateKey,
+      reportName: reportNames.join(", "),
+      health_summary: Array.from(categories.values()),
+    }
+  })
 }

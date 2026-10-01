@@ -144,7 +144,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
   const healthSummaryFromApi = patientData?.health_summary || []
 
   // Per-report summaries (one entry per individual report, same-day kept separate).
-  const summariesByDate: any[] = patientData?.health_summary_by_date || []
+  const summariesByDate: any[] = patientData?.health_summary_by_report || patientData?.health_summary_by_date || []
 
   // Flatten a list of health_summary categories into display parameters.
   const paramsFromSummary = (summary: any[]): any[] => {

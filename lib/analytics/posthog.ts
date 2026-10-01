@@ -278,6 +278,32 @@ export interface AnalyticsEventProperties {
   organ?: string
   /** Active seconds spent in Health Trends, for health_trends_time_spent. */
   active_seconds?: number
+  /** Whether the user is allowed to view Health Trends (on health_trends_view). */
+  has_access?: boolean
+}
+
+/**
+ * The ONE event sent for users without Health Trends access: a landing
+ * health_trends_view with has_access=false, carrying the user/entity ids so
+ * denied users can be counted. It bypasses the analytics gate on purpose but
+ * does not identify the user, start recordings, or open the gate, so nothing
+ * else is ever sent for them.
+ */
+export function trackAccessDeniedLanding(ids: {
+  mbUserId?: string | number | null
+  pmEntityId?: string | number | null
+}) {
+  if (typeof window === "undefined" || !initialized) return
+  if (firedOnceEvents.has("health_trends_view")) return
+  firedOnceEvents.add("health_trends_view")
+  const properties: Record<string, unknown> = { has_access: false }
+  if (ids.mbUserId != null && ids.mbUserId !== "") properties.mb_user_id = String(ids.mbUserId)
+  if (ids.pmEntityId != null && ids.pmEntityId !== "") properties.pm_entity_id = String(ids.pmEntityId)
+  try {
+    posthog.capture("health_trends_view", properties)
+  } catch (error) {
+    console.log("[v0] PostHog capture failed (non-blocking):", error)
+  }
 }
 
 /**
