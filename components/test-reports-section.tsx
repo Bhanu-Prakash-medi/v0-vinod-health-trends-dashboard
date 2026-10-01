@@ -2,6 +2,14 @@
 
 import { Folder, Star, FileText, X, Clock, ChevronDown, AlertTriangle, Download, Check } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
 import { hasValidRange } from "@/lib/health-utils"
 import { openExternalUrl } from "@/lib/open-external"
@@ -70,6 +78,86 @@ function getReportNames(reportName: any): string[] {
     return [reportName]
   }
   return ["Lab Report"]
+}
+
+// Same-day reports are shown as one card, so the names/labs of every report in
+// the group are combined (deduped) for display.
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.map((v) => String(v || "").trim()).filter(Boolean)))
+}
+
+interface ReportDownloadControlProps {
+  reports: any[]
+  onDownload: (fileUrl: string) => void
+  compact?: boolean
+}
+
+/**
+ * One downloadable file → a plain download button. Several (same-day reports
+ * merged into one card) → a dropdown listing each original report separately.
+ * Clicks never bubble to the card, which would otherwise open the viewer.
+ */
+function ReportDownloadControl({ reports, onDownload, compact }: ReportDownloadControlProps) {
+  const downloadable = reports.filter((r) => r.file)
+  if (downloadable.length === 0) return null
+
+  const buttonClass = compact
+    ? "flex h-8 items-center justify-center gap-0.5 rounded-full px-2 text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+    : "flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+
+  if (downloadable.length === 1) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onDownload(downloadable[0].file)
+        }}
+        className={buttonClass}
+        aria-label="Download original report"
+        title="Download original report"
+      >
+        <Download className="h-4 w-4" />
+        {!compact && <span className="hidden sm:inline">Download</span>}
+      </button>
+    )
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className={buttonClass}
+          aria-label={`Download original reports (${downloadable.length})`}
+          title="Download original reports"
+        >
+          <Download className="h-4 w-4" />
+          {compact ? (
+            <span className="text-[10px] font-semibold">{downloadable.length}</span>
+          ) : (
+            <span className="hidden sm:inline">Download ({downloadable.length})</span>
+          )}
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="z-[70] w-72" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuLabel className="text-xs">Download original reports</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {downloadable.map((r, i) => (
+          <DropdownMenuItem key={i} onSelect={() => onDownload(r.file)} className="flex items-start gap-2">
+            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[#156ddc]" />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-xs font-medium">{r.report_names.join(", ")}</span>
+              <span className="truncate text-[11px] text-muted-foreground">{getReportFileName(r)}</span>
+            </span>
+            <Download className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }
 
 interface NormalizedParam {
@@ -258,6 +346,30 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     }))
   }
 
+  // Merge same-day reports into one card. Each report keeps its own file and
+  // parameters inside the group so downloads and results stay separate.
+  const reportGroups: { date: string; tag: string; reports: any[] }[] = (() => {
+    const byKey = new Map<string, { date: string; tag: string; reports: any[] }>()
+    const ordered: { date: string; tag: string; reports: any[] }[] = []
+    reports.forEach((r, i) => {
+      const key = normalizeDateKey(r.date) ?? `__nodate_${i}`
+      let group = byKey.get(key)
+      if (!group) {
+        group = { date: r.date, tag: r.tag, reports: [] }
+        byKey.set(key, group)
+        ordered.push(group)
+      }
+      if (isLatestReportTag(r.tag)) group.tag = r.tag
+      group.reports.push(r)
+    })
+    ordered.sort((a, b) => Number(isLatestReportTag(b.tag)) - Number(isLatestReportTag(a.tag)))
+    return ordered
+  })()
+
+  const groupNames = (group: { reports: any[] }) => uniqueStrings(group.reports.flatMap((r) => r.report_names))
+  const groupLabs = (group: { reports: any[] }) => uniqueStrings(group.reports.map((r) => r.lab_name)).join(", ")
+  const selectedGroup = reportGroups[selectedReportIndex]
+
   const handleReportClick = (index: number) => {
     setSelectedReportIndex(index)
     setShowPdfViewer(true)
@@ -268,8 +380,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
   // attachment URL downloaded a broken file that "couldn't open". Routing
   // through openExternalUrl escapes to the real browser, so the PDF downloads
   // and opens exactly like pasting the link into Chrome directly.
-  const handleDownloadReport = (e: React.MouseEvent, fileUrl: string, _fileName: string) => {
-    e.stopPropagation()
+  const handleDownloadReport = (fileUrl: string) => {
     if (!fileUrl) return
     // Counts people who downloaded a report. The file URL is deliberately not
     // sent — it is a pre-signed link to patient report contents.
@@ -288,7 +399,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
   useEffect(() => {
     if (!scrollToDate) return
     const key = normalizeDateKey(scrollToDate)
-    const targetIndex = reports.findIndex((r: any) => normalizeDateKey(r.date) === key)
+    const targetIndex = reportGroups.findIndex((g) => normalizeDateKey(g.date) === key)
 
     if (targetIndex === -1) {
       onScrollHandled?.()
@@ -298,7 +409,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     // Expand if the target is hidden behind the "View more" collapse
     if (targetIndex >= 3) setIsExpanded(true)
 
-    const targetId = isLatestReportTag(reports[targetIndex].tag)
+    const targetId = isLatestReportTag(reportGroups[targetIndex].tag)
       ? "latest-report-card"
       : `report-card-${targetIndex}`
 
@@ -355,7 +466,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
 
       {/* Report Cards - Show 3 by default, expand to show all */}
       <div className="flex flex-col gap-4">
-        {(isExpanded ? reports : reports.slice(0, 3)).map((report: any, index: number) => (
+        {(isExpanded ? reportGroups : reportGroups.slice(0, 3)).map((report, index: number) => (
           <Card
             key={index}
             id={isLatestReport(report.tag) ? "latest-report-card" : `report-card-${index}`}
@@ -393,13 +504,13 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
 
             <div className="p-4">
               <div className="space-y-1">
-                {report.report_names.map((name: string, nameIndex: number) => (
+                {groupNames(report).map((name: string, nameIndex: number) => (
                   <h3 key={nameIndex} className="text-sm font-medium text-[#2e3742]">
                     {name}
                   </h3>
                 ))}
               </div>
-              <p className="mt-1 text-xs text-[#4d5c6f]">{report.lab_name || "Comprehensive Health Analysis"}</p>
+              <p className="mt-1 text-xs text-[#4d5c6f]">{groupLabs(report) || "Comprehensive Health Analysis"}</p>
 
               <div className="my-3 border-t border-[#f0f3f5]" />
 
@@ -407,28 +518,14 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="h-4 w-4 shrink-0 text-[#9dabbd]" />
                   <p className="max-w-[200px] truncate text-xs text-[#9dabbd]">
-                          {getReportFileName(report)}
-                        </p>
+                    {report.reports.length > 1
+                      ? `${report.reports.length} reports on this date`
+                      : getReportFileName(report.reports[0])}
+                  </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex shrink-0 items-center gap-2">
                   <span className="text-xs text-[#9dabbd]">{report.date}</span>
-                  {report.file && (
-                    <button
-                      type="button"
-                      onClick={(e) =>
-                        handleDownloadReport(
-                          e,
-                              report.file,
-                              getReportFileName(report),
-                            )
-                      }
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
-                      aria-label="Download original report"
-                      title="Download original report"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
-                  )}
+                  <ReportDownloadControl reports={report.reports} onDownload={handleDownloadReport} compact />
                 </div>
               </div>
             </div>
@@ -437,7 +534,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
       </div>
 
       {/* View More / View Less toggle */}
-      {reports.length > 3 && (
+      {reportGroups.length > 3 && (
         <div className="mt-3 flex justify-center">
           <button
             type="button"
@@ -445,7 +542,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
             className="flex items-center gap-1 text-sm font-medium text-[#156ddc] transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc] rounded"
             aria-expanded={isExpanded}
           >
-            {isExpanded ? "View less" : `View more (${reports.length - 3})`}
+            {isExpanded ? "View less" : `View more (${reportGroups.length - 3})`}
             <ChevronDown
               className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
             />
@@ -454,7 +551,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
       )}
 
       {/* PDF Viewer Modal */}
-      {showPdfViewer && reports[selectedReportIndex] && (
+      {showPdfViewer && selectedGroup && (
         <div
           className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 sm:items-center sm:p-4"
           onClick={() => setShowPdfViewer(false)}
@@ -468,27 +565,11 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
               <div className="flex min-w-0 items-center gap-2">
                 <FileText className="h-5 w-5 shrink-0 text-[#156ddc]" />
                 <h3 className="truncate text-sm font-semibold text-[#2e3742]">
-                  Lab Report - {reports[selectedReportIndex].date}
+                  Lab Report - {selectedGroup.date}
                 </h3>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                {reports[selectedReportIndex].file && (
-                  <button
-                    onClick={(e) =>
-                      handleDownloadReport(
-                        e,
-                    reports[selectedReportIndex].file,
-                    getReportFileName(reports[selectedReportIndex]),
-                  )
-                    }
-                    className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
-                    aria-label="Download original report"
-                    title="Download original report"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span className="hidden sm:inline">Download</span>
-                  </button>
-                )}
+                <ReportDownloadControl reports={selectedGroup.reports} onDownload={handleDownloadReport} />
                 <button
                   onClick={() => setShowPdfViewer(false)}
                   className="rounded-full p-2 hover:bg-[#f0f3f5] transition-colors"
@@ -526,7 +607,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                 <div className="border-b-2 border-[#156ddc] pb-4 mb-6">
                   <h1 className="text-xl sm:text-2xl font-bold text-[#156ddc] mb-2">MEDIBUDDY LAB REPORT</h1>
                   <div className="space-y-1">
-                    {reports[selectedReportIndex].report_names.map((name: string, nameIndex: number) => (
+                    {groupNames(selectedGroup).map((name: string, nameIndex: number) => (
                       <p key={nameIndex} className="text-sm text-[#4d5c6f]">
                         {name}
                       </p>
@@ -549,25 +630,26 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                   <div>
                     <p className="text-xs text-[#9dabbd] mb-1">Report Type</p>
                     <p className="text-sm font-semibold text-[#2e3742]">
-                      {isLatestReport(reports[selectedReportIndex].tag) ? "Latest Report" : "Historical Report"}
+                      {isLatestReport(selectedGroup.tag) ? "Latest Report" : "Historical Report"}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-[#9dabbd] mb-1">Report Date</p>
-                    <p className="text-sm font-semibold text-[#2e3742]">{reports[selectedReportIndex].date}</p>
+                    <p className="text-sm font-semibold text-[#2e3742]">{selectedGroup.date}</p>
                   </div>
                 </div>
 
                 {/* Test Results Summary */}
-                {(() => {
-                  const params = normalizeParameters(
-                    reports[selectedReportIndex].parameters,
-                    patientData?.patient_info?.gender,
-                  )
+                {selectedGroup.reports.map((groupReport: any, reportIdx: number) => {
+                  const params = normalizeParameters(groupReport.parameters, patientData?.patient_info?.gender)
                   if (params.length === 0) return null
                   return (
-                    <div className="space-y-4">
-                      <h2 className="text-base sm:text-lg font-bold text-[#2e3742] border-b pb-2">Test Results</h2>
+                    <div key={reportIdx} className="space-y-4 [&:not(:first-child)]:mt-8">
+                      <h2 className="text-base sm:text-lg font-bold text-[#2e3742] border-b pb-2">
+                        {selectedGroup.reports.length > 1
+                          ? `Test Results - ${groupReport.report_names.join(", ")}`
+                          : "Test Results"}
+                      </h2>
 
                       {/* Mobile: stacked cards (avoids horizontal table overflow) */}
                       <div className="space-y-2 sm:hidden">
@@ -658,7 +740,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                       </div>
                     </div>
                   )
-                })()}
+                })}
 
                 {/* Footer Note */}
                 <div className="mt-8 pt-4 border-t border-[#f0f3f5]">
