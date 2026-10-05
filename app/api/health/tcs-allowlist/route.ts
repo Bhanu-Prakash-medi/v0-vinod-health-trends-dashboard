@@ -24,10 +24,15 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout = 800
 // no `allowlist` field on any upstream failure so the client can't mistake a
 // broken response for an empty allowlist.
 export async function GET() {
+  const webhookAuth = process.env.HEALTHVERSE_WEBHOOK_AUTH
+  if (!webhookAuth) {
+    return NextResponse.json({ error: "Allowlist webhook auth is not configured" }, { status: 502 })
+  }
+
   try {
     const upstream = await fetchWithTimeout(TCS_ALLOWLIST_URL, {
       method: "GET",
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", "x-healthverse": webhookAuth },
       // Cache the allowlist briefly to avoid hammering the webhook on every
       // page load while still picking up membership changes within minutes.
       next: { revalidate: 300 },
