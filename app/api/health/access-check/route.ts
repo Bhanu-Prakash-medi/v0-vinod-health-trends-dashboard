@@ -14,12 +14,17 @@ function normalizeEmail(email: string): string {
 }
 
 async function fetchAllowedEmailSet(): Promise<Set<string> | null> {
+  const webhookAuth = process.env.N8N_WEBHOOK_AUTH
+  if (!webhookAuth) {
+    console.error("[access-check] N8N_WEBHOOK_AUTH is not set; denying access")
+    return null
+  }
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 8000)
   try {
     const upstream = await fetch(TCS_ALLOWLIST_URL, {
       method: "GET",
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", "x-healthverse": webhookAuth },
       signal: controller.signal,
       next: { revalidate: 300 },
     })
