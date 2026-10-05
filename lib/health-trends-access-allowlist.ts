@@ -6,10 +6,10 @@
  * app; everyone else from that org sees a "feature coming soon" screen. Users
  * from ANY OTHER pmEntityId are unrestricted and always see the full app.
  *
- * The allowlist is fetched at runtime from an API (proxied via
- * /api/health/tcs-allowlist) rather than hardcoded here, so membership can be
- * changed without a code deploy. The gate is FAIL-CLOSED: if the allowlist
- * cannot be fetched, restricted-org users are denied access.
+ * The allowlist is checked on the server (/api/health/access-check), which
+ * returns only { allowed } so the email list is never exposed to browsers.
+ * The gate is FAIL-CLOSED: if the check fails, restricted-org users are
+ * denied access.
  *
  * The email is matched against the profile API's `employee_email`
  * (case-insensitive, whitespace-trimmed).
@@ -53,19 +53,24 @@ function normalizeEmailList(email: string | null | undefined): string[] {
 }
 
 /**
- * Fetch the restricted-org allowlist from the internal proxy route.
- * Returns a normalized Set of emails on success, or `null` on ANY failure
- * (network error, non-OK status, malformed body) so callers can fail closed.
+ * Ask the server whether any of the given emails is on the restricted-org
+ * allowlist. The allowlist itself is never sent to the browser. Returns false
+ * on ANY failure so callers fail closed.
  */
-async function fetchAllowedEmailSet(): Promise<Set<string> | null> {
+async function isEmailAllowedOnServer(emails: string[]): Promise<boolean> {
+  if (emails.length === 0) return false
   try {
-    const res = await fetch("/api/health/tcs-allowlist", { cache: "no-store" })
-    if (!res.ok) return null
+    const res = await fetch("/api/health/access-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: emails.join(",") }),
+      cache: "no-store",
+    })
+    if (!res.ok) return false
     const data = await res.json()
-    if (!Array.isArray(data?.allowlist)) return null
-    return new Set((data.allowlist as unknown[]).filter((e): e is string => typeof e === "string").map(normalizeEmail))
+    return data?.allowed === true
   } catch {
-    return null
+    return false
   }
 }
 
@@ -86,10 +91,5 @@ export async function checkAppAccess(
     return true
   }
 
-  const allowedEmailSet = await fetchAllowedEmailSet()
-  if (!allowedEmailSet) {
-    // Fail closed: no valid allowlist => no access for the restricted org.
-    return false
-  }
-  return normalizeEmailList(email).some((e) => allowedEmailSet.has(e))
+  return isEmailAllowedOnServer(normalizeEmailList(email))
 }
