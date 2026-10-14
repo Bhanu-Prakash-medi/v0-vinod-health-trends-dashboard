@@ -21,7 +21,7 @@ import {
   Calendar,
 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
+import HealthSummaryTile from "@/components/health-summary-tile"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   Select,
@@ -288,6 +288,15 @@ export default function HealthSummarySection({
 
   // If we have health_summary from API, use it directly
   if (healthSummaryFromApi.length > 0) {
+    const summaryItems = healthSummaryFromApi.map((item: any, index: number) => {
+      const categoryName: string = item.category || item.name || `Category ${index + 1}`
+      // Use the SAME canonical list for the count and the detail dialog
+      const displayParams = getDisplayParams(categoryName, item.parameters || [])
+      const outOfRangeCount = displayParams.filter((p: any) => getParamStatus(p) === "abnormal").length
+      return { categoryName, displayParams, outOfRangeCount }
+    })
+    const attentionCount = summaryItems.filter((s: { outOfRangeCount: number }) => s.outOfRangeCount > 0).length
+
     return (
       // @container: this section renders inside a narrow column, so the header
       // responds to its own width rather than the viewport.
@@ -297,10 +306,25 @@ export default function HealthSummarySection({
         <div className="mb-4 flex flex-col gap-3 @lg:flex-row @lg:items-start @lg:justify-between @lg:gap-2">
           {/* flex-1 so the heading takes the leftover width instead of
               collapsing to min-content next to the fixed-width selector. */}
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <Activity className="h-6 w-6 shrink-0 text-[#000000]" />
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#156ddc] text-primary-foreground shadow-[0_4px_12px_-4px_rgba(21,109,220,0.5)]"
+              aria-hidden="true"
+            >
+              <Activity className="h-5 w-5" strokeWidth={2} />
+            </span>
             <div className="min-w-0">
-              <h2 className="whitespace-nowrap text-base font-semibold text-[#2e3742]">Health Summary</h2>
+              <h2 className="whitespace-nowrap text-base font-semibold tracking-tight text-[#1f2933]">Health Summary</h2>
+              <p className="text-xs text-[#7a8796]">
+                {attentionCount > 0 ? (
+                  <>
+                    <span className="font-semibold text-[#c8352a]">{attentionCount}</span> of {summaryItems.length}{" "}
+                    areas need attention
+                  </>
+                ) : (
+                  <>All {summaryItems.length} areas in healthy range</>
+                )}
+              </p>
             </div>
           </div>
 
@@ -364,60 +388,17 @@ export default function HealthSummarySection({
         </div>
 
         {/* Cards Grid - from API health_summary */}
-        <div className="grid grid-cols-2 py-0 gap-4">
-          {healthSummaryFromApi.map((item: any, index: number) => {
-            const categoryName = item.category || item.name || `Category ${index + 1}`
-            const Icon = getIconForCategory(categoryName)
-            
-            // Use the SAME canonical list for the count and the detail dialog
-            const params = item.parameters || []
-            const displayParams = getDisplayParams(categoryName, params)
-            const outOfRangeCount = displayParams.filter((p: any) => getParamStatus(p) === "abnormal").length
-
-            // Category has warning if ANY parameter is abnormal
-            const isWarning = outOfRangeCount > 0
-
-            return (
-              <Card
-                key={`${categoryName}-${index}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelectedCategory({ name: categoryName, parameters: displayParams })}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    setSelectedCategory({ name: categoryName, parameters: displayParams })
-                  }
-                }}
-                className="flex cursor-pointer items-start gap-3 border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
-              >
-                <div className="rounded-lg bg-gray-50 p-2 text-[#000000]">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-[#2e3742]">{categoryName}</h3>
-                  {isWarning && outOfRangeCount > 0 && (
-                    <div className="mt-1 flex items-center gap-1">
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
-                        {outOfRangeCount}
-                      </span>
-                      <span className="text-xs text-red-600">out of range</span>
-                    </div>
-                  )}
-                  {!isWarning && (
-                    <div className="mt-1 flex items-center gap-1">
-                      <div className="flex h-4 w-4 items-center justify-center rounded-full bg-green-600">
-                        <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-xs text-green-600">all in range</span>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            )
-          })}
+        <div className="grid grid-cols-2 gap-3">
+          {summaryItems.map(({ categoryName, displayParams, outOfRangeCount }, index) => (
+            <HealthSummaryTile
+              key={`${categoryName}-${index}`}
+              name={categoryName}
+              icon={getIconForCategory(categoryName)}
+              outOfRange={outOfRangeCount}
+              total={displayParams.length}
+              onOpen={() => setSelectedCategory({ name: categoryName, parameters: displayParams })}
+            />
+          ))}
         </div>
 
         <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
@@ -550,46 +531,18 @@ export default function HealthSummarySection({
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-2 py-0 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         {visibleCards.map((card) => {
-          const Icon = getIconForCategory(card.title)
           const status = getCategoryStatus(card.title, patientData)
-          const outOfRangeCount = countOutOfRangeParams(card.title, patientData)
-
+          const outOfRangeCount = status === "warning" ? countOutOfRangeParams(card.title, patientData) : 0
           return (
-            <Card
+            <HealthSummaryTile
               key={card.title}
-              className="flex items-start gap-3 border border-[#f0f3f5] p-4 shadow-sm transition-shadow hover:shadow-md"
-            >
-              <div
-                className={`rounded-lg bg-gray-50 p-2 ${status === "disabled" ? "text-gray-400" : "text-[#000000]"}`}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <h3 className={`text-sm font-medium ${status === "disabled" ? "text-[#bcc6d1]" : "text-[#2e3742]"}`}>
-                  {card.title}
-                </h3>
-                {status === "warning" && outOfRangeCount > 0 && (
-                  <div className="mt-1 flex items-center gap-1">
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
-                      {outOfRangeCount}
-                    </span>
-                    <span className="text-xs text-red-600">out of range</span>
-                  </div>
-                )}
-                {status === "normal" && (
-                  <div className="mt-1 flex items-center gap-1">
-                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-green-600">
-                      <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span className="text-xs text-green-600">all in range</span>
-                  </div>
-                )}
-              </div>
-            </Card>
+              name={card.title}
+              icon={getIconForCategory(card.title)}
+              outOfRange={outOfRangeCount}
+              disabled={status === "disabled"}
+            />
           )
         })}
       </div>
