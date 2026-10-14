@@ -29,16 +29,16 @@ export default function HealthSummaryTile({
     <>
       <div className="flex items-start justify-between gap-2">
         <span
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
             disabled ? "bg-[#f4f6f8] text-[#c2cad4]" : "bg-[#eef4fd] text-[#156ddc]"
           }`}
           aria-hidden="true"
         >
-          <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          <Icon className="h-4 w-4" strokeWidth={1.75} />
         </span>
         {interactive && (
           <ArrowUpRight
-            className="h-4 w-4 text-[#c7ced6] transition-colors duration-200 group-hover:text-[#156ddc]"
+            className="h-3.5 w-3.5 text-[#c7ced6] transition-colors duration-200 group-hover:text-[#156ddc]"
             strokeWidth={2}
             aria-hidden="true"
           />
@@ -46,21 +46,21 @@ export default function HealthSummaryTile({
       </div>
 
       <h3
-        className={`mt-4 text-pretty text-[15px] font-semibold leading-snug tracking-tight ${
+        className={`mt-3 text-pretty text-sm font-semibold leading-snug tracking-tight ${
           disabled ? "text-[#b3bdc8]" : "text-[#16202b]"
         }`}
       >
         {name}
       </h3>
       {!disabled && total ? (
-        <p className="mt-0.5 text-xs tabular-nums text-[#8a96a3]">
+        <p className="mt-0.5 text-[11px] tabular-nums text-[#8a96a3]">
           {inRange} of {total} in range
         </p>
       ) : null}
 
-      <div className="mt-auto pt-4">
+      <div className="mt-auto pt-3">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium tabular-nums ${
+          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
             disabled
               ? "bg-[#f4f6f8] text-[#9aa5b1]"
               : needsAttention
@@ -81,7 +81,7 @@ export default function HealthSummaryTile({
   )
 
   const base =
-    "group relative flex h-full min-h-[148px] flex-col rounded-2xl border border-[#edf0f3] bg-card p-4 text-left"
+    "group relative flex h-full min-h-[124px] flex-col rounded-2xl border border-[#edf0f3] bg-card p-3.5 text-left"
 
   if (!interactive) return <div className={base}>{content}</div>
 

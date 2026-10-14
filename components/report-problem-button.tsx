@@ -42,7 +42,7 @@ export default function ReportProblemButton({
         aria-label="Report a problem"
         className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 ${
           onDark
-            ? "bg-[#ffffff] text-[#de3d31] shadow-sm hover:bg-[#fdeceb] focus-visible:ring-[#ffffff]/70"
+            ? "bg-[#ffffff]/10 text-[#ffffff] ring-1 ring-inset ring-[#ffffff]/20 hover:bg-[#ffffff]/18 focus-visible:ring-[#ffffff]/70"
             : "bg-[#fdeceb] text-[#c9352a] hover:bg-[#fbdcd9] focus-visible:ring-[#de3d31]"
         }`}
       >

@@ -36,9 +36,9 @@ export default function AppTopBar({
   return (
     <nav
       aria-label="App"
-      className={`sticky top-0 z-40 flex h-14 items-center gap-2 px-3 md:px-6 ${
+      className={`sticky top-0 z-40 flex h-14 items-center gap-3 px-4 md:px-6 ${
         onDark
-          ? "bg-[#156ddc] text-[#ffffff]"
+          ? "border-b border-[#ffffff]/10 bg-[#0d4fa8] text-[#ffffff] shadow-[0_6px_18px_-10px_rgba(6,30,70,0.7)]"
           : "border-b border-[#e8edf3] bg-[#ffffff]/90 text-[#1a2433] backdrop-blur-md"
       }`}
     >
@@ -46,16 +46,21 @@ export default function AppTopBar({
         type="button"
         onClick={navigateBack}
         aria-label="Go back"
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 ${
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors focus:outline-none focus-visible:ring-2 ${
           onDark
-            ? "bg-[#ffffff]/12 hover:bg-[#ffffff]/20 focus-visible:ring-[#ffffff]/70"
+            ? "bg-[#ffffff]/10 ring-1 ring-inset ring-[#ffffff]/15 hover:bg-[#ffffff]/18 focus-visible:ring-[#ffffff]/70"
             : "bg-[#f1f5fa] hover:bg-[#e6edf6] focus-visible:ring-[#156ddc]"
         }`}
       >
-        <ArrowLeft className="h-[18px] w-[18px]" aria-hidden="true" />
+        <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={2.25} aria-hidden="true" />
       </button>
 
-      <h1 className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight">Health Trends</h1>
+      <div className="flex min-w-0 flex-1 flex-col leading-tight">
+        <h1 className="truncate text-[15px] font-semibold tracking-tight">Health Trends</h1>
+        <span className={`truncate text-[11px] font-medium ${onDark ? "text-[#ffffff]/65" : "text-[#6b7686]"}`}>
+          Your lab reports over time
+        </span>
+      </div>
 
       <ReportProblemButton variant="topbar" onDark={onDark} vasbenefId={vasbenefId} emailId={emailId} />
     </nav>

@@ -56,20 +56,20 @@ export default function ParameterCard({ param, date, gender, compact = false }: 
     <article
       ref={ref}
       className={`relative flex flex-col overflow-hidden rounded-2xl border border-[#e8edf3] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)] ${
-        compact ? "gap-3 px-4 py-3.5" : "gap-4 p-4"
+        compact ? "gap-2.5 px-3.5 py-3" : "gap-3 p-3.5"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1 pt-0.5">
           <h3
-            className={`text-pretty font-semibold leading-snug text-[#1d2733] ${compact ? "text-sm" : "text-[15px]"}`}
+            className={`text-pretty font-semibold leading-snug text-[#1d2733] ${compact ? "text-[13px]" : "text-sm"}`}
           >
             {param.name}
           </h3>
           <BiomarkerInfoButton name={param.name} gender={gender ?? undefined} />
         </div>
         <span
-          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold"
+          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold"
           style={{ color: accent, backgroundColor: `${accent}14`, boxShadow: `inset 0 0 0 1px ${accent}26` }}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} aria-hidden="true" />
@@ -81,11 +81,11 @@ export default function ParameterCard({ param, date, gender, compact = false }: 
         <CountUp
           value={display.value}
           className={`font-semibold leading-none tracking-tight tabular-nums text-[#121a24] ${
-            compact ? "text-xl" : "text-2xl"
+            compact ? "text-lg" : "text-xl"
           }`}
         />
         {display.unit && (
-          <span className={`truncate font-medium text-[#7d8a98] ${compact ? "text-xs" : "text-[13px]"}`}>
+          <span className={`truncate font-medium text-[#7d8a98] ${compact ? "text-[11px]" : "text-xs"}`}>
             {display.unit}
           </span>
         )}
@@ -118,7 +118,7 @@ export default function ParameterCard({ param, date, gender, compact = false }: 
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-3 text-xs">
+        <div className="flex items-center justify-between gap-3 text-[11px]">
           <span className="text-[#98a3b0]">{date}</span>
           <span className="truncate text-[#98a3b0]">
             Normal <span className="font-semibold tabular-nums text-[#3d4957]">{display.range}</span>

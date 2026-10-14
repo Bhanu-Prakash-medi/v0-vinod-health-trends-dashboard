@@ -1059,7 +1059,10 @@ export default function HealthDashboard() {
           emailId={pickPrimaryEmail(userEmail)}
         />
         {premium ? (
-          <header className="ht-hero relative rounded-b-[28px] bg-[#156ddc] pb-16 pt-1">
+          <header className="ht-hero relative rounded-b-[28px] bg-[#156ddc] pb-16 pt-4">
+            <p className="px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#ffffff]/70 md:px-8">
+              Viewing reports for
+            </p>
             <TopNavigation
               familyMembers={familyMembers}
               activeFamily={activeBeneficiary?.uid || ""}
