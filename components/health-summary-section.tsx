@@ -33,6 +33,7 @@ import {
 import { hasDataForCategory, getCategoryStatus, countOutOfRangeParams } from "@/lib/health-categories"
 import { paramHasRange } from "@/lib/health-utils"
 import { getParameterBand, getParameterNormalRange } from "@/lib/parameter-bands"
+import { formatParamDisplay } from "@/lib/format-param-value"
 import { resolveParameterStatus } from "@/lib/parameter-status"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
@@ -455,28 +456,34 @@ export default function HealthSummarySection({
                       Number.parseFloat(String(paramValue)),
                       patientData?.patient_info?.gender,
                     )
+                    const display = formatParamDisplay(param.name, paramValue, paramUnit, String(paramRange))
                     return (
                       <div
                         key={`${param.name}-${i}`}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-[#f0f3f5] bg-[#fafbfc] p-3"
+                        className="flex items-center justify-between gap-3 rounded-xl border border-[#f0f3f5] bg-[#fafbfc] px-3 py-2.5"
                       >
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <p className="break-words text-sm font-medium text-[#2e3742]">{param.name}</p>
+                          <div className="flex items-center gap-1">
+                            <p className="text-[13px] font-medium leading-snug text-[#2e3742]">{param.name}</p>
                             <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
                           </div>
-                          {paramRange && (
-                            <p className="mt-0.5 break-words text-[10px] text-[#9dabbd]">Normal: {paramRange}</p>
+                          {display.range && (
+                            <p className="mt-0.5 text-[10.5px] text-[#9dabbd]">
+                              Normal <span className="tabular-nums text-[#7a8796]">{display.range}</span>
+                            </p>
                           )}
                         </div>
-                        <div className="flex shrink-0 flex-col items-end text-right">
+                        <div className="flex max-w-[48%] shrink-0 flex-col items-end gap-1 text-right">
                           <span
-                            className={`break-words text-sm font-bold ${
+                            className={`flex flex-wrap items-baseline justify-end gap-x-1 ${
                               band ? "" : paramStatus === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"
                             }`}
                             style={band ? { color: band.color } : undefined}
                           >
-                            {paramValue} {paramUnit}
+                            <span className="text-sm font-semibold tabular-nums">{display.value}</span>
+                            {display.unit && (
+                              <span className="text-[10.5px] font-normal text-[#7a8796]">{display.unit}</span>
+                            )}
                           </span>
                           {band ? (
                             <span

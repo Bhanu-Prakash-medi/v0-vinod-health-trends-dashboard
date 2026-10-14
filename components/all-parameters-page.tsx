@@ -9,6 +9,7 @@ import { sortByCommonKnowledge } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 import { getParameterBand, getParameterBandScale, getParameterNormalRange } from "@/lib/parameter-bands"
 import { resolveParameterStatus } from "@/lib/parameter-status"
+import { formatParamDisplay } from "@/lib/format-param-value"
 
 export default function AllParametersPage({
   patientData,
@@ -91,10 +92,16 @@ export default function AllParametersPage({
       const band = getParameterBand(metricName, result, patientData?.patient_info?.gender)
       const bandScale = getParameterBandScale(metricName, result, patientData?.patient_info?.gender)
 
+      const displayRange =
+        getParameterNormalRange(metricName, patientData?.patient_info?.gender) ?? range
+      const display = formatParamDisplay(metricName, result, units, displayRange)
+
       return {
         name: metricName,
         status,
-        currentValue: `${result} ${units}`.trim(),
+        displayValue: display.value,
+        displayUnit: display.unit,
+        displayRange: display.range,
         date: latestLabReport?.report_date || "",
         range,
         position: dynamicPosition,
@@ -135,9 +142,9 @@ export default function AllParametersPage({
             <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">
               <ArrowLeft className="h-5 w-5 text-[#2e3742]" />
             </Button>
-            <h1 className="flex items-center gap-2 text-base font-bold text-[#2e3742]">
+            <h1 className="flex items-center gap-2 text-[15px] font-semibold text-[#2e3742]">
               All Parameters
-              <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[11px] font-semibold text-[#156ddc]">
+              <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[11px] font-medium text-[#156ddc]">
                 {allParameters.length}
               </span>
             </h1>
@@ -168,21 +175,21 @@ export default function AllParametersPage({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2.5 p-4">
+        <div className="flex flex-col gap-2 p-3">
         {filteredParameters.map((param, index) => (
           <div
             key={index}
-            className="flex flex-col gap-3 rounded-2xl border border-[#eef1f4] bg-white p-4 shadow-[0_1px_2px_rgba(46,55,66,0.04)]"
+            className="flex flex-col gap-2.5 rounded-xl border border-[#eef1f4] bg-white px-3.5 py-3"
           >
               <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                  <h3 className="truncate text-sm font-semibold text-[#2e3742]">{param.name}</h3>
+                <div className="flex min-w-0 flex-1 items-center gap-1">
+                  <h3 className="truncate text-[13px] font-medium text-[#4d5c6f]">{param.name}</h3>
                   <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
                 </div>
 
                 {param.band ? (
                   <span
-                    className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
                     style={{ color: param.band.color, backgroundColor: `${param.band.color}14` }}
                   >
                     <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: param.band.color }} />
@@ -190,7 +197,7 @@ export default function AllParametersPage({
                   </span>
                 ) : (
                   <span
-                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                    className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium ${
                       param.status === "normal" ? "bg-[#edf7ee] text-[#459f49]" : "bg-[#fef0f0] text-[#de3d31]"
                     }`}
                   >
@@ -204,13 +211,16 @@ export default function AllParametersPage({
 
             <div className="flex items-end justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-lg font-bold leading-tight tracking-tight text-[#2e3742]">
-                  {param.currentValue}
+                <p className="flex items-baseline gap-1 leading-tight text-[#2e3742]">
+                  <span className="text-base font-semibold tabular-nums tracking-tight">{param.displayValue}</span>
+                  {param.displayUnit && (
+                    <span className="truncate text-[11px] font-normal text-[#7a8796]">{param.displayUnit}</span>
+                  )}
                 </p>
-                {param.date && <p className="mt-0.5 text-[11px] text-[#9dabbd]">{param.date}</p>}
+                {param.date && <p className="mt-0.5 text-[10.5px] text-[#9dabbd]">{param.date}</p>}
               </div>
 
-              <div className="w-[132px] shrink-0">
+              <div className="w-[120px] shrink-0">
                 {/* Scale bar + marker wrapper */}
                 <div className="relative h-4">
                   {param.bandScale ? (
@@ -257,11 +267,9 @@ export default function AllParametersPage({
                 </div>
 
                 {/* Normal Range text */}
-                <div className="mt-1.5 text-right text-[11px] text-[#9dabbd]">
+                <div className="mt-1.5 truncate text-right text-[10.5px] text-[#9dabbd]">
                   Normal{" "}
-                  <span className="font-medium text-[#4d5c6f]">
-                    {getParameterNormalRange(param.name, patientData?.patient_info?.gender) ?? param.range}
-                  </span>
+                  <span className="text-[#4d5c6f] tabular-nums">{param.displayRange}</span>
                 </div>
               </div>
             </div>
