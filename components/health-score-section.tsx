@@ -100,6 +100,8 @@ const VIEW_OPTIONS: { id: ViewStyle; label: string; Icon: typeof PieChart }[] = 
 const G_CX = 110
 const G_CY = 108
 const G_R = 82
+const G_INNER_R = 62
+const AVG_COLOR = "#64748b"
 const G_START = 135
 const G_SWEEP = 270
 
@@ -322,84 +324,81 @@ export default function HealthScoreSection({
         {view === "donut" && (
           <div className="flex flex-col items-center">
             <svg
-              viewBox="-30 4 280 196"
-              className="h-auto w-full max-w-[290px]"
+              viewBox="14 14 192 180"
+              className="h-auto w-full max-w-[250px]"
               role="img"
-              aria-label={`Risk score ${formatScore(score)} out of 10, ${label}.${benchmark ? ` MediBuddy average ${benchmark.avgScore.toFixed(2)}.` : ""}`}
+              aria-label={`Your risk score ${formatScore(score)} out of 10, ${label}.${benchmark ? ` MediBuddy average ${benchmark.avgScore.toFixed(2)}.` : ""}`}
             >
-              {/* Faint zone track */}
+              {/* Outer ring = YOU. Faint zone colours show Low / Moderate / High. */}
               {RISK_ZONES.map((z) => (
                 <path
                   key={z.from}
-                  d={gaugeArc(G_R, z.from + (z.from ? 0.06 : 0), z.to - (z.to < GAUGE_MAX ? 0.06 : 0))}
+                  d={gaugeArc(G_R, z.from + (z.from ? 0.08 : 0), z.to - (z.to < GAUGE_MAX ? 0.08 : 0))}
                   fill="none"
                   stroke={z.color}
                   strokeOpacity={0.16}
-                  strokeWidth={12}
+                  strokeWidth={14}
                   strokeLinecap="round"
                 />
               ))}
-
-              {/* Progress arc */}
               {displayScore > 0.02 && (
-                <path d={gaugeArc(G_R, 0, displayScore)} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round" />
+                <path d={gaugeArc(G_R, 0, displayScore)} fill="none" stroke={color} strokeWidth={14} strokeLinecap="round" />
               )}
-
-              {/* Gap between avg and you, drawn on an inner ring */}
-              {benchmark && Math.abs(displayScore - displayAvg) > 0.05 && (
-                <path
-                  d={gaugeArc(G_R - 16, Math.min(displayScore, displayAvg), Math.max(displayScore, displayAvg))}
-                  fill="none"
-                  stroke={diffColor}
-                  strokeWidth={4}
-                  strokeLinecap="round"
-                  strokeOpacity={0.7}
-                />
-              )}
-
-              {/* Avg tick (outside the ring) */}
-              {benchmark &&
-                (() => {
-                  const a = scoreAngle(displayAvg)
-                  const p1 = polarPoint(G_CX, G_CY, G_R + 9, a)
-                  const p2 = polarPoint(G_CX, G_CY, G_R + 16, a)
-                  const lp = polarPoint(G_CX, G_CY, G_R + 24, a)
-                  const anchor = lp.x > G_CX + 4 ? "start" : lp.x < G_CX - 4 ? "end" : "middle"
-                  return (
-                    <>
-                      <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={INK} strokeWidth={2.5} strokeLinecap="round" />
-                      <text x={lp.x} y={lp.y} textAnchor={anchor} dominantBaseline="middle" className="fill-[#4d5c6f] text-[10px] font-semibold">
-                        Avg
-                      </text>
-                    </>
-                  )
-                })()}
-
-              {/* You knob */}
               {(() => {
                 const p = polarPoint(G_CX, G_CY, G_R, scoreAngle(displayScore))
-                return (
-                  <>
-                    <circle cx={p.x} cy={p.y} r={10} fill="#ffffff" stroke={color} strokeWidth={4} />
-                  </>
-                )
+                return <circle cx={p.x} cy={p.y} r={8} fill="#ffffff" stroke={color} strokeWidth={4} />
               })()}
 
+              {/* Inner ring = MEDIBUDDY AVG */}
+              {benchmark && (
+                <>
+                  <path d={gaugeArc(G_INNER_R, 0, GAUGE_MAX)} fill="none" stroke="#eef1f4" strokeWidth={8} strokeLinecap="round" />
+                  {displayAvg > 0.02 && (
+                    <path d={gaugeArc(G_INNER_R, 0, displayAvg)} fill="none" stroke={AVG_COLOR} strokeWidth={8} strokeLinecap="round" />
+                  )}
+                  {(() => {
+                    const p = polarPoint(G_CX, G_CY, G_INNER_R, scoreAngle(displayAvg))
+                    return <circle cx={p.x} cy={p.y} r={5.5} fill="#ffffff" stroke={AVG_COLOR} strokeWidth={3} />
+                  })()}
+                </>
+              )}
+
               {/* Centre readout */}
-              <text x={G_CX} y={G_CY + 4} textAnchor="middle" className="fill-[#2e3742] text-[42px] font-semibold tracking-tight">
+              <text x={G_CX} y={G_CY + 8} textAnchor="middle" className="fill-[#2e3742] text-[38px] font-semibold tracking-tight">
                 {formatScore(displayScore)}
               </text>
-              <text x={G_CX} y={G_CY + 26} textAnchor="middle" className="fill-[#9dabbd] text-[12px] font-medium">
-                out of 10
+              <text x={G_CX} y={G_CY + 26} textAnchor="middle" className="fill-[#9dabbd] text-[11px] font-medium">
+                Your score / 10
               </text>
-              <text x={G_CX - G_R + 6} y={G_CY + G_R - 2} textAnchor="middle" className="fill-[#b4c0cd] text-[10px] font-medium">
+              <text x={polarPoint(G_CX, G_CY, G_R, 135).x} y={G_CY + G_R * 0.707 + 22} textAnchor="middle" className="fill-[#b4c0cd] text-[10px] font-medium">
                 0
               </text>
-              <text x={G_CX + G_R - 6} y={G_CY + G_R - 2} textAnchor="middle" className="fill-[#b4c0cd] text-[10px] font-medium">
+              <text x={polarPoint(G_CX, G_CY, G_R, 45).x} y={G_CY + G_R * 0.707 + 22} textAnchor="middle" className="fill-[#b4c0cd] text-[10px] font-medium">
                 10
               </text>
             </svg>
-            <div className="-mt-3">{labelPill}</div>
+
+            <div className="-mt-2">{labelPill}</div>
+
+            {/* Ring legend */}
+            <div className="mt-4 grid w-full grid-cols-2 gap-2">
+              <div className="flex items-center gap-2.5 rounded-xl border border-[#eef1f4] px-3 py-2">
+                <span className="h-3 w-3 shrink-0 rounded-full border-[3px] bg-white" style={{ borderColor: color }} aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium leading-tight text-[#9dabbd]">You · outer ring</p>
+                  <p className="text-sm font-semibold tabular-nums text-[#2e3742]">{score.toFixed(2)}</p>
+                </div>
+              </div>
+              {benchmark && (
+                <div className="flex items-center gap-2.5 rounded-xl border border-[#eef1f4] px-3 py-2">
+                  <span className="h-3 w-3 shrink-0 rounded-full border-[3px] bg-white" style={{ borderColor: AVG_COLOR }} aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium leading-tight text-[#9dabbd]">Avg · inner ring</p>
+                    <p className="text-sm font-semibold tabular-nums text-[#4d5c6f]">{benchmark.avgScore.toFixed(2)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -416,74 +415,69 @@ export default function HealthScoreSection({
               {labelPill}
             </div>
 
-            <div className="relative mb-9 mt-11 h-3">
-              {/* "You" callout above the track */}
+            {/* Track: YOU pinned above, AVG pinned below — labels never collide */}
+            <div className="relative mb-12 mt-14 h-2">
               <span
-                className="absolute bottom-full mb-3 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#2e3742] px-2 py-0.5 text-[11px] font-semibold text-white"
-                style={{ left: `${clampLabel(youPct)}%` }}
+                className="absolute bottom-full mb-3.5 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-[0_2px_6px_rgba(16,24,40,0.15)]"
+                style={{ left: `${clampLabel(youPct)}%`, backgroundColor: INK }}
               >
-                You {score.toFixed(2)}
+                You · {score.toFixed(2)}
               </span>
+              <span
+                className="absolute bottom-full mb-2.5 h-2 w-2 -translate-x-1/2 translate-y-1/2 rotate-45"
+                style={{ left: `${youPct}%`, backgroundColor: INK }}
+                aria-hidden="true"
+              />
 
-              <div className="flex h-full w-full gap-0.5">
+              <div className="flex h-full w-full gap-1">
                 {RISK_ZONES.map((z, i) => (
                   <div
                     key={z.from}
-                    className="h-full first:rounded-l-full last:rounded-r-full"
+                    className="h-full rounded-full"
                     style={{
                       width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`,
                       backgroundColor: z.color,
-                      opacity: i === activeZoneIndex ? 1 : 0.22,
+                      opacity: i === activeZoneIndex ? 1 : 0.2,
                     }}
                   />
                 ))}
               </div>
 
-              {/* Highlighted gap between avg and you */}
-              {benchmark && Math.abs(youPct - avgPct) > 1 && (
-                <div
-                  className="absolute top-1/2 h-5 -translate-y-1/2 rounded-full border-2"
-                  style={{
-                    left: `${Math.min(youPct, avgPct)}%`,
-                    width: `${Math.abs(youPct - avgPct)}%`,
-                    borderColor: diffColor,
-                    backgroundColor: `${diffColor}22`,
-                  }}
-                  aria-hidden="true"
-                />
-              )}
-
-              {/* Avg tick + label below */}
               {benchmark && (
                 <>
                   <span
-                    className="absolute top-1/2 h-6 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2e3742]"
+                    className="absolute top-1/2 h-4 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white"
+                    style={{ left: `${avgPct}%`, backgroundColor: AVG_COLOR }}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="absolute top-full mt-2.5 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-l border-t border-[#dfe5ec] bg-white"
                     style={{ left: `${avgPct}%` }}
                     aria-hidden="true"
                   />
                   <span
-                    className="absolute top-full mt-2.5 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-[#4d5c6f]"
-                    style={{ left: `${clampLabel(avgPct)}%` }}
+                    className="absolute top-full mt-2.5 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#dfe5ec] bg-white px-2.5 py-1 text-[11px] font-semibold leading-none"
+                    style={{ left: `${clampLabel(avgPct)}%`, color: AVG_COLOR }}
                   >
-                    Avg {benchmark.avgScore.toFixed(2)}
+                    Avg · {benchmark.avgScore.toFixed(2)}
                   </span>
                 </>
               )}
 
-              {/* You knob */}
               <span
-                className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] bg-white shadow-[0_2px_6px_rgba(16,24,40,0.2)]"
+                className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 bg-white shadow-[0_2px_8px_rgba(16,24,40,0.18)]"
                 style={{ left: `${youPct}%`, borderColor: color }}
                 aria-hidden="true"
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-1 text-[11px] font-medium">
+            <div className="flex items-center justify-between gap-2 text-[11px] font-medium">
               {RISK_ZONES.map((z, i) => (
-                <div key={z.name} className={`flex flex-col ${i === 1 ? "items-center" : i === 2 ? "items-end" : "items-start"}`}>
-                  <span style={{ color: i === activeZoneIndex ? z.color : MUTED }}>{z.name}</span>
+                <span key={z.name} className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: z.color }} aria-hidden="true" />
+                  <span style={{ color: i === activeZoneIndex ? INK : MUTED }}>{z.name}</span>
                   <span className="text-[10px] font-normal text-[#b4c0cd]">{z.range}</span>
-                </div>
+                </span>
               ))}
             </div>
           </div>
@@ -502,7 +496,7 @@ export default function HealthScoreSection({
                         name: `Avg · ${benchmark.band}`,
                         value: benchmark.avgScore,
                         fillPct: avgPct,
-                        fill: "#b4c0cd",
+                        fill: AVG_COLOR,
                         strong: false,
                       },
                     ]
