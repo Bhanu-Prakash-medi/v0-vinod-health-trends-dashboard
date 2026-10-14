@@ -208,8 +208,8 @@ export default function RecommendationsPage({
                         onClick={() => selectParam(p)}
                         className={`inline-flex h-8 shrink-0 snap-center items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
                           active
-                            ? "border-[#ffffff] bg-[#ffffff] text-[#156ddc] font-semibold"
-                            : "border-[#ffffff]/30 bg-[#ffffff]/10 text-[#ffffff] hover:bg-[#ffffff]/20"
+                            ? "border-[#ffffff] bg-[#ffffff] text-[#0b3c7d]"
+                            : "border-[#ffffff]/20 bg-transparent text-[#ffffff]/85 hover:bg-[#ffffff]/10"
                         }`}
                       >
                         <span
@@ -277,7 +277,7 @@ export default function RecommendationsPage({
                     <ParameterHeader param={selected} />
 
                     {available.length > 1 && (
-                      <div className="mx-4 mb-1 mt-4 flex gap-1 rounded-full bg-[#e8f2ff] p-1" role="tablist" aria-label="Recommendation details">
+                      <div className="flex gap-5 overflow-x-auto border-b border-[#eef1f4] px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Recommendation details">
                         {available.map((s) => {
                           const active = s.id === activeSection
                           return (
@@ -287,8 +287,10 @@ export default function RecommendationsPage({
                               role="tab"
                               aria-selected={active}
                               onClick={() => selectSection(s.id)}
-                              className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 ${
-                                active ? "bg-[#156ddc] text-[#ffffff] shadow-sm" : "text-[#156ddc] hover:bg-[#ffffff]/60"
+                              className={`-mb-px whitespace-nowrap border-b-2 pb-2.5 pt-1 text-[13px] transition-colors focus:outline-none focus-visible:text-[#156ddc] ${
+                                active
+                                  ? "border-[#156ddc] font-medium text-[#156ddc]"
+                                  : "border-transparent text-[#9dabbd] hover:text-[#4d5c6f]"
                               }`}
                             >
                               {s.label}
@@ -299,7 +301,7 @@ export default function RecommendationsPage({
                     )}
 
                     {activeSection && (
-                      <div className="p-4" role="tabpanel" key={`${paramKey(selected)}-${activeSection}`}>
+                      <div className="px-5 pb-5 pt-4" role="tabpanel" key={`${paramKey(selected)}-${activeSection}`}>
                         <SectionContent
                           section={activeSection}
                           param={selected}
@@ -365,7 +367,7 @@ function SegTab({ active, onClick, label, count }: { active: boolean; onClick: (
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
+      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors ${
         active ? "bg-[#ffffff] text-[#0b3c7d] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#ffffff]/85 hover:text-[#ffffff]"
       }`}
     >
@@ -379,19 +381,26 @@ function ParameterHeader({ param }: { param: RecParameter }) {
   const Icon = organIcon(param.organ)
   const tone = statusTone(param.status)
   return (
-    <div className="flex items-center gap-3 border-b border-[#e8f2ff] bg-[#e8f2ff]/60 p-4">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#156ddc] text-[#ffffff] shadow-sm" aria-hidden="true">
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <h2 className="truncate text-base font-semibold text-[#2e3742]">{param.parameter}</h2>
-        {param.normal_range && <p className="truncate text-xs text-[#9dabbd]">{`Normal range ${param.normal_range}`}</p>}
+    <div className="flex flex-col gap-4 px-5 pb-4 pt-5">
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#156ddc]" aria-hidden="true">
+          <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+        </span>
+        <h2 className="min-w-0 flex-1 text-[15px] font-medium leading-snug text-[#2e3742] text-pretty">{param.parameter}</h2>
+        {tone.label && (
+          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${tone.pill}`}>{tone.label}</span>
+        )}
       </div>
-      {(param.value || tone.label) && (
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {param.value && <span className="text-sm font-semibold text-[#2e3742]">{param.value}</span>}
-          {tone.label && (
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${tone.pill}`}>{tone.label}</span>
+      {(param.value || param.normal_range) && (
+        <div className="flex items-end justify-between gap-3">
+          {param.value && (
+            <p className="text-2xl font-medium leading-none tracking-tight text-[#2e3742] tabular-nums">{param.value}</p>
+          )}
+          {param.normal_range && (
+            <p className="text-right text-xs leading-relaxed text-[#9dabbd]">
+              <span className="block">Normal range</span>
+              <span className="text-[#4d5c6f]">{param.normal_range}</span>
+            </p>
           )}
         </div>
       )}
@@ -471,10 +480,10 @@ function SectionContent({
   const specialists = next.consult_doctor?.specialists || []
   const otherTests = next.other_tests || []
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       {next.consult_doctor?.advice && <p className="text-sm leading-relaxed text-[#4d5c6f]">{next.consult_doctor.advice}</p>}
       {(specialists.length > 0 || tests.length > 0) && (
-        <div className="flex flex-col divide-y divide-[#f0f3f5] overflow-hidden rounded-xl border border-[#eef1f4]">
+        <div className="flex flex-col divide-y divide-[#f0f3f5]">
           {specialists.map((s) => (
             <CtaRow key={`doc-${s}`} icon={Stethoscope} label={s} action="Consult" onClick={() => onConsult(s)} />
           ))}
@@ -484,8 +493,8 @@ function SectionContent({
         </div>
       )}
       {otherTests.length > 0 && (
-        <p className="text-xs leading-relaxed text-[#9dabbd]">
-          <span className="font-semibold text-[#4d5c6f]">Also ask your doctor about: </span>
+        <p className="mt-2 rounded-xl bg-[#f7f9fa] px-3.5 py-3 text-xs leading-relaxed text-[#4d5c6f]">
+          <span className="block text-[#9dabbd]">Also ask your doctor about</span>
           {otherTests.join(", ")}
         </p>
       )}
@@ -623,15 +632,15 @@ function CtaRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 bg-[#ffffff] px-3 py-3 text-left transition-colors hover:bg-[#e8f2ff]/50 focus:outline-none focus-visible:bg-[#e8f2ff]/50"
+      className="group flex w-full items-center gap-3 py-3 text-left focus:outline-none"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff]" aria-hidden="true">
-        <Icon className="h-[18px] w-[18px] text-[#156ddc]" />
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff]" aria-hidden="true">
+        <Icon className="h-4 w-4 text-[#156ddc]" strokeWidth={1.75} />
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#2e3742]">{label}</span>
-      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#156ddc] px-3 py-1.5 text-xs font-semibold text-[#ffffff]">
+      <span className="min-w-0 flex-1 text-sm leading-snug text-[#2e3742] line-clamp-2">{label}</span>
+      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-[#156ddc]/25 px-3 py-1 text-xs font-medium text-[#156ddc] transition-colors group-hover:bg-[#e8f2ff] group-focus-visible:bg-[#e8f2ff]">
         {action}
-        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        <ChevronRight className="h-3 w-3" aria-hidden="true" />
       </span>
     </button>
   )
