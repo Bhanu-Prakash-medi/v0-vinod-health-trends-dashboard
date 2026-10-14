@@ -1,20 +1,26 @@
 "use client"
 
-import { ChevronRight, ClipboardList, RefreshCw, Sparkle } from "lucide-react"
+import { ArrowRight, ChevronRight, RefreshCw, ShieldCheck } from "lucide-react"
 import type { ApiHealthReport } from "@/lib/api"
 import type { RecParameter } from "@/lib/recommendations-api"
-import {
-  actionTip,
-  formatReportDate,
-  organIcon,
-  paramKey,
-  statusTone,
-  useRecommendations,
-} from "@/lib/use-recommendations"
+import { formatReportDate, organIcon, paramKey, useRecommendations } from "@/lib/use-recommendations"
 
 interface HealthRecommendationsSectionProps {
   patientData: ApiHealthReport
   onSeeAll?: (paramId?: string) => void
+}
+
+const PREVIEW_COUNT = 3
+
+function tileTone(status = "") {
+  const s = status.toLowerCase()
+  if (s === "high") return "bg-[#fdecec] text-[#c93838]"
+  if (s === "low") return "bg-[#fff4e5] text-[#b8650a]"
+  return "bg-[#e8f2ff] text-[#156ddc]"
+}
+
+function statusLabel(status = "") {
+  return status ? status[0].toUpperCase() + status.slice(1).toLowerCase() : ""
 }
 
 export default function HealthRecommendationsSection({ patientData, onSeeAll }: HealthRecommendationsSectionProps) {
@@ -27,120 +33,119 @@ export default function HealthRecommendationsSection({ patientData, onSeeAll }: 
   if (data && !isLoading && priority.length === 0) return null
 
   const dateLabel = formatReportDate(reportDate)
+  const preview = priority.slice(0, PREVIEW_COUNT)
+  const count = priority.length
 
   return (
     <section aria-labelledby="recommendations-heading" className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <h2 className="text-balance text-lg font-bold leading-tight text-[#2e3742]">Your health at a glance</h2>
+
+      <div className="flex flex-col gap-4 rounded-3xl bg-[#0b3c7d] p-4 shadow-[0_12px_32px_-12px_rgba(11,60,125,0.55)] sm:p-5">
+        <div className="flex items-center gap-3 border-b border-[#ffffff]/10 pb-4">
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#156ddc] text-[#ffffff]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#ffffff]/10 text-[#ffffff]"
             aria-hidden="true"
           >
-            <ClipboardList className="h-5 w-5" />
+            <ShieldCheck className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h2 id="recommendations-heading" className="text-base font-semibold leading-tight text-[#2e3742]">
+            <h3 id="recommendations-heading" className="text-base font-semibold leading-tight text-[#ffffff] sm:text-lg">
               Health Insights
-            </h2>
-            <p className="truncate text-xs text-[#9dabbd]">
-              {data && priority.length > 0
-                ? `${priority.length} things to work on${dateLabel ? ` · ${dateLabel}` : ""}`
+            </h3>
+            <p className="truncate text-xs text-[#ffffff]/70 sm:text-sm">
+              {data && count > 0
+                ? `${count} ${count === 1 ? "thing" : "things"} to look after${dateLabel ? ` · ${dateLabel}` : ""}`
                 : dateLabel
                   ? `From your report on ${dateLabel}`
                   : "From your latest report"}
             </p>
           </div>
         </div>
-        {data && priority.length > 0 && (
-          <button
-            type="button"
-            onClick={() => openRecommendations()}
-            className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#e8f2ff] px-3 py-1.5 text-xs font-semibold text-[#156ddc] transition-colors hover:bg-[#d6e8ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
-          >
-            See all
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
+
+        {isLoading && <PreviewSkeleton />}
+
+        {error && !isLoading && (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[#ffffff]/80">{"Couldn't load your health insights."}</p>
+            <button
+              type="button"
+              onClick={retry}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#ffffff] px-3 py-1.5 text-xs font-semibold text-[#0b3c7d] transition-opacity hover:opacity-90"
+            >
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+              Retry
+            </button>
+          </div>
+        )}
+
+        {data && !isLoading && count > 0 && (
+          <>
+            <ul className="-my-1 flex flex-col divide-y divide-[#ffffff]/10">
+              {preview.map((p) => (
+                <li key={paramKey(p)}>
+                  <InsightRow param={p} onClick={() => openRecommendations(paramKey(p))} />
+                </li>
+              ))}
+            </ul>
+
+            <button
+              type="button"
+              onClick={() => openRecommendations()}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#ffffff] px-4 py-3.5 text-sm font-semibold text-[#0b3c7d] transition-colors hover:bg-[#e8f2ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffffff]/60 sm:text-base"
+            >
+              {`See all ${count} ${count === 1 ? "insight" : "insights"}`}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </>
         )}
       </div>
-
-      {isLoading && <PreviewSkeleton />}
-
-      {error && !isLoading && (
-        <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#f7f9fa] p-4">
-          <p className="text-sm text-[#4d5c6f]">{"Couldn't load your health insights."}</p>
-          <button
-            type="button"
-            onClick={retry}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#156ddc] px-3 py-1.5 text-xs font-semibold text-[#ffffff] transition-opacity hover:opacity-90"
-          >
-            <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-            Retry
-          </button>
-        </div>
-      )}
-
-      {data && !isLoading && priority.length > 0 && (
-        <ul className="grid grid-cols-2 gap-2.5">
-          {priority.map((p) => (
-            <li key={paramKey(p)} className="flex">
-              <PreviewCard param={p} onClick={() => openRecommendations(paramKey(p))} />
-            </li>
-          ))}
-        </ul>
-      )}
     </section>
   )
 }
 
-function PreviewCard({ param, onClick }: { param: RecParameter; onClick: () => void }) {
+function InsightRow({ param, onClick }: { param: RecParameter; onClick: () => void }) {
   const Icon = organIcon(param.organ)
-  const tone = statusTone(param.status)
-  const tip = actionTip(param)
+  const label = statusLabel(param.status)
+  const detail = [label, param.value].filter(Boolean).join(" · ")
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full flex-col gap-2 rounded-2xl bg-[#f7f9fa] p-3 text-left transition-colors hover:bg-[#eef2f6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+      className="group flex w-full items-center gap-3 rounded-xl py-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffffff]/40"
     >
-      <span className="flex items-center justify-between gap-2">
-        <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#ffffff] text-[#156ddc]"
-          aria-hidden="true"
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-        {tone.label && (
-          <span
-            className={`inline-flex min-w-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${tone.pill}`}
-          >
-            {tone.Icon && <tone.Icon className="h-3 w-3 shrink-0" aria-hidden="true" />}
-            <span className="truncate">{param.value || tone.label}</span>
-          </span>
-        )}
+      <span
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${tileTone(param.status)}`}
+        aria-hidden="true"
+      >
+        <Icon className="h-5 w-5" />
       </span>
-      <span className="line-clamp-1 text-sm font-semibold text-[#2e3742]">{param.parameter}</span>
-      {tip && (
-        <span className="flex gap-1 text-xs leading-snug text-[#4d5c6f]">
-          <Sparkle className="mt-0.5 h-3 w-3 shrink-0 text-[#156ddc]" aria-hidden="true" />
-          <span className="line-clamp-2">{tip}</span>
-        </span>
-      )}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-sm font-semibold text-[#ffffff] sm:text-base">{param.parameter}</span>
+        {detail && <span className="truncate text-xs text-[#ffffff]/70 sm:text-sm">{detail}</span>}
+      </span>
+      <ChevronRight
+        className="h-5 w-5 shrink-0 text-[#ffffff]/60 transition-transform group-hover:translate-x-0.5"
+        aria-hidden="true"
+      />
     </button>
   )
 }
 
 function PreviewSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-2.5" aria-busy="true" aria-live="polite">
+    <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading your health insights</span>
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="flex flex-col gap-2 rounded-2xl bg-[#f7f9fa] p-3">
-          <div className="h-8 w-8 animate-pulse rounded-lg bg-[#e5e9ee]" />
-          <div className="h-3.5 w-2/3 animate-pulse rounded bg-[#e5e9ee]" />
-          <div className="h-3 w-full animate-pulse rounded bg-[#e5e9ee]" />
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex items-center gap-3">
+          <div className="h-11 w-11 animate-pulse rounded-2xl bg-[#ffffff]/10" />
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="h-3.5 w-1/2 animate-pulse rounded bg-[#ffffff]/15" />
+            <div className="h-3 w-1/3 animate-pulse rounded bg-[#ffffff]/10" />
+          </div>
         </div>
       ))}
+      <div className="h-12 w-full animate-pulse rounded-2xl bg-[#ffffff]/15" />
     </div>
   )
 }
