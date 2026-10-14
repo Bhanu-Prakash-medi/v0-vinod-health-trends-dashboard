@@ -1,13 +1,16 @@
 "use client"
 
 import type { LucideIcon } from "lucide-react"
+import { Settings2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trackEvent } from "@/lib/analytics/posthog"
+import DesignSettingsSheet from "@/components/design-settings-sheet"
 
 export type BottomNavItem = { id: string; label: string; icon: LucideIcon }
 
 export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
   const [active, setActive] = useState(items[0]?.id)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const idsKey = items.map((i) => i.id).join("|")
 
   useEffect(() => {
@@ -37,6 +40,7 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
   if (items.length < 2) return null
 
   return (
+    <>
     <nav
       aria-label="Dashboard sections"
       className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] border-t border-[#eef1f4] bg-[#ffffff] pb-[env(safe-area-inset-bottom)]"
@@ -66,7 +70,28 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
             </li>
           )
         })}
+        <li className="flex flex-1">
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            aria-haspopup="dialog"
+            className="flex w-full flex-col items-center gap-1 pt-2 pb-2 focus:outline-none focus-visible:bg-[#f7f9fa]"
+          >
+            <span
+              className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
+                settingsOpen ? "bg-[#e8f2ff] text-[#156ddc]" : "text-[#9dabbd]"
+              }`}
+            >
+              <Settings2 className="h-[18px] w-[18px]" aria-hidden="true" />
+            </span>
+            <span className={`text-[10px] font-semibold leading-none ${settingsOpen ? "text-[#156ddc]" : "text-[#6b7a8c]"}`}>
+              Design
+            </span>
+          </button>
+        </li>
       </ul>
     </nav>
+    <DesignSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
   )
 }
