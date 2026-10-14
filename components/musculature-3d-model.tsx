@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card"
 import { useEffect, useState } from "react"
-import { Info, Activity, Heart, Droplets, Bone, X, Beaker } from "lucide-react"
+import { Info, Activity, Heart, Droplets, Bone, X, Beaker, ChevronRight } from "lucide-react"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { trackEvent } from "@/lib/analytics/posthog"
 import { paramHasRange } from "@/lib/health-utils"
@@ -41,6 +41,16 @@ const TWIN_FIGURES = {
       blood: { x: 40, y: 58 },
     } as Record<string, MarkerPoint>,
   },
+}
+
+// Short callout label and which side of the body its leader line runs to,
+// chosen so neighbouring organs never point the same way at the same height.
+const MARKER_CALLOUTS: Record<string, { label: string; side: "left" | "right" }> = {
+  heart: { label: "Heart", side: "right" },
+  liver: { label: "Liver", side: "left" },
+  pancreas: { label: "Sugar", side: "left" },
+  kidneys: { label: "Kidney", side: "right" },
+  blood: { label: "Blood", side: "left" },
 }
 
 const isFemale = (gender?: string | null) => /^f/i.test((gender || "").trim())
@@ -544,30 +554,51 @@ export default function Musculature3DModel({
           {organGroups.map((organ) => {
             const pos = figure.markers[organ.id]
             if (!pos) return null
-            const Icon = organ.icon
             const attention = organ.status === "attention"
             const isSelected = selectedOrgan === organ.id
+            const callout = MARKER_CALLOUTS[organ.id] ?? { label: organ.name, side: "right" as const }
+            const toLeft = callout.side === "left"
             return (
               <button
                 key={organ.id}
                 type="button"
                 onClick={() => handleOrganClick(organ.id)}
                 aria-label={`${organ.name}: ${attention ? "needs attention" : "normal"}`}
-                className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc] focus-visible:ring-offset-2 rounded-full ${
-                  isSelected ? "scale-125" : "hover:scale-110"
-                }`}
+                className="group absolute z-10 h-0 w-0 focus:outline-none"
                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
               >
-                <span className="relative flex h-6 w-6 items-center justify-center">
+                <span className="absolute left-0 top-0 flex h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
                   {attention && (
-                    <span className="absolute inset-0 animate-ping rounded-full bg-[#e5484d]/50" aria-hidden="true" />
+                    <span
+                      className="absolute h-3.5 w-3.5 animate-ping rounded-full bg-[#e5484d]/40"
+                      aria-hidden="true"
+                    />
                   )}
                   <span
-                    className={`relative flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#ffffff] shadow-[0_4px_10px_rgba(11,42,91,0.35)] ${
-                      attention ? "bg-[#e5484d]" : "bg-[#156ddc]"
+                    className={`relative flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#ffffff] shadow-[0_0_0_3px_rgba(255,255,255,0.25),0_2px_8px_rgba(11,42,91,0.45)] transition-transform duration-200 group-hover:scale-125 group-focus-visible:scale-125 ${
+                      isSelected ? "scale-125" : ""
                     }`}
                   >
-                    <Icon className="h-3 w-3 text-[#ffffff]" strokeWidth={2.5} aria-hidden="true" />
+                    <span
+                      className={`h-2 w-2 rounded-full ${attention ? "bg-[#e5484d]" : "bg-[#156ddc]"}`}
+                      aria-hidden="true"
+                    />
+                  </span>
+                </span>
+
+                <span
+                  className={`pointer-events-none absolute top-0 flex -translate-y-1/2 items-center ${
+                    toLeft ? "right-2 flex-row-reverse" : "left-2"
+                  }`}
+                  aria-hidden="true"
+                >
+                  <span className="h-px w-5 bg-[#ffffff]/70" />
+                  <span
+                    className={`flex items-center gap-1 whitespace-nowrap rounded-full border border-[#ffffff]/25 bg-[#0b2a5b]/80 px-2 py-0.5 text-[10px] font-medium leading-4 text-[#ffffff] shadow-[0_4px_12px_rgba(11,42,91,0.35)] backdrop-blur-sm transition-colors group-hover:bg-[#156ddc] group-focus-visible:bg-[#156ddc] ${
+                      isSelected ? "bg-[#156ddc]" : ""
+                    }`}
+                  >
+                    {callout.label}
                   </span>
                 </span>
               </button>
@@ -596,7 +627,7 @@ export default function Musculature3DModel({
             </div>
           </div>
 
-          <ul className="mt-3 grid grid-cols-2 gap-2">
+          <ul className="mt-3 divide-y divide-[#eef3fb] overflow-hidden rounded-2xl border border-[#e3ecfa] bg-[#ffffff] shadow-[0_8px_24px_-12px_rgba(11,42,91,0.25)]">
             {organGroups.map((organ) => {
               const Icon = organ.icon
               const attention = organ.status === "attention"
@@ -605,21 +636,29 @@ export default function Musculature3DModel({
                   <button
                     type="button"
                     onClick={() => handleOrganClick(organ.id)}
-                    className="flex w-full items-center gap-2.5 rounded-xl border border-[#e3ecfa] bg-[#ffffff] px-2.5 py-2 text-left transition-colors hover:border-[#156ddc]/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+                    className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-[#f5f9ff] focus:outline-none focus-visible:bg-[#f5f9ff]"
                   >
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                        attention ? "bg-[#e5484d]/10 text-[#e5484d]" : "bg-[#e8f1fd] text-[#156ddc]"
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1fd] text-[#156ddc]">
+                      <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
                     </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-xs font-medium text-[#0b2a5b]">{organ.name}</span>
-                      <span className={`block text-[11px] ${attention ? "text-[#e5484d]" : "text-[#6b84a8]"}`}>
-                        {attention ? `${organ.abnormalTests.length} out of range` : "Normal"}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-medium leading-5 text-[#0b2a5b]">
+                        {organ.name}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[11px] leading-4">
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${attention ? "bg-[#e5484d]" : "bg-[#156ddc]"}`}
+                          aria-hidden="true"
+                        />
+                        <span className={`font-medium ${attention ? "text-[#d13438]" : "text-[#156ddc]"}`}>
+                          {attention ? `${organ.abnormalTests.length} out of range` : "All normal"}
+                        </span>
+                        <span className="truncate text-[#8aa0c0]">
+                          {`· ${organ.relatedTests.length} ${organ.relatedTests.length === 1 ? "test" : "tests"}`}
+                        </span>
                       </span>
                     </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-[#a9bbd6]" aria-hidden="true" />
                   </button>
                 </li>
               )
