@@ -992,7 +992,7 @@ export default function HealthDashboard() {
     { id: "nav-summary", label: "Summary", icon: NavSummaryIcon },
     ...(hasTrends ? [{ id: "nav-trends", label: "Trends", icon: NavTrendsIcon }] : []),
     { id: "nav-tests", label: "Tests", icon: NavTestsIcon },
-    { id: "nav-plan", label: "Plan", icon: NavPlanIcon },
+    { id: "nav-plan", label: "Insights", icon: NavPlanIcon },
     { id: "nav-reports", label: "Reports", icon: NavReportsIcon },
   ]
   // Whether this beneficiary's report load has fully settled (see the

@@ -129,7 +129,7 @@ export default function RecommendationsPage({
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight text-[#2e3742]">Your Action Plan</h1>
+              <h1 className="text-base font-semibold leading-tight text-[#2e3742]">Health Insights</h1>
               <p className="truncate text-xs text-[#9dabbd]">
                 {dateLabel ? `From your ${dateLabel} report` : "From your latest report"}
               </p>

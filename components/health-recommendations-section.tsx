@@ -40,7 +40,7 @@ export default function HealthRecommendationsSection({ patientData, onSeeAll }: 
           </span>
           <div className="min-w-0">
             <h2 id="recommendations-heading" className="text-base font-semibold leading-tight text-[#2e3742]">
-              Your Action Plan
+              Health Insights
             </h2>
             <p className="truncate text-xs text-[#9dabbd]">
               {data && priority.length > 0
@@ -67,7 +67,7 @@ export default function HealthRecommendationsSection({ patientData, onSeeAll }: 
 
       {error && !isLoading && (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#f7f9fa] p-4">
-          <p className="text-sm text-[#4d5c6f]">{"Couldn't load your action plan."}</p>
+          <p className="text-sm text-[#4d5c6f]">{"Couldn't load your health insights."}</p>
           <button
             type="button"
             onClick={retry}
@@ -133,7 +133,7 @@ function PreviewCard({ param, onClick }: { param: RecParameter; onClick: () => v
 function PreviewSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-2.5" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading your action plan</span>
+      <span className="sr-only">Loading your health insights</span>
       {[0, 1, 2, 3].map((i) => (
         <div key={i} className="flex flex-col gap-2 rounded-2xl bg-[#f7f9fa] p-3">
           <div className="h-8 w-8 animate-pulse rounded-lg bg-[#e5e9ee]" />
