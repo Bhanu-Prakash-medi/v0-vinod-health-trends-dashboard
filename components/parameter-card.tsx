@@ -8,12 +8,12 @@ import { getParameterBand, getParameterBandScale, getParameterNormalRange } from
 import { formatParamDisplay } from "@/lib/format-param-value"
 import type { CollectedParameter } from "@/lib/collect-parameters"
 
-const NORMAL = "#2f9e5b"
-const ABNORMAL = "#d6453a"
+const NORMAL = "#1f9d55"
+const ABNORMAL = "#e5484d"
 const DEFAULT_SEGMENTS = [
-  { color: "#f3b4ad", widthPct: 33.33, label: "Low" },
-  { color: "#4fb877", widthPct: 33.34, label: "Normal" },
-  { color: "#f3b4ad", widthPct: 33.33, label: "High" },
+  { color: "#f0605d", widthPct: 33.33, label: "Low" },
+  { color: "#22b864", widthPct: 33.34, label: "Normal" },
+  { color: "#f0605d", widthPct: 33.33, label: "High" },
 ]
 
 interface ParameterCardProps {
@@ -79,22 +79,29 @@ export default function ParameterCard({ param, date, gender }: ParameterCardProp
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="relative h-4" role="img" aria-label={`${label}. Normal range ${display.range}`}>
-          <div className="absolute inset-x-0 top-1/2 flex h-1.5 -translate-y-1/2 gap-0.5">
+        <div className="relative h-5" role="img" aria-label={`${label}. Normal range ${display.range}`}>
+          <div className="absolute inset-x-0 top-1/2 flex h-2 -translate-y-1/2 gap-[3px]">
             {segments.map((seg, i) => (
               <span
                 key={i}
-                className="h-full first:rounded-l-full last:rounded-r-full"
-                style={{ width: `${seg.widthPct}%`, backgroundColor: seg.color, opacity: 0.9 }}
+                className="h-full rounded-full"
+                style={{
+                  width: `${seg.widthPct}%`,
+                  backgroundImage: `linear-gradient(180deg, ${seg.color}, ${seg.color}d9)`,
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 3px ${seg.color}40`,
+                }}
               />
             ))}
           </div>
           <span
-            className="absolute top-1/2 flex h-4 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-card shadow-[0_2px_6px_rgba(16,24,40,0.25)] transition-[left] duration-1000 ease-out motion-reduce:transition-none"
-            style={{ left: `${revealed ? Math.min(97, Math.max(3, markerPct)) : 3}%` }}
+            className="absolute top-1/2 flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-card transition-[left] duration-1000 ease-out motion-reduce:transition-none"
+            style={{
+              left: `${revealed ? Math.min(97, Math.max(3, markerPct)) : 3}%`,
+              boxShadow: `0 0 0 4px ${accent}2e, 0 3px 8px rgba(16,24,40,0.28)`,
+            }}
             aria-hidden="true"
           >
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: accent }} />
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent }} />
           </span>
         </div>
 

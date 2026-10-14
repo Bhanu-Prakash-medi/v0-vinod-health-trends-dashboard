@@ -40,9 +40,12 @@ export function formatNumber(value: number, fractionDigits?: { min?: number; max
 export function formatParamDisplay(
   name: string,
   rawValue: unknown,
-  unit = "",
-  range = "",
+  rawUnit = "",
+  rawRange = "",
 ): { value: string; unit: string; range: string } {
+  // Source reports sometimes carry a mis-decoded micro sign (U+FFFD) in units like "µIU/mL".
+  const unit = rawUnit.replace(/\uFFFD|Â?µ|Î¼/g, "µ")
+  const range = rawRange
   const numeric = typeof rawValue === "number" ? rawValue : Number.parseFloat(String(rawValue ?? ""))
 
   if (!Number.isFinite(numeric)) {
