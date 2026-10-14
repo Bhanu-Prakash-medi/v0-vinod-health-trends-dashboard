@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { ArrowLeft, Search, X, SearchX } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import type { ApiHealthReport } from "@/lib/api"
 import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
@@ -136,8 +135,11 @@ export default function AllParametersPage({
             <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">
               <ArrowLeft className="h-5 w-5 text-[#2e3742]" />
             </Button>
-            <h1 className="text-lg font-semibold text-[#2e3742]">
-              All Parameters <span className="text-[#9dabbd]">({allParameters.length})</span>
+            <h1 className="flex items-center gap-2 text-base font-bold text-[#2e3742]">
+              All Parameters
+              <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[11px] font-semibold text-[#156ddc]">
+                {allParameters.length}
+              </span>
             </h1>
           </div>
 
@@ -149,7 +151,7 @@ export default function AllParametersPage({
               inputMode="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search parameters (e.g. cholesterol, HbA1c)"
+              placeholder="Search e.g. cholesterol"
               aria-label="Search parameters"
               className="w-full rounded-xl border border-[#e5e7eb] bg-[#f7f9fa] py-2.5 pl-9 pr-9 text-sm text-[#2e3742] placeholder:text-[#9dabbd] focus:border-[#156ddc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#156ddc]/20"
             />
@@ -166,51 +168,49 @@ export default function AllParametersPage({
           </div>
         </div>
 
-        <div className="space-y-3 p-4">
+        <div className="flex flex-col gap-2.5 p-4">
         {filteredParameters.map((param, index) => (
-          <Card key={index} className="overflow-hidden border border-[#f0f3f5] py-0">
-            <div className="p-4 pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex flex-1 items-center gap-2">
-                  <h3 className="text-sm font-medium text-[#2e3742]">{param.name}</h3>
+          <div
+            key={index}
+            className="flex flex-col gap-3 rounded-2xl border border-[#eef1f4] bg-white p-4 shadow-[0_1px_2px_rgba(46,55,66,0.04)]"
+          >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  <h3 className="truncate text-sm font-semibold text-[#2e3742]">{param.name}</h3>
                   <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
                 </div>
 
                 {param.band ? (
-                  <div
-                    className="rounded-full px-2.5 py-1 text-xs font-medium"
-                    style={{ color: param.band.color, backgroundColor: `${param.band.color}1A` }}
+                  <span
+                    className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    style={{ color: param.band.color, backgroundColor: `${param.band.color}14` }}
                   >
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: param.band.color }} />
                     {param.band.shortLabel}
-                  </div>
+                  </span>
                 ) : (
-                  <div
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                  <span
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                       param.status === "normal" ? "bg-[#edf7ee] text-[#459f49]" : "bg-[#fef0f0] text-[#de3d31]"
                     }`}
                   >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${param.status === "normal" ? "bg-[#459f49]" : "bg-[#de3d31]"}`}
+                    />
                     {param.status === "normal" ? "Normal" : "Abnormal"}
-                  </div>
+                  </span>
                 )}
               </div>
-            </div>
 
-            <div className="border-t border-[#f0f3f5]" />
-
-            <div className="flex items-center justify-between p-4">
-              <div>
-                <p
-                  className={`text-xs font-medium ${
-                    param.band ? "" : param.status === "abnormal" ? "text-[#de3d31]" : "text-[#459f49]"
-                  }`}
-                  style={param.band ? { color: param.band.color } : undefined}
-                >
+            <div className="flex items-end justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-tight tracking-tight text-[#2e3742]">
                   {param.currentValue}
                 </p>
-                <p className="mt-0.5 text-[10px] text-[#9dabbd]">{param.date}</p>
+                {param.date && <p className="mt-0.5 text-[11px] text-[#9dabbd]">{param.date}</p>}
               </div>
 
-              <div className="w-[140px]">
+              <div className="w-[132px] shrink-0">
                 {/* Scale bar + marker wrapper */}
                 <div className="relative h-4">
                   {param.bandScale ? (
@@ -257,13 +257,15 @@ export default function AllParametersPage({
                 </div>
 
                 {/* Normal Range text */}
-                <div className="mt-2 text-center text-[9px] text-[#9dabbd]">
-                  Normal Range:{" "}
-                  {getParameterNormalRange(param.name, patientData?.patient_info?.gender) ?? param.range}
+                <div className="mt-1.5 text-right text-[11px] text-[#9dabbd]">
+                  Normal{" "}
+                  <span className="font-medium text-[#4d5c6f]">
+                    {getParameterNormalRange(param.name, patientData?.patient_info?.gender) ?? param.range}
+                  </span>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         ))}
 
         {filteredParameters.length === 0 && (
