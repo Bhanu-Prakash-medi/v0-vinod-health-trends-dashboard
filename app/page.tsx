@@ -888,10 +888,16 @@ export default function HealthDashboard() {
           </h2>
           <p className="text-gray-600 mb-6">{globalError.message}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              if (isUnauthorized) {
+                window.location.href = "https://www.medibuddy.in"
+              } else {
+                window.location.reload()
+              }
+            }}
             className="rounded-lg bg-blue-500 px-6 py-3 text-white font-medium hover:bg-blue-600 transition-colors"
           >
-            Try Again
+            {isUnauthorized ? "Go to MediBuddy" : "Try Again"}
           </button>
         </div>
       </div>
