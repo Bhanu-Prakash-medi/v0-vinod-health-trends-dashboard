@@ -1,6 +1,51 @@
 "use client"
 
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Info, RefreshCw, Stethoscope, X, type LucideIcon } from "lucide-react"
+import {
+  Apple,
+  ArrowLeft,
+  Ban,
+  Banana,
+  Bean,
+  Beef,
+  BookOpen,
+  Candy,
+  Carrot,
+  Check,
+  Cherry,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Citrus,
+  Coffee,
+  Cookie,
+  Croissant,
+  CupSoda,
+  Droplets,
+  Drumstick,
+  Egg,
+  EggFried,
+  Fish,
+  FlaskConical,
+  Grape,
+  IceCream,
+  Info,
+  Leaf,
+  Lightbulb,
+  Milk,
+  Nut,
+  Pizza,
+  Popcorn,
+  RefreshCw,
+  Salad,
+  Sandwich,
+  Soup,
+  Sprout,
+  Stethoscope,
+  Wheat,
+  Wine,
+  X,
+  type LucideIcon,
+} from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { ApiHealthReport } from "@/lib/api"
 import { isNativeAppPlatform } from "@/lib/api"
@@ -370,18 +415,21 @@ function SectionContent({
   const rec = param.recommendations || {}
 
   if (section === "understand") {
-    const rows = [
-      { title: "What it is", text: exp.what_it_is },
-      { title: "Your result", text: exp.your_result },
-      { title: "Why it happens", text: exp.why_it_happens },
-      { title: "What it means", text: exp.what_it_means },
+    const rows: { title: string; text?: string; icon: LucideIcon; tint: string; fg: string }[] = [
+      { title: "What it is", text: exp.what_it_is, icon: BookOpen, tint: "bg-[#e8f2ff]", fg: "text-[#156ddc]" },
+      { title: "Why it happens", text: exp.why_it_happens, icon: Lightbulb, tint: "bg-[#fff4e0]", fg: "text-[#c47a00]" },
     ].filter((r) => r.text)
     return (
-      <dl className="flex flex-col divide-y divide-[#f0f3f5]">
-        {rows.map((r) => (
-          <div key={r.title} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
-            <dt className="text-xs font-semibold text-[#156ddc]">{r.title}</dt>
-            <dd className="text-sm leading-relaxed text-[#2e3742] text-pretty">{r.text}</dd>
+      <dl className="flex flex-col gap-3">
+        {rows.map(({ title, text, icon: Icon, tint, fg }) => (
+          <div key={title} className="flex gap-3 rounded-2xl bg-[#f7f9fa] p-3.5">
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`} aria-hidden="true">
+              <Icon className={`h-[18px] w-[18px] ${fg}`} strokeWidth={2} />
+            </span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <dt className="text-sm font-semibold text-[#2e3742]">{title}</dt>
+              <dd className="text-sm leading-relaxed text-[#4d5c6f] text-pretty">{text}</dd>
+            </div>
           </div>
         ))}
       </dl>
@@ -416,14 +464,7 @@ function SectionContent({
   }
 
   if (section === "diet") {
-    const include = rec.diet?.include || []
-    const limit = rec.diet?.limit || []
-    return (
-      <div className="flex flex-col gap-5">
-        {include.length > 0 && <FoodList kind="include" items={include} />}
-        {limit.length > 0 && <FoodList kind="limit" items={limit} />}
-      </div>
-    )
+    return <DietSection key={paramKey(param)} include={rec.diet?.include || []} limit={rec.diet?.limit || []} />
   }
 
   const next = param.next_steps || {}
@@ -453,32 +494,118 @@ function SectionContent({
   )
 }
 
-function FoodList({ kind, items }: { kind: "include" | "limit"; items: RecFood[] }) {
-  const isInclude = kind === "include"
-  const MarkIcon = isInclude ? Check : X
+const FOOD_ICON_RULES: [RegExp, LucideIcon][] = [
+  [/oat|wheat|millet|ragi|jowar|bajra|grain|rice|roti|chapati|bread|barley|quinoa|poha/i, Wheat],
+  [/dal|lentil|bean|rajma|chana|chickpea|legume|soy|pulse|sprout/i, Bean],
+  [/nut|almond|walnut|cashew|peanut|seed|flax|chia/i, Nut],
+  [/fish|salmon|sardine|mackerel|tuna|seafood|prawn/i, Fish],
+  [/fried egg/i, EggFried],
+  [/egg/i, Egg],
+  [/milk|curd|yogurt|yoghurt|paneer|dairy|buttermilk|cheese|ghee|butter/i, Milk],
+  [/chicken|poultry|drumstick/i, Drumstick],
+  [/meat|mutton|beef|pork|red meat|sausage|bacon/i, Beef],
+  [/guava|banana/i, Banana],
+  [/orange|lemon|citrus|amla|lime/i, Citrus],
+  [/grape|berr/i, Grape],
+  [/cherry|pomegranate/i, Cherry],
+  [/apple|fruit|papaya|pear/i, Apple],
+  [/carrot|beet|root/i, Carrot],
+  [/spinach|leaf|leafy|green|methi|palak|kale|vegetable|veggie|gourd|broccoli/i, Leaf],
+  [/salad|cucumber/i, Salad],
+  [/soup|stew/i, Soup],
+  [/water|hydrat|coconut water/i, Droplets],
+  [/tea|coffee|caffeine/i, Coffee],
+  [/soda|cola|soft drink|juice|sugary drink|beverage/i, CupSoda],
+  [/alcohol|wine|beer|liquor/i, Wine],
+  [/sweet|sugar|candy|mithai|dessert|jaggery|chocolate/i, Candy],
+  [/ice cream/i, IceCream],
+  [/biscuit|cookie|cake|bakery|pastry|maida/i, Cookie],
+  [/croissant|bakery/i, Croissant],
+  [/pizza|fast food|junk/i, Pizza],
+  [/sandwich|burger/i, Sandwich],
+  [/chips|namkeen|snack|popcorn|fried|pakora|samosa/i, Popcorn],
+  [/salt|pickle|papad|processed/i, Ban],
+]
+
+function foodIcon(name: string, isInclude: boolean): LucideIcon {
+  const hit = FOOD_ICON_RULES.find(([re]) => re.test(name))
+  return hit ? hit[1] : isInclude ? Sprout : Ban
+}
+
+function DietSection({ include, limit }: { include: RecFood[]; limit: RecFood[] }) {
+  const [view, setView] = useState<"include" | "limit">(include.length > 0 ? "include" : "limit")
+  const isInclude = view === "include"
+  const items = isInclude ? include : limit
+
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className={`text-xs font-semibold ${isInclude ? "text-[#1f8a4c]" : "text-[#c93838]"}`}>
-        {isInclude ? "Eat more" : "Limit or avoid"}
-      </h3>
-      <ul className="flex flex-col divide-y divide-[#f0f3f5]">
-        {items.map((f, i) => (
-          <li key={`${f.food}-${i}`} className="flex gap-2.5 py-2.5 first:pt-0 last:pb-0">
-            <MarkIcon
-              className={`mt-0.5 h-4 w-4 shrink-0 ${isInclude ? "text-[#1f8a4c]" : "text-[#c93838]"}`}
-              strokeWidth={2.5}
-              aria-hidden="true"
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-[#2e3742]">{f.food}</p>
-              {(f.why || f.tip) && (
-                <p className="mt-0.5 text-xs leading-relaxed text-[#6b7a8c]">{[f.why, f.tip].filter(Boolean).join(" ")}</p>
-              )}
-            </div>
-          </li>
-        ))}
+    <div className="flex flex-col gap-3">
+      <div role="tablist" aria-label="Diet guidance" className="grid grid-cols-2 gap-1 rounded-full bg-[#f0f3f5] p-1">
+        {(
+          [
+            { id: "include", label: "Eat more", count: include.length, icon: Check, on: "bg-[#1f8a4c] text-[#ffffff]" },
+            { id: "limit", label: "Limit", count: limit.length, icon: X, on: "bg-[#c93838] text-[#ffffff]" },
+          ] as const
+        ).map((t) => {
+          const active = view === t.id
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              disabled={t.count === 0}
+              onClick={() => setView(t.id)}
+              className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 disabled:opacity-40 ${
+                active ? t.on : "text-[#4d5c6f] hover:text-[#2e3742]"
+              }`}
+            >
+              <t.icon className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+              {t.label}
+              <span className={`text-xs ${active ? "opacity-80" : "text-[#9dabbd]"}`}>{t.count}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <ul role="tabpanel" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {items.map((f, i) => {
+          const Icon = foodIcon(f.food, isInclude)
+          return (
+            <li
+              key={`${view}-${f.food}-${i}`}
+              className={`flex gap-3 rounded-2xl p-3 ${isInclude ? "bg-[#eefaf3]" : "bg-[#fdf1f1]"}`}
+            >
+              <span
+                className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ffffff] ${
+                  isInclude ? "text-[#1f8a4c]" : "text-[#c93838]"
+                }`}
+                aria-hidden="true"
+              >
+                <Icon className="h-5 w-5" strokeWidth={1.9} />
+                <span
+                  className={`absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-[#ffffff] ${
+                    isInclude ? "bg-[#1f8a4c]" : "bg-[#c93838]"
+                  }`}
+                >
+                  {isInclude ? (
+                    <Check className="h-2.5 w-2.5 text-[#ffffff]" strokeWidth={3.5} />
+                  ) : (
+                    <X className="h-2.5 w-2.5 text-[#ffffff]" strokeWidth={3.5} />
+                  )}
+                </span>
+              </span>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <p className="text-sm font-semibold text-[#2e3742]">{f.food}</p>
+                {f.why && <p className="text-xs leading-relaxed text-[#4d5c6f]">{f.why}</p>}
+                {f.tip && (
+                  <p className={`text-xs font-medium leading-relaxed ${isInclude ? "text-[#1f8a4c]" : "text-[#c93838]"}`}>{f.tip}</p>
+                )}
+              </div>
+            </li>
+          )
+        })}
       </ul>
-    </section>
+    </div>
   )
 }
 
