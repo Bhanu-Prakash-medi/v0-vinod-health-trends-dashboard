@@ -19,6 +19,7 @@ import {
   FileText as NavReportsIcon,
   FlaskConical as NavTestsIcon,
   ListChecks as NavPlanIcon,
+  PersonStanding as NavTwinIcon,
   TrendingUp as NavTrendsIcon,
   UserRound as NavOverviewIcon,
 } from "lucide-react"
@@ -46,6 +47,7 @@ import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
 import { identifyUser, trackEvent, trackEventOnce } from "@/lib/analytics/posthog"
 import SectionViewTracker from "@/components/section-view-tracker"
+import { useDesign } from "@/lib/design-context"
 import {
   fetchBeneficiaries,
   fetchBeneficiaryReportRequests,
@@ -98,6 +100,8 @@ export default function HealthDashboard() {
   // load finishes, letting us show the empty-report fallback instead of an
   // endless skeleton when the analysis comes back with no usable data.
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
+  const { design } = useDesign()
+  const premium = design === "premium"
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
   const [recommendationsParam, setRecommendationsParam] = useState<string | null | undefined>(undefined)
@@ -854,7 +858,7 @@ export default function HealthDashboard() {
       <>
         {consentModal}
         <div className="min-h-screen bg-[#f7f9fa]">
-        <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
+        <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg md:max-w-2xl lg:max-w-3xl">
           <TopNavigationSkeleton />
           <div className="space-y-6 px-4 py-6">
             <ProfileCardSkeleton />
@@ -990,8 +994,9 @@ export default function HealthDashboard() {
   const mainNavItems: BottomNavItem[] = [
     { id: "nav-overview", label: "Profile", icon: NavOverviewIcon },
     { id: "nav-summary", label: "Summary", icon: NavSummaryIcon },
+    { id: "nav-twin", label: "Digital Twin", icon: NavTwinIcon },
     ...(hasTrends ? [{ id: "nav-trends", label: "Trends", icon: NavTrendsIcon }] : []),
-    { id: "nav-tests", label: "Tests", icon: NavTestsIcon },
+    { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon },
     { id: "nav-plan", label: "Insights", icon: NavPlanIcon },
     { id: "nav-reports", label: "Reports", icon: NavReportsIcon },
   ]
@@ -1031,7 +1036,7 @@ export default function HealthDashboard() {
     <>
       {consentModal}
       {/* Floating "Report a problem" button pinned to the bottom of the app column. */}
-      <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 ${showMainNav ? "pb-20" : "pb-5"}`}>
+      <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 md:max-w-2xl lg:max-w-3xl ${showMainNav ? (premium ? "pb-24" : "pb-20") : "pb-5"}`}>
         <div className="pointer-events-auto">
               <ReportProblemButton
                 floating
@@ -1052,15 +1057,42 @@ export default function HealthDashboard() {
           accessToken={accessToken}
         />
       )}
-      <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
-        <TopNavigation
-          familyMembers={familyMembers}
-          activeFamily={activeBeneficiary?.uid || ""}
-          setActiveFamily={handleBeneficiaryChange}
-        />
-        <div className={`space-y-6 px-4 py-6 ${showMainNav ? "pb-24" : ""}`}>
-          <div id="nav-overview" className="scroll-mt-20">
+      <div data-design={design} className={`min-h-screen ${premium ? "bg-[#eef3fa]" : "bg-[#f7f9fa]"}`}>
+      <div
+        className={`mx-auto max-w-[420px] md:max-w-2xl lg:max-w-3xl ${
+          premium ? "bg-[#eef3fa] sm:my-8 sm:overflow-hidden sm:rounded-[28px] sm:shadow-xl" : "bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg"
+        }`}
+      >
+        {premium ? (
+          <header className="ht-hero relative rounded-b-[28px] bg-[#0b2a5b] pb-16">
+            <div className="flex items-center justify-between px-5 pt-6 md:px-8">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#ffffff]/60">MediBuddy</p>
+                <h1 className="mt-1 text-xl font-semibold text-[#ffffff] text-balance md:text-2xl">Health Trends</h1>
+              </div>
+              <span className="rounded-full border border-[#ffffff]/20 px-3 py-1 text-[11px] font-medium text-[#ffffff]/80">
+                {familyMembers.length} {familyMembers.length === 1 ? "member" : "members"}
+              </span>
+            </div>
+            <TopNavigation
+              familyMembers={familyMembers}
+              activeFamily={activeBeneficiary?.uid || ""}
+              setActiveFamily={handleBeneficiaryChange}
+            />
+          </header>
+        ) : (
+          <TopNavigation
+            familyMembers={familyMembers}
+            activeFamily={activeBeneficiary?.uid || ""}
+            setActiveFamily={handleBeneficiaryChange}
+          />
+        )}
+        <div
+          className={`space-y-6 px-4 py-6 md:px-8 ${premium ? "ht-premium-body relative -mt-14 pt-0" : ""} ${
+            showMainNav ? (premium ? "pb-32" : "pb-24") : ""
+          }`}
+        >
+          <div id="nav-overview" className="ht-card scroll-mt-20">
           <ProfileCard
             name={activeMember?.name || "Unknown"}
             age={activeBeneficiary?.age || 0}
@@ -1173,7 +1205,7 @@ export default function HealthDashboard() {
                     reportsLoading={!isLoadComplete}
                   />
                 )}
-              <div id="nav-summary" className="scroll-mt-20 space-y-6">
+              <div id="nav-summary" className="ht-card scroll-mt-20">
               <SectionViewTracker section="summary">
                       <HealthSummarySection
                         patientData={currentProfileData}
@@ -1182,6 +1214,8 @@ export default function HealthDashboard() {
                         onSelectedDateIndexChange={setSelectedSummaryIndex}
                       />
                     </SectionViewTracker>
+              </div>
+              <div id="nav-twin" className="ht-card scroll-mt-20">
                     <SectionViewTracker section="digital_twin">
                       <InsightsSection
                         patientData={currentProfileData}
@@ -1192,7 +1226,7 @@ export default function HealthDashboard() {
               </div>
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && (
-                <div id="nav-trends" className="scroll-mt-20">
+                <div id="nav-trends" className="ht-card scroll-mt-20">
                 <SectionViewTracker section="trends">
                   <TrendsSection
                     onViewAll={() => {
@@ -1205,7 +1239,7 @@ export default function HealthDashboard() {
                 </SectionViewTracker>
                 </div>
               )}
-              <div id="nav-tests" className="scroll-mt-20">
+              <div id="nav-parameters" className="ht-card scroll-mt-20">
               <AllParametersSection
                 patientData={currentProfileData}
                 onViewAll={() => {
@@ -1225,7 +1259,7 @@ export default function HealthDashboard() {
                 }}
               />
               </div>
-              <div id="nav-reports" className="scroll-mt-20">
+              <div id="nav-reports" className="ht-card scroll-mt-20">
               <SectionViewTracker section="reports">
                 <TestReportsSection
                   patientData={currentProfileData}
