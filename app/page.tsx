@@ -13,6 +13,15 @@ import TrendsSection from "@/components/trends-section"
 import Footer from "@/components/footer"
 import TestReportsSection from "@/components/test-reports-section"
 import HealthRecommendationsSection from "@/components/health-recommendations-section"
+import MainBottomNav, { type BottomNavItem } from "@/components/main-bottom-nav"
+import {
+  ClipboardList as NavSummaryIcon,
+  FileText as NavReportsIcon,
+  FlaskConical as NavTestsIcon,
+  ListChecks as NavPlanIcon,
+  TrendingUp as NavTrendsIcon,
+  UserRound as NavOverviewIcon,
+} from "lucide-react"
 import RecommendationsPage from "@/components/recommendations-page"
 import FeedbackSection from "@/components/feedback-section"
 
@@ -977,6 +986,15 @@ export default function HealthDashboard() {
   const hasUsableData =
     (currentProfileData?.health_summary?.length || 0) > 0 ||
     (currentProfileData?.reports?.some((r) => Object.keys(r.parameters || {}).length > 0) ?? false)
+  const showMainNav = Boolean(!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData)
+  const mainNavItems: BottomNavItem[] = [
+    { id: "nav-overview", label: "Profile", icon: NavOverviewIcon },
+    { id: "nav-summary", label: "Summary", icon: NavSummaryIcon },
+    ...(hasTrends ? [{ id: "nav-trends", label: "Trends", icon: NavTrendsIcon }] : []),
+    { id: "nav-tests", label: "Tests", icon: NavTestsIcon },
+    { id: "nav-plan", label: "Plan", icon: NavPlanIcon },
+    { id: "nav-reports", label: "Reports", icon: NavReportsIcon },
+  ]
   // Whether this beneficiary's report load has fully settled (see the
   // completedBeneficiaries state comment). Used to distinguish "still loading"
   // from "loaded but the analysis returned no usable data".
@@ -1013,7 +1031,7 @@ export default function HealthDashboard() {
     <>
       {consentModal}
       {/* Floating "Report a problem" button pinned to the bottom of the app column. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 pb-5">
+      <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 ${showMainNav ? "pb-20" : "pb-5"}`}>
         <div className="pointer-events-auto">
               <ReportProblemButton
                 floating
@@ -1041,7 +1059,8 @@ export default function HealthDashboard() {
           activeFamily={activeBeneficiary?.uid || ""}
           setActiveFamily={handleBeneficiaryChange}
         />
-        <div className="space-y-6 px-4 py-6">
+        <div className={`space-y-6 px-4 py-6 ${showMainNav ? "pb-24" : ""}`}>
+          <div id="nav-overview" className="scroll-mt-20">
           <ProfileCard
             name={activeMember?.name || "Unknown"}
             age={activeBeneficiary?.age || 0}
@@ -1074,6 +1093,7 @@ export default function HealthDashboard() {
   vasBenefId={activeBeneficiary?.rVasBenefId}
   accessToken={accessToken}
   />
+          </div>
 
           {SHOW_REPORT_UPLOAD && <UploadReportSection />}
 
@@ -1153,6 +1173,7 @@ export default function HealthDashboard() {
                     reportsLoading={!isLoadComplete}
                   />
                 )}
+              <div id="nav-summary" className="scroll-mt-20 space-y-6">
               <SectionViewTracker section="summary">
                       <HealthSummarySection
                         patientData={currentProfileData}
@@ -1168,8 +1189,10 @@ export default function HealthDashboard() {
                         healthSummaryOverride={selectedHealthSummary}
                       />
               </SectionViewTracker>
+              </div>
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && (
+                <div id="nav-trends" className="scroll-mt-20">
                 <SectionViewTracker section="trends">
                   <TrendsSection
                     onViewAll={() => {
@@ -1180,7 +1203,9 @@ export default function HealthDashboard() {
                     vasbenefId={activeBeneficiary?.rVasBenefId}
                   />
                 </SectionViewTracker>
+                </div>
               )}
+              <div id="nav-tests" className="scroll-mt-20">
               <AllParametersSection
                 patientData={currentProfileData}
                 onViewAll={() => {
@@ -1189,6 +1214,8 @@ export default function HealthDashboard() {
                 }}
                 vasbenefId={activeBeneficiary?.rVasBenefId}
               />
+              </div>
+              <div id="nav-plan" className="scroll-mt-20">
               <HealthRecommendationsSection
                 patientData={currentProfileData}
                 onSeeAll={(paramId) => {
@@ -1197,6 +1224,8 @@ export default function HealthDashboard() {
                   window.scrollTo({ top: 0 })
                 }}
               />
+              </div>
+              <div id="nav-reports" className="scroll-mt-20">
               <SectionViewTracker section="reports">
                 <TestReportsSection
                   patientData={currentProfileData}
@@ -1204,6 +1233,7 @@ export default function HealthDashboard() {
                   onScrollHandled={() => setPendingReportDate(null)}
                 />
               </SectionViewTracker>
+              </div>
                 <FeedbackSection
                   mbUserId={mbUserId}
                   vasbenefId={activeBeneficiary?.rVasBenefId}
@@ -1220,6 +1250,7 @@ export default function HealthDashboard() {
         <Footer />
       </div>
       </div>
+      {showMainNav && <MainBottomNav items={mainNavItems} />}
     </>
   )
 }
