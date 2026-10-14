@@ -359,7 +359,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
           <Card
             key={index}
             id={isLatestReport(report.tag) ? "latest-report-card" : `report-card-${index}`}
-            className={`overflow-hidden py-0 cursor-pointer scroll-mt-24 border transition-all duration-500 ${
+            className={`overflow-hidden gap-0 py-0 cursor-pointer scroll-mt-24 border transition-all duration-500 ${
               (isLatestReport(report.tag) && highlightLatest) || highlightReportIndex === index
                 ? "border-[#581daf] shadow-lg ring-2 ring-[#581daf] ring-offset-2"
                 : "border-[#f0f3f5] hover:border-[#156ddc]"
@@ -367,12 +367,12 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
             onClick={() => handleReportClick(index)}
           >
             {/* Thumbnail with gradient */}
-            <div className="relative h-16 bg-gradient-to-br from-[#156ddc] to-[#4d96ff]">
+            <div className="relative h-10 bg-gradient-to-br from-[#156ddc] to-[#4d96ff]">
               <div className="absolute inset-0 backdrop-blur-sm bg-black/20" />
 
               {/* Status Badge */}
               <div
-                className={`absolute left-3 top-3 flex items-center gap-1 rounded-xl border-[0.5px] px-3 py-1 ${
+                className={`absolute left-3 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-xl border-[0.5px] px-2.5 py-0.5 ${
                   isLatestReport(report.tag) ? "border-[#581daf] bg-[#f6f0fe]" : "border-[#4d5c6f] bg-[#f0f3f5]"
                 }`}
               >
@@ -391,17 +391,17 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
               </div>
             </div>
 
-            <div className="p-4">
-              <div className="space-y-1">
+            <div className="px-4 py-3">
+              <div className="space-y-0.5">
                 {report.report_names.map((name: string, nameIndex: number) => (
                   <h3 key={nameIndex} className="text-sm font-medium text-[#2e3742]">
                     {name}
                   </h3>
                 ))}
               </div>
-              <p className="mt-1 text-xs text-[#4d5c6f]">{report.lab_name || "Comprehensive Health Analysis"}</p>
+              <p className="mt-0.5 text-xs text-[#4d5c6f]">{report.lab_name || "Comprehensive Health Analysis"}</p>
 
-              <div className="my-3 border-t border-[#f0f3f5]" />
+              <div className="my-2 border-t border-[#f0f3f5]" />
 
               <div className="flex items-center justify-between">
                 <div className="flex min-w-0 items-center gap-2">
@@ -422,7 +422,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
                               getReportFileName(report),
                             )
                       }
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+                      className="-my-1 flex h-8 w-8 items-center justify-center rounded-full text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
                       aria-label="Download original report"
                       title="Download original report"
                     >

@@ -242,7 +242,12 @@ export default function ProfileCard({
 
         {/* User Info */}
         <div className="my-0 min-w-0 flex-1 pt-0">
-          <h2 className="text-base font-bold text-[#2e3742] leading-tight text-balance">{name}</h2>
+          <h2
+            className="line-clamp-2 break-words pr-24 text-base font-bold leading-tight text-[#2e3742]"
+            title={name}
+          >
+            {name}
+          </h2>
           <div className="mt-1 flex items-center gap-2">
             <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
               {relation || "Self"}

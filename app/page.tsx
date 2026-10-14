@@ -13,6 +13,17 @@ import TrendsSection from "@/components/trends-section"
 import Footer from "@/components/footer"
 import TestReportsSection from "@/components/test-reports-section"
 import HealthRecommendationsSection from "@/components/health-recommendations-section"
+import MainBottomNav, { type BottomNavItem } from "@/components/main-bottom-nav"
+import {
+  ClipboardList as NavSummaryIcon,
+  FileText as NavReportsIcon,
+  FlaskConical as NavTestsIcon,
+  ListChecks as NavPlanIcon,
+  PersonStanding as NavTwinIcon,
+  TrendingUp as NavTrendsIcon,
+  UserRound as NavOverviewIcon,
+} from "lucide-react"
+import RecommendationsPage from "@/components/recommendations-page"
 import FeedbackSection from "@/components/feedback-section"
 
 // Temporarily hidden; flip to true to re-enable.
@@ -24,7 +35,7 @@ import HealthScoreSection from "@/components/health-score-section"
 import FeatureComingSoon from "@/components/feature-coming-soon"
 import { checkAppAccess } from "@/lib/health-trends-access-allowlist"
 import EmptyState from "@/components/empty-state"
-import ReportProblemButton from "@/components/report-problem-button"
+import AppTopBar from "@/components/app-top-bar"
 import {
   TopNavigationSkeleton,
   ProfileCardSkeleton,
@@ -36,6 +47,7 @@ import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
 import { identifyUser, trackEvent, trackEventOnce } from "@/lib/analytics/posthog"
 import SectionViewTracker from "@/components/section-view-tracker"
+import { useDesign } from "@/lib/design-context"
 import {
   fetchBeneficiaries,
   fetchBeneficiaryReportRequests,
@@ -45,7 +57,6 @@ import {
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
-  DEBUG_ACCESS_TOKEN,
   getPmEntityIdFromCookie,
   getHealthConsent,
   submitHealthConsent,
@@ -88,8 +99,11 @@ export default function HealthDashboard() {
   // load finishes, letting us show the empty-report fallback instead of an
   // endless skeleton when the analysis comes back with no usable data.
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
+  const { design } = useDesign()
+  const premium = design === "premium"
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
+  const [recommendationsParam, setRecommendationsParam] = useState<string | null | undefined>(undefined)
   const [pendingReportDate, setPendingReportDate] = useState<string | null>(null)
   const [isBeneficiariesLoading, setIsBeneficiariesLoading] = useState(true)
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
@@ -629,30 +643,16 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
-        // Fall back to the debug token when no `redirect` cookie is present
-        // (e.g. the v0 preview) so the dashboard still loads for testing.
         if (!cookieToken) {
-          cookieToken = DEBUG_ACCESS_TOKEN
+          throw new Error("UNAUTHORIZED")
         }
 
-        let token = cookieToken
+        const token = cookieToken
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
 
-        let data
-        try {
-          data = await fetchBeneficiaries(token, pmEntityId)
-        } catch (err) {
-          // An expired `redirect` cookie token would otherwise block the
-          // dashboard; retry once with the debug token.
-          if (err instanceof Error && err.message === "UNAUTHORIZED" && token !== DEBUG_ACCESS_TOKEN) {
-            token = DEBUG_ACCESS_TOKEN
-            data = await fetchBeneficiaries(token, pmEntityId)
-          } else {
-            throw err
-          }
-        }
+        const data = await fetchBeneficiaries(token, pmEntityId)
 
         // Persist the token for subsequent report loads.
         setAccessToken(token)
@@ -872,10 +872,16 @@ export default function HealthDashboard() {
           </h2>
           <p className="text-gray-600 mb-6">{globalError.message}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              if (isUnauthorized) {
+                window.location.href = "https://www.medibuddy.in"
+              } else {
+                window.location.reload()
+              }
+            }}
             className="rounded-lg bg-blue-500 px-6 py-3 text-white font-medium hover:bg-blue-600 transition-colors"
           >
-            Try Again
+            {isUnauthorized ? "Go to MediBuddy" : "Try Again"}
           </button>
         </div>
       </div>
@@ -975,6 +981,18 @@ export default function HealthDashboard() {
   const hasUsableData =
     (currentProfileData?.health_summary?.length || 0) > 0 ||
     (currentProfileData?.reports?.some((r) => Object.keys(r.parameters || {}).length > 0) ?? false)
+  const showMainNav = Boolean(!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData)
+  const mainNavItems: BottomNavItem[] = [
+    { id: "nav-overview", label: "Profile", icon: NavOverviewIcon },
+    { id: "nav-summary", label: "Summary", icon: NavSummaryIcon },
+    ...(premium ? [{ id: "nav-twin", label: "Twin", icon: NavTwinIcon }] : []),
+    ...(hasTrends ? [{ id: "nav-trends", label: "Trends", icon: NavTrendsIcon }] : []),
+    premium
+      ? { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon }
+      : { id: "nav-tests", label: "Tests", icon: NavTestsIcon },
+    { id: "nav-plan", label: "Insights", icon: NavPlanIcon },
+    { id: "nav-reports", label: "Reports", icon: NavReportsIcon },
+  ]
   // Whether this beneficiary's report load has fully settled (see the
   // completedBeneficiaries state comment). Used to distinguish "still loading"
   // from "loaded but the analysis returned no usable data".
@@ -993,6 +1011,16 @@ export default function HealthDashboard() {
     )
   }
 
+  if (recommendationsParam !== undefined && currentProfileData) {
+    return (
+      <RecommendationsPage
+        patientData={currentProfileData}
+        initialParamId={recommendationsParam}
+        onBack={() => setRecommendationsParam(undefined)}
+      />
+    )
+  }
+
   if (showAllParameters && currentProfileData) {
     return <AllParametersPage patientData={currentProfileData} onBack={() => setShowAllParameters(false)} />
   }
@@ -1000,16 +1028,6 @@ export default function HealthDashboard() {
   return (
     <>
       {consentModal}
-      {/* Floating "Report a problem" button pinned to the bottom of the app column. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 pb-5">
-        <div className="pointer-events-auto">
-              <ReportProblemButton
-                floating
-                vasbenefId={activeBeneficiary?.rVasBenefId}
-                emailId={pickPrimaryEmail(userEmail)}
-              />
-        </div>
-      </div>
       {/* Feedback snackbar: mounted once so it auto-opens 10s after the app
           loads, regardless of which report state the dashboard is in. */}
       {SHOW_FEEDBACK_SNACKBAR && (
@@ -1022,14 +1040,41 @@ export default function HealthDashboard() {
           accessToken={accessToken}
         />
       )}
-      <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
-        <TopNavigation
-          familyMembers={familyMembers}
-          activeFamily={activeBeneficiary?.uid || ""}
-          setActiveFamily={handleBeneficiaryChange}
+      <div data-design={design} className={`min-h-screen ${premium ? "bg-[#eef3fa]" : "bg-[#f7f9fa]"}`}>
+      <div
+        className={`mx-auto max-w-[420px] ${
+          premium ? "bg-[#eef3fa] sm:my-8 sm:overflow-hidden sm:rounded-[28px] sm:shadow-xl" : "bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg"
+        }`}
+      >
+        <AppTopBar
+          onDark={premium}
+          vasbenefId={activeBeneficiary?.rVasBenefId}
+          emailId={pickPrimaryEmail(userEmail)}
         />
-        <div className="space-y-6 px-4 py-6">
+        {premium ? (
+          <header className="ht-hero relative rounded-b-[28px] bg-[#156ddc] pb-16 pt-4">
+            <p className="px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#ffffff]/70 md:px-8">
+              Viewing reports for
+            </p>
+            <TopNavigation
+              familyMembers={familyMembers}
+              activeFamily={activeBeneficiary?.uid || ""}
+              setActiveFamily={handleBeneficiaryChange}
+            />
+          </header>
+        ) : (
+          <TopNavigation
+            familyMembers={familyMembers}
+            activeFamily={activeBeneficiary?.uid || ""}
+            setActiveFamily={handleBeneficiaryChange}
+          />
+        )}
+        <div
+          className={`space-y-6 px-4 py-6 ${premium ? "ht-premium-body relative -mt-14 pt-0 md:px-8" : ""} ${
+            showMainNav ? (premium ? "pb-32" : "pb-24") : ""
+          }`}
+        >
+          <div id="nav-overview" className="ht-card scroll-mt-20">
           <ProfileCard
             name={activeMember?.name || "Unknown"}
             age={activeBeneficiary?.age || 0}
@@ -1062,6 +1107,7 @@ export default function HealthDashboard() {
   vasBenefId={activeBeneficiary?.rVasBenefId}
   accessToken={accessToken}
   />
+          </div>
 
           {SHOW_REPORT_UPLOAD && <UploadReportSection />}
 
@@ -1141,6 +1187,7 @@ export default function HealthDashboard() {
                     reportsLoading={!isLoadComplete}
                   />
                 )}
+              <div id="nav-summary" className={premium ? "ht-card scroll-mt-20" : "scroll-mt-20 space-y-6"}>
               <SectionViewTracker section="summary">
                       <HealthSummarySection
                         patientData={currentProfileData}
@@ -1149,6 +1196,18 @@ export default function HealthDashboard() {
                         onSelectedDateIndexChange={setSelectedSummaryIndex}
                       />
                     </SectionViewTracker>
+              {!premium && (
+                    <SectionViewTracker section="digital_twin">
+                      <InsightsSection
+                        patientData={currentProfileData}
+                        vasbenefId={activeBeneficiary?.rVasBenefId}
+                        healthSummaryOverride={selectedHealthSummary}
+                      />
+                    </SectionViewTracker>
+              )}
+              </div>
+              {premium && (
+              <div id="nav-twin" className="ht-card scroll-mt-20">
                     <SectionViewTracker section="digital_twin">
                       <InsightsSection
                         patientData={currentProfileData}
@@ -1156,8 +1215,11 @@ export default function HealthDashboard() {
                         healthSummaryOverride={selectedHealthSummary}
                       />
               </SectionViewTracker>
+              </div>
+              )}
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && (
+                <div id="nav-trends" className="ht-card scroll-mt-20">
                 <SectionViewTracker section="trends">
                   <TrendsSection
                     onViewAll={() => {
@@ -1168,7 +1230,9 @@ export default function HealthDashboard() {
                     vasbenefId={activeBeneficiary?.rVasBenefId}
                   />
                 </SectionViewTracker>
+                </div>
               )}
+              <div id="nav-parameters" className="ht-card scroll-mt-20">
               <AllParametersSection
                 patientData={currentProfileData}
                 onViewAll={() => {
@@ -1177,7 +1241,18 @@ export default function HealthDashboard() {
                 }}
                 vasbenefId={activeBeneficiary?.rVasBenefId}
               />
-              <HealthRecommendationsSection patientData={currentProfileData} />
+              </div>
+              <div id="nav-plan" className="scroll-mt-20">
+              <HealthRecommendationsSection
+                patientData={currentProfileData}
+                onSeeAll={(paramId) => {
+                  trackEvent("recommendations_click", { service: paramId ? "top_focus_item" : "see_all" })
+                  setRecommendationsParam(paramId ?? null)
+                  window.scrollTo({ top: 0 })
+                }}
+              />
+              </div>
+              <div id="nav-reports" className="ht-card scroll-mt-20">
               <SectionViewTracker section="reports">
                 <TestReportsSection
                   patientData={currentProfileData}
@@ -1185,6 +1260,7 @@ export default function HealthDashboard() {
                   onScrollHandled={() => setPendingReportDate(null)}
                 />
               </SectionViewTracker>
+              </div>
                 <FeedbackSection
                   mbUserId={mbUserId}
                   vasbenefId={activeBeneficiary?.rVasBenefId}
@@ -1201,6 +1277,7 @@ export default function HealthDashboard() {
         <Footer />
       </div>
       </div>
+      {showMainNav && <MainBottomNav items={mainNavItems} showDesign={pmEntityId !== "1006639"} />}
     </>
   )
 }
