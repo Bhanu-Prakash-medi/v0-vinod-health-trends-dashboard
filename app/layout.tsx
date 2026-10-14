@@ -1,12 +1,13 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Lexend } from "next/font/google"
+import { Lexend, Manrope } from "next/font/google"
 import HotjarLoader from "@/components/hotjar-loader"
 import "./globals.css"
 import InitAnalytics from "@/lib/analytics/InitAnalytics"
 import { AnalyticsProvider } from "./providers"
 
 const lexend = Lexend({ subsets: ["latin"] })
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-insights" })
 
 export const metadata: Metadata = {
   title: "Health Tracking Dashboard - Monitor Your Health Trends",
@@ -26,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${lexend.className} antialiased`}>
+      <body className={`${lexend.className} ${manrope.variable} antialiased`}>
         <AnalyticsProvider>{children}</AnalyticsProvider>
         <InitAnalytics hotjarJS={process.env.hotjarJS} />
         <HotjarLoader />

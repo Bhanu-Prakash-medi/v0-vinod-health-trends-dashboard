@@ -161,7 +161,10 @@ export default function RecommendationsPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fa]">
+    <div
+      className="min-h-screen bg-[#f7f9fa] tracking-[-0.01em] [font-feature-settings:'tnum','ss01'] [&_button]:font-[inherit]"
+      style={{ fontFamily: "var(--font-insights), system-ui, sans-serif" }}
+    >
       <div className="mx-auto min-h-screen max-w-[420px] bg-[#f7f9fa] sm:my-8 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:shadow-lg">
         <header className="sticky top-0 z-20 bg-[#156ddc] pb-1">
           <div className="flex items-center gap-1 px-2 pt-2">
