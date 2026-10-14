@@ -280,7 +280,11 @@ export default function RecommendationsPage({
                     <ParameterHeader param={selected} />
 
                     {available.length > 1 && (
-                      <div className="flex gap-2 overflow-x-auto border-b border-[#eef1f4] px-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Recommendation details">
+                      <div
+                        className="flex gap-1.5 border-b border-[#eef1f4] px-4 pb-4"
+                        role="tablist"
+                        aria-label="Recommendation details"
+                      >
                         {available.map((s) => {
                           const active = s.id === activeSection
                           return (
@@ -290,7 +294,7 @@ export default function RecommendationsPage({
                               role="tab"
                               aria-selected={active}
                               onClick={() => selectSection(s.id)}
-                              className={`h-8 shrink-0 whitespace-nowrap rounded-full border px-3.5 text-[12px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 ${
+                              className={`h-8 flex-auto whitespace-nowrap rounded-full border px-2.5 text-[11.5px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 ${
                                 active
                                   ? "border-[#156ddc] bg-[#156ddc] text-[#ffffff] shadow-[0_2px_6px_rgba(21,109,220,0.25)]"
                                   : "border-[#dde5ee] bg-[#ffffff] text-[#4d5c6f] hover:border-[#156ddc]/40 hover:text-[#156ddc]"
