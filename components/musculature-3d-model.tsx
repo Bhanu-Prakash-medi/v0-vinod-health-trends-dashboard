@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card"
 import { useEffect, useState } from "react"
-import { Info, Activity, Heart, Droplets, Bone, X, Beaker, ChevronRight } from "lucide-react"
+import { Info, Activity, Heart, Droplets, Bone, X, Beaker } from "lucide-react"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
 import { trackEvent } from "@/lib/analytics/posthog"
 import { paramHasRange } from "@/lib/health-utils"
@@ -608,7 +608,6 @@ export default function Musculature3DModel({
       </div>
 
       {organGroups.length > 0 && (
-        <>
           <div className="mt-1 flex items-center justify-between px-0.5">
             <p className="text-xs text-[#6b84a8]">
               {attentionCount > 0
@@ -626,45 +625,6 @@ export default function Musculature3DModel({
               </span>
             </div>
           </div>
-
-          <ul className="mt-3 divide-y divide-[#eef3fb] overflow-hidden rounded-2xl border border-[#e3ecfa] bg-[#ffffff] shadow-[0_8px_24px_-12px_rgba(11,42,91,0.25)]">
-            {organGroups.map((organ) => {
-              const Icon = organ.icon
-              const attention = organ.status === "attention"
-              return (
-                <li key={organ.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleOrganClick(organ.id)}
-                    className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-[#f5f9ff] focus:outline-none focus-visible:bg-[#f5f9ff]"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1fd] text-[#156ddc]">
-                      <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-medium leading-5 text-[#0b2a5b]">
-                        {organ.name}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[11px] leading-4">
-                        <span
-                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${attention ? "bg-[#e5484d]" : "bg-[#156ddc]"}`}
-                          aria-hidden="true"
-                        />
-                        <span className={`font-medium ${attention ? "text-[#d13438]" : "text-[#156ddc]"}`}>
-                          {attention ? `${organ.abnormalTests.length} out of range` : "All normal"}
-                        </span>
-                        <span className="truncate text-[#8aa0c0]">
-                          {`· ${organ.relatedTests.length} ${organ.relatedTests.length === 1 ? "test" : "tests"}`}
-                        </span>
-                      </span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-[#a9bbd6]" aria-hidden="true" />
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </>
       )}
 
       {isBottomSheetOpen && (
