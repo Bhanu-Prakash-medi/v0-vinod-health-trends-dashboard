@@ -296,6 +296,14 @@ export default function HealthSummarySection({
       return { categoryName, displayParams, outOfRangeCount }
     })
     const attentionCount = summaryItems.filter((s: { outOfRangeCount: number }) => s.outOfRangeCount > 0).length
+    const totalParams = summaryItems.reduce(
+      (sum: number, s: { displayParams: any[] }) => sum + s.displayParams.length,
+      0,
+    )
+    const totalFlagged = summaryItems.reduce(
+      (sum: number, s: { outOfRangeCount: number }) => sum + s.outOfRangeCount,
+      0,
+    )
 
     return (
       // @container: this section renders inside a narrow column, so the header
@@ -386,6 +394,59 @@ export default function HealthSummarySection({
             </div>
           )}
         </div>
+
+        {totalParams > 0 && (
+          <div className="mb-4 rounded-2xl border border-[#edf0f3] bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8693a3]">
+                  Parameters in range
+                </p>
+                <p className="mt-1 text-2xl font-semibold leading-none tabular-nums tracking-tight text-[#1f2933]">
+                  {totalParams - totalFlagged}
+                  <span className="text-base font-medium text-[#a3afbd]"> / {totalParams}</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] font-medium text-[#7a8796]">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#3f9d46]" aria-hidden="true" />
+                  Normal
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#e5483c]" aria-hidden="true" />
+                  Flagged {totalFlagged}
+                </span>
+              </div>
+            </div>
+            <div
+              className="mt-3 flex h-2 w-full gap-0.5 overflow-hidden rounded-full"
+              role="img"
+              aria-label={`${totalParams - totalFlagged} of ${totalParams} parameters in normal range`}
+            >
+              {summaryItems
+                .filter((s: { displayParams: any[] }) => s.displayParams.length > 0)
+                .map(
+                  (
+                    s: { categoryName: string; displayParams: any[]; outOfRangeCount: number },
+                    i: number,
+                  ) => (
+                    <span
+                      key={`${s.categoryName}-${i}`}
+                      className="flex h-full"
+                      style={{ flexGrow: s.displayParams.length, flexBasis: 0 }}
+                      title={`${s.categoryName}: ${s.displayParams.length - s.outOfRangeCount}/${s.displayParams.length}`}
+                    >
+                      <span
+                        className="h-full bg-[#3f9d46]"
+                        style={{ flexGrow: s.displayParams.length - s.outOfRangeCount, flexBasis: 0 }}
+                      />
+                      <span className="h-full bg-[#e5483c]" style={{ flexGrow: s.outOfRangeCount, flexBasis: 0 }} />
+                    </span>
+                  ),
+                )}
+            </div>
+          </div>
+        )}
 
         {/* Cards Grid - from API health_summary */}
         <div className="grid grid-cols-2 gap-3">
