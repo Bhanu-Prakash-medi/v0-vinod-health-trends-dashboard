@@ -151,13 +151,13 @@ export default function TrendsSection({ onViewAll, patientData, vasbenefId }: Tr
   return (
     <section className="flex flex-col gap-4">
       <header className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#156ddc] text-primary-foreground shadow-[0_6px_16px_-6px_rgba(21,109,220,0.6)]">
             <TrendingUp className="h-5 w-5" aria-hidden="true" />
           </span>
-          <div className="min-w-0">
-            <h2 className="whitespace-nowrap text-base font-semibold leading-tight text-[#1d2733]">Health Trends</h2>
-            <p className="mt-0.5 whitespace-nowrap text-xs text-[#7d8a98]">How your key markers moved</p>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h2 className="truncate text-base font-semibold leading-tight text-[#1d2733]">Health Trends</h2>
+            <p className="text-pretty text-xs leading-snug text-[#7d8a98]">How your key markers moved</p>
           </div>
         </div>
         <button
