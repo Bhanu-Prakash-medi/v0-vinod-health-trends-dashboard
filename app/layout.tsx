@@ -1,12 +1,12 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Lexend_Deca } from "next/font/google"
+import { Lexend } from "next/font/google"
 import HotjarLoader from "@/components/hotjar-loader"
 import "./globals.css"
 import InitAnalytics from "@/lib/analytics/InitAnalytics"
 import { AnalyticsProvider } from "./providers"
 
-const lexendDeca = Lexend_Deca({ subsets: ["latin"] })
+const lexend = Lexend({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Health Tracking Dashboard - Monitor Your Health Trends",
@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${lexendDeca.className} antialiased`}>
+      <body className={`${lexend.className} antialiased`}>
         <AnalyticsProvider>{children}</AnalyticsProvider>
         <InitAnalytics hotjarJS={process.env.hotjarJS} />
         <HotjarLoader />

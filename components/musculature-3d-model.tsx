@@ -9,6 +9,42 @@ import { paramHasRange } from "@/lib/health-utils"
 import { resolveParameterStatus } from "@/lib/parameter-status"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 
+type MarkerPoint = { x: number; y: number }
+
+// Marker coordinates are percentages of the trimmed figure images, measured
+// against each organ's position in the artwork. Blood sits on the femur
+// (bone marrow); the rest sit on their organ.
+const TWIN_FIGURES = {
+  female: {
+    src: "/images/twin-female.png",
+    width: 619,
+    height: 1400,
+    label: "Female",
+    markers: {
+      heart: { x: 52, y: 25 },
+      liver: { x: 42, y: 31 },
+      pancreas: { x: 52, y: 36.5 },
+      kidneys: { x: 62, y: 34 },
+      blood: { x: 37, y: 60 },
+    } as Record<string, MarkerPoint>,
+  },
+  male: {
+    src: "/images/twin-male.png",
+    width: 670,
+    height: 1400,
+    label: "Male",
+    markers: {
+      heart: { x: 52, y: 25 },
+      liver: { x: 42, y: 31 },
+      pancreas: { x: 50, y: 37.5 },
+      kidneys: { x: 61, y: 35.5 },
+      blood: { x: 40, y: 58 },
+    } as Record<string, MarkerPoint>,
+  },
+}
+
+const isFemale = (gender?: string | null) => /^f/i.test((gender || "").trim())
+
 type Status = "normal" | "attention"
 type OrganGroup = {
   id: string
@@ -489,49 +525,108 @@ export default function Musculature3DModel({
 
   const selectedOrganData = selectedOrgan ? organGroups.find((g) => g.id === selectedOrgan) : null
 
+  const figure = isFemale(patientData?.patient_info?.gender) ? TWIN_FIGURES.female : TWIN_FIGURES.male
+  const attentionCount = organGroups.filter((o) => o.status === "attention").length
+
   return (
-    <Card className="border border-[#f0f3f5] p-4 shadow-sm py-6">
-      <div className="relative mb-4 h-[500px] overflow-hidden rounded-xl bg-white">
-        <div
-          className="relative h-full w-full transition-transform duration-300"
-          style={{ transform: `rotate(${rotation}deg)` }}
-        >
+    <div className="twin-root">
+      <div className="twin-stage relative flex justify-center">
+        <div className="twin-figure relative h-[440px] w-fit">
           <img
-            src="/images/digital-twin-body.jpg"
-            alt="Internal Organs Diagram"
-            className="h-full w-full object-contain p-4 py-0 px-0"
+            src={figure.src}
+            width={figure.width}
+            height={figure.height}
+            alt={`${figure.label} digital twin showing organ health markers`}
+            className="h-full w-auto select-none"
+            draggable={false}
           />
 
-          {organGroups.map((organ) => (
-            <button
-              key={organ.id}
-              onClick={() => handleOrganClick(organ.id)}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 transform transition-all duration-300 ${
-                selectedOrgan === organ.id ? "scale-125 z-20" : "scale-100 z-10 hover:scale-110"
-              }`}
-              style={{ top: organ.top, left: organ.left }}
-            >
-              <span className="relative flex h-6 w-6">
-                {organ.status === "attention" && (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                )}
-                <span
-                  className={`relative inline-flex items-center justify-center rounded-full border-2 border-white shadow-md h-4 w-4 ${
-                    organ.status === "normal" ? "bg-emerald-500" : "bg-red-500"
-                  }`}
-                >
-                  {organ.status === "attention" && <span className="text-[10px] font-bold text-white">!</span>}
+          {organGroups.map((organ) => {
+            const pos = figure.markers[organ.id]
+            if (!pos) return null
+            const Icon = organ.icon
+            const attention = organ.status === "attention"
+            const isSelected = selectedOrgan === organ.id
+            return (
+              <button
+                key={organ.id}
+                type="button"
+                onClick={() => handleOrganClick(organ.id)}
+                aria-label={`${organ.name}: ${attention ? "needs attention" : "normal"}`}
+                className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc] focus-visible:ring-offset-2 rounded-full ${
+                  isSelected ? "scale-125" : "hover:scale-110"
+                }`}
+                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+              >
+                <span className="relative flex h-6 w-6 items-center justify-center">
+                  {attention && (
+                    <span className="absolute inset-0 animate-ping rounded-full bg-[#e5484d]/50" aria-hidden="true" />
+                  )}
+                  <span
+                    className={`relative flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#ffffff] shadow-[0_4px_10px_rgba(11,42,91,0.35)] ${
+                      attention ? "bg-[#e5484d]" : "bg-[#156ddc]"
+                    }`}
+                  >
+                    <Icon className="h-3 w-3 text-[#ffffff]" strokeWidth={2.5} aria-hidden="true" />
+                  </span>
                 </span>
-              </span>
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-2 text-sm text-gray-500 py-0">
-        <Info className="h-4 w-4" />
-        <span>Tap on pointer to get more details</span>
-      </div>
+      {organGroups.length > 0 && (
+        <>
+          <div className="mt-1 flex items-center justify-between px-0.5">
+            <p className="text-xs text-[#6b84a8]">
+              {attentionCount > 0
+                ? `${attentionCount} of ${organGroups.length} areas need attention`
+                : `All ${organGroups.length} areas look normal`}
+            </p>
+            <div className="flex items-center gap-3 text-[11px] text-[#6b84a8]">
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-[#e5484d]" aria-hidden="true" />
+                Attention
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-[#156ddc]" aria-hidden="true" />
+                Normal
+              </span>
+            </div>
+          </div>
+
+          <ul className="mt-3 grid grid-cols-2 gap-2">
+            {organGroups.map((organ) => {
+              const Icon = organ.icon
+              const attention = organ.status === "attention"
+              return (
+                <li key={organ.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleOrganClick(organ.id)}
+                    className="flex w-full items-center gap-2.5 rounded-xl border border-[#e3ecfa] bg-[#ffffff] px-2.5 py-2 text-left transition-colors hover:border-[#156ddc]/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]"
+                  >
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                        attention ? "bg-[#e5484d]/10 text-[#e5484d]" : "bg-[#e8f1fd] text-[#156ddc]"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-medium text-[#0b2a5b]">{organ.name}</span>
+                      <span className={`block text-[11px] ${attention ? "text-[#e5484d]" : "text-[#6b84a8]"}`}>
+                        {attention ? `${organ.abnormalTests.length} out of range` : "Normal"}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
 
       {isBottomSheetOpen && (
         <>
@@ -551,17 +646,17 @@ export default function Musculature3DModel({
                         <div
                           className={`rounded-lg p-2 ${
                             selectedOrganData.status === "normal"
-                              ? "bg-emerald-100 text-emerald-600"
-                              : "bg-red-100 text-red-600"
+                              ? "bg-[#e8f1fd] text-[#156ddc]"
+                              : "bg-[#e5484d]/10 text-[#e5484d]"
                           }`}
                         >
                           {selectedOrganData.icon && <selectedOrganData.icon className="h-6 w-6" />}
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-gray-900">{selectedOrganData.name}</h3>
+                          <h3 className="text-base font-semibold text-[#0b2a5b]">{selectedOrganData.name}</h3>
                           <p
                             className={`text-sm font-medium ${
-                              selectedOrganData.status === "normal" ? "text-emerald-600" : "text-red-600"
+                              selectedOrganData.status === "normal" ? "text-[#156ddc]" : "text-[#e5484d]"
                             }`}
                           >
                             Status: {selectedOrganData.status === "normal" ? "Normal" : "Needs Attention"}
@@ -580,8 +675,8 @@ export default function Musculature3DModel({
                     <div
                       className={`rounded-xl border p-4 mb-4 ${
                         selectedOrganData.status === "normal"
-                          ? "border-emerald-100 bg-emerald-50/50"
-                          : "border-red-100 bg-red-50/50"
+                          ? "border-[#e3ecfa] bg-[#f5f8fe]"
+                          : "border-[#e5484d]/20 bg-[#e5484d]/5"
                       }`}
                     >
                       {selectedOrganData.abnormalTests.length > 0 ? (
@@ -590,7 +685,7 @@ export default function Musculature3DModel({
                           {selectedOrganData.abnormalTests.map((test, idx) => (
                             <div key={idx} className="mb-2 text-sm">
                               <div className="flex items-center gap-1">
-                                <p className="font-medium text-red-700">{test.name}</p>
+                                <p className="font-medium text-[#e5484d]">{test.name}</p>
                                 <BiomarkerInfoButton name={test.name} />
                               </div>
                               <p className="text-gray-600">
@@ -600,7 +695,7 @@ export default function Musculature3DModel({
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-emerald-700">
+                        <p className="text-sm text-[#0b2a5b]">
                           All {selectedOrganData.relatedTests.length} parameters are within normal range.
                         </p>
                       )}
@@ -625,6 +720,6 @@ export default function Musculature3DModel({
           </div>
         </>
       )}
-    </Card>
+    </div>
   )
 }

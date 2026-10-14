@@ -994,7 +994,7 @@ export default function HealthDashboard() {
   const mainNavItems: BottomNavItem[] = [
     { id: "nav-overview", label: "Profile", icon: NavOverviewIcon },
     { id: "nav-summary", label: "Summary", icon: NavSummaryIcon },
-    { id: "nav-twin", label: "Digital Twin", icon: NavTwinIcon },
+    { id: "nav-twin", label: "Twin", icon: NavTwinIcon },
     ...(hasTrends ? [{ id: "nav-trends", label: "Trends", icon: NavTrendsIcon }] : []),
     { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon },
     { id: "nav-plan", label: "Insights", icon: NavPlanIcon },

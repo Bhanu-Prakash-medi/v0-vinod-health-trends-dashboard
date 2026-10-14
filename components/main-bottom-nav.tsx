@@ -89,7 +89,7 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
                     <span className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${itemClass(isActive)}`}>
                       <item.icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.25 : 2} aria-hidden="true" />
                     </span>
-                    <span className={`whitespace-nowrap text-[10px] font-semibold leading-none ${labelClass(isActive)}`}>
+                    <span className={`whitespace-nowrap text-[10px] font-medium leading-none ${labelClass(isActive)}`}>
                       {item.label}
                     </span>
                   </button>
@@ -107,7 +107,7 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
             <span className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${itemClass(settingsOpen)}`}>
               <Settings2 className="h-[18px] w-[18px]" aria-hidden="true" />
             </span>
-            <span className={`text-[10px] font-semibold leading-none ${labelClass(settingsOpen)}`}>Design</span>
+            <span className={`text-[10px] font-medium leading-none ${labelClass(settingsOpen)}`}>Design</span>
           </button>
         </div>
       </nav>
