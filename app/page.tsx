@@ -13,6 +13,7 @@ import TrendsSection from "@/components/trends-section"
 import Footer from "@/components/footer"
 import TestReportsSection from "@/components/test-reports-section"
 import HealthRecommendationsSection from "@/components/health-recommendations-section"
+import RecommendationsPage from "@/components/recommendations-page"
 import FeedbackSection from "@/components/feedback-section"
 
 // Temporarily hidden; flip to true to re-enable.
@@ -90,6 +91,7 @@ export default function HealthDashboard() {
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
+  const [recommendationsParam, setRecommendationsParam] = useState<string | null | undefined>(undefined)
   const [pendingReportDate, setPendingReportDate] = useState<string | null>(null)
   const [isBeneficiariesLoading, setIsBeneficiariesLoading] = useState(true)
   const [globalError, setGlobalError] = useState<{ type: string; message: string } | null>(null)
@@ -993,6 +995,16 @@ export default function HealthDashboard() {
     )
   }
 
+  if (recommendationsParam !== undefined && currentProfileData) {
+    return (
+      <RecommendationsPage
+        patientData={currentProfileData}
+        initialParamId={recommendationsParam}
+        onBack={() => setRecommendationsParam(undefined)}
+      />
+    )
+  }
+
   if (showAllParameters && currentProfileData) {
     return <AllParametersPage patientData={currentProfileData} onBack={() => setShowAllParameters(false)} />
   }
@@ -1177,7 +1189,14 @@ export default function HealthDashboard() {
                 }}
                 vasbenefId={activeBeneficiary?.rVasBenefId}
               />
-              <HealthRecommendationsSection patientData={currentProfileData} />
+              <HealthRecommendationsSection
+                patientData={currentProfileData}
+                onSeeAll={(paramId) => {
+                  trackEvent("recommendations_click", { service: paramId ? "top_focus_item" : "see_all" })
+                  setRecommendationsParam(paramId ?? null)
+                  window.scrollTo({ top: 0 })
+                }}
+              />
               <SectionViewTracker section="reports">
                 <TestReportsSection
                   patientData={currentProfileData}
