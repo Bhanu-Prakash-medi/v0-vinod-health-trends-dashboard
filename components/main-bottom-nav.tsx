@@ -66,13 +66,13 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
         aria-label="Dashboard sections"
         className={
           premium
-            ? "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
+            ? "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] bg-gradient-to-t from-[#eef3fa] from-60% to-[#eef3fa]/0 px-3 pt-6 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
             : "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] border-t border-[#eef1f4] bg-[#ffffff] pb-[env(safe-area-inset-bottom)]"
         }
       >
         <div
           className={`flex items-stretch ${
-            premium ? "rounded-3xl bg-[#156ddc] shadow-[0_12px_32px_-8px_rgba(21,109,220,0.55)]" : ""
+            premium ? "rounded-3xl bg-[#156ddc] ring-4 ring-[#eef3fa] shadow-[0_12px_32px_-8px_rgba(21,109,220,0.55)]" : ""
           }`}
         >
           <ul ref={listRef} className="flex min-w-0 flex-1 overflow-x-auto scrollbar-hide">
