@@ -36,6 +36,7 @@ import FeatureComingSoon from "@/components/feature-coming-soon"
 import { checkAppAccess } from "@/lib/health-trends-access-allowlist"
 import EmptyState from "@/components/empty-state"
 import AppTopBar from "@/components/app-top-bar"
+import ReportProblemButton from "@/components/report-problem-button"
 import {
   TopNavigationSkeleton,
   ProfileCardSkeleton,
@@ -994,9 +995,11 @@ export default function HealthDashboard() {
   const mainNavItems: BottomNavItem[] = [
     { id: "nav-overview", label: "Profile", icon: NavOverviewIcon },
     { id: "nav-summary", label: "Summary", icon: NavSummaryIcon },
-    { id: "nav-twin", label: "Twin", icon: NavTwinIcon },
+    ...(premium ? [{ id: "nav-twin", label: "Twin", icon: NavTwinIcon }] : []),
     ...(hasTrends ? [{ id: "nav-trends", label: "Trends", icon: NavTrendsIcon }] : []),
-    { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon },
+    premium
+      ? { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon }
+      : { id: "nav-tests", label: "Tests", icon: NavTestsIcon },
     { id: "nav-plan", label: "Insights", icon: NavPlanIcon },
     { id: "nav-reports", label: "Reports", icon: NavReportsIcon },
   ]
@@ -1035,6 +1038,19 @@ export default function HealthDashboard() {
   return (
     <>
       {consentModal}
+      {!premium && (
+        <div
+          className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 ${showMainNav ? "pb-20" : "pb-5"}`}
+        >
+          <div className="pointer-events-auto">
+            <ReportProblemButton
+              floating
+              vasbenefId={activeBeneficiary?.rVasBenefId}
+              emailId={pickPrimaryEmail(userEmail)}
+            />
+          </div>
+        </div>
+      )}
       {/* Feedback snackbar: mounted once so it auto-opens 10s after the app
           loads, regardless of which report state the dashboard is in. */}
       {SHOW_FEEDBACK_SNACKBAR && (
@@ -1053,11 +1069,13 @@ export default function HealthDashboard() {
           premium ? "bg-[#eef3fa] sm:my-8 sm:overflow-hidden sm:rounded-[28px] sm:shadow-xl" : "bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg"
         }`}
       >
-        <AppTopBar
-          onDark={premium}
-          vasbenefId={activeBeneficiary?.rVasBenefId}
-          emailId={pickPrimaryEmail(userEmail)}
-        />
+        {premium && (
+          <AppTopBar
+            onDark
+            vasbenefId={activeBeneficiary?.rVasBenefId}
+            emailId={pickPrimaryEmail(userEmail)}
+          />
+        )}
         {premium ? (
           <header className="ht-hero relative rounded-b-[28px] bg-[#156ddc] pb-16 pt-4">
             <p className="px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#ffffff]/70 md:px-8">
@@ -1077,7 +1095,7 @@ export default function HealthDashboard() {
           />
         )}
         <div
-          className={`space-y-6 px-4 py-6 md:px-8 ${premium ? "ht-premium-body relative -mt-14 pt-0" : ""} ${
+          className={`space-y-6 px-4 py-6 ${premium ? "ht-premium-body relative -mt-14 pt-0 md:px-8" : ""} ${
             showMainNav ? (premium ? "pb-32" : "pb-24") : ""
           }`}
         >
@@ -1194,7 +1212,7 @@ export default function HealthDashboard() {
                     reportsLoading={!isLoadComplete}
                   />
                 )}
-              <div id="nav-summary" className="ht-card scroll-mt-20">
+              <div id="nav-summary" className={premium ? "ht-card scroll-mt-20" : "scroll-mt-20 space-y-6"}>
               <SectionViewTracker section="summary">
                       <HealthSummarySection
                         patientData={currentProfileData}
@@ -1203,7 +1221,17 @@ export default function HealthDashboard() {
                         onSelectedDateIndexChange={setSelectedSummaryIndex}
                       />
                     </SectionViewTracker>
+              {!premium && (
+                    <SectionViewTracker section="digital_twin">
+                      <InsightsSection
+                        patientData={currentProfileData}
+                        vasbenefId={activeBeneficiary?.rVasBenefId}
+                        healthSummaryOverride={selectedHealthSummary}
+                      />
+                    </SectionViewTracker>
+              )}
               </div>
+              {premium && (
               <div id="nav-twin" className="ht-card scroll-mt-20">
                     <SectionViewTracker section="digital_twin">
                       <InsightsSection
@@ -1213,6 +1241,7 @@ export default function HealthDashboard() {
                       />
               </SectionViewTracker>
               </div>
+              )}
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && (
                 <div id="nav-trends" className="ht-card scroll-mt-20">

@@ -217,7 +217,7 @@
 }
 
 @theme inline {
-  --font-sans: "Lexend", "Geist", "Geist Fallback", system-ui, sans-serif;
+  --font-sans: "Lexend Deca", "Geist", "Geist Fallback", system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -455,6 +455,11 @@
   .twin-stage::after {
     animation: none;
   }
+}
+
+[data-design="premium"],
+[data-design="premium"] .font-sans {
+  font-family: var(--font-lexend), "Lexend", system-ui, sans-serif;
 }
 
 /* Premium design variant — MediBuddy navy hero + elevated white cards */
