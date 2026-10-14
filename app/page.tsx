@@ -858,7 +858,7 @@ export default function HealthDashboard() {
       <>
         {consentModal}
         <div className="min-h-screen bg-[#f7f9fa]">
-        <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg md:max-w-2xl lg:max-w-3xl">
+        <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
           <TopNavigationSkeleton />
           <div className="space-y-6 px-4 py-6">
             <ProfileCardSkeleton />
@@ -1036,7 +1036,7 @@ export default function HealthDashboard() {
     <>
       {consentModal}
       {/* Floating "Report a problem" button pinned to the bottom of the app column. */}
-      <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 md:max-w-2xl lg:max-w-3xl ${showMainNav ? (premium ? "pb-24" : "pb-20") : "pb-5"}`}>
+      <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 ${showMainNav ? (premium ? "pb-24" : "pb-20") : "pb-5"}`}>
         <div className="pointer-events-auto">
               <ReportProblemButton
                 floating
@@ -1059,7 +1059,7 @@ export default function HealthDashboard() {
       )}
       <div data-design={design} className={`min-h-screen ${premium ? "bg-[#eef3fa]" : "bg-[#f7f9fa]"}`}>
       <div
-        className={`mx-auto max-w-[420px] md:max-w-2xl lg:max-w-3xl ${
+        className={`mx-auto max-w-[420px] ${
           premium ? "bg-[#eef3fa] sm:my-8 sm:overflow-hidden sm:rounded-[28px] sm:shadow-xl" : "bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg"
         }`}
       >

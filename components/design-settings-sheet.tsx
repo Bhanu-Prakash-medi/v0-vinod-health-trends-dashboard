@@ -55,7 +55,7 @@ export default function DesignSettingsSheet({ open, onOpenChange }: { open: bool
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-w-[420px] rounded-t-3xl border-0 bg-[#ffffff] px-5 pb-8 md:max-w-2xl">
+      <SheetContent side="bottom" className="mx-auto max-w-[420px] rounded-t-3xl border-0 bg-[#ffffff] px-5 pb-8">
         <SheetHeader className="px-0 pb-2 text-left">
           <SheetTitle className="text-lg font-semibold text-[#0b2a5b]">Appearance</SheetTitle>
           <SheetDescription className="text-sm text-[#6b7a8c]">Choose how your health dashboard looks.</SheetDescription>

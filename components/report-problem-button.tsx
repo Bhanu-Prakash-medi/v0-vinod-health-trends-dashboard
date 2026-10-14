@@ -33,11 +33,11 @@ export default function ReportProblemButton({
       <button
         type="button"
         onClick={openFeedback}
-        className="flex items-center gap-2 rounded-full bg-[#de3d31] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#de3d31]/30 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#de3d31] focus-visible:ring-offset-2"
+        className="flex items-center gap-1 rounded-full bg-[#de3d31] px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-md shadow-[#de3d31]/25 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#de3d31] focus-visible:ring-offset-2"
         aria-label="Report a problem"
       >
-        <Flag className="h-3.5 w-3.5" />
-        <span>Report a problem</span>
+        <Flag className="h-3 w-3" aria-hidden="true" />
+        <span>Report</span>
       </button>
     )
   }

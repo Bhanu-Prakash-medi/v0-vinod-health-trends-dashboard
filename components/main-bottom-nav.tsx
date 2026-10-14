@@ -66,8 +66,8 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
         aria-label="Dashboard sections"
         className={
           premium
-            ? "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:max-w-2xl lg:max-w-3xl"
-            : "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] border-t border-[#eef1f4] bg-[#ffffff] pb-[env(safe-area-inset-bottom)] md:max-w-2xl lg:max-w-3xl"
+            ? "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
+            : "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] border-t border-[#eef1f4] bg-[#ffffff] pb-[env(safe-area-inset-bottom)]"
         }
       >
         <div
