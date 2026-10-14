@@ -10,6 +10,10 @@ interface ReportProblemButtonProps {
   emailId?: string
   /** Render as a floating action button pinned to the bottom of the screen. */
   floating?: boolean
+  /** Compact pill for the sticky top app bar. */
+  variant?: "inline" | "topbar"
+  /** Top bar sits on the blue hero (premium design). */
+  onDark?: boolean
 }
 
 /**
@@ -22,10 +26,30 @@ export default function ReportProblemButton({
   section = "Health Dashboard",
   vasbenefId,
   floating = false,
+  variant = "inline",
+  onDark = false,
 }: ReportProblemButtonProps) {
   const openFeedback = () => {
     trackHealthTrendsEvent(`report_problem_clicked | section:${section}`, vasbenefId)
     window.dispatchEvent(new CustomEvent("open-feedback-form"))
+  }
+
+  if (variant === "topbar") {
+    return (
+      <button
+        type="button"
+        onClick={openFeedback}
+        aria-label="Report a problem"
+        className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 ${
+          onDark
+            ? "bg-[#ffffff] text-[#de3d31] shadow-sm hover:bg-[#fdeceb] focus-visible:ring-[#ffffff]/70"
+            : "bg-[#fdeceb] text-[#c9352a] hover:bg-[#fbdcd9] focus-visible:ring-[#de3d31]"
+        }`}
+      >
+        <Flag className="h-3.5 w-3.5" aria-hidden="true" />
+        <span>Report</span>
+      </button>
+    )
   }
 
   if (floating) {

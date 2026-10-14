@@ -35,7 +35,7 @@ import HealthScoreSection from "@/components/health-score-section"
 import FeatureComingSoon from "@/components/feature-coming-soon"
 import { checkAppAccess } from "@/lib/health-trends-access-allowlist"
 import EmptyState from "@/components/empty-state"
-import ReportProblemButton from "@/components/report-problem-button"
+import AppTopBar from "@/components/app-top-bar"
 import {
   TopNavigationSkeleton,
   ProfileCardSkeleton,
@@ -1035,16 +1035,6 @@ export default function HealthDashboard() {
   return (
     <>
       {consentModal}
-      {/* Floating "Report a problem" button pinned to the bottom of the app column. */}
-      <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[420px] justify-end px-4 ${showMainNav ? (premium ? "pb-24" : "pb-20") : "pb-5"}`}>
-        <div className="pointer-events-auto">
-              <ReportProblemButton
-                floating
-                vasbenefId={activeBeneficiary?.rVasBenefId}
-                emailId={pickPrimaryEmail(userEmail)}
-              />
-        </div>
-      </div>
       {/* Feedback snackbar: mounted once so it auto-opens 10s after the app
           loads, regardless of which report state the dashboard is in. */}
       {SHOW_FEEDBACK_SNACKBAR && (
@@ -1063,17 +1053,13 @@ export default function HealthDashboard() {
           premium ? "bg-[#eef3fa] sm:my-8 sm:overflow-hidden sm:rounded-[28px] sm:shadow-xl" : "bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg"
         }`}
       >
+        <AppTopBar
+          onDark={premium}
+          vasbenefId={activeBeneficiary?.rVasBenefId}
+          emailId={pickPrimaryEmail(userEmail)}
+        />
         {premium ? (
-          <header className="ht-hero relative rounded-b-[28px] bg-[#156ddc] pb-16">
-            <div className="flex items-center justify-between px-5 pt-6 md:px-8">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#ffffff]/60">MediBuddy</p>
-                <h1 className="mt-1 text-xl font-semibold text-[#ffffff] text-balance md:text-2xl">Health Trends</h1>
-              </div>
-              <span className="rounded-full border border-[#ffffff]/20 px-3 py-1 text-[11px] font-medium text-[#ffffff]/80">
-                {familyMembers.length} {familyMembers.length === 1 ? "member" : "members"}
-              </span>
-            </div>
+          <header className="ht-hero relative rounded-b-[28px] bg-[#156ddc] pb-16 pt-1">
             <TopNavigation
               familyMembers={familyMembers}
               activeFamily={activeBeneficiary?.uid || ""}
