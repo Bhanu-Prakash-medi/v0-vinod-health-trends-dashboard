@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
-import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus, Youtube, Globe } from "lucide-react"
+import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus, Youtube, Globe, ChevronRight } from "lucide-react"
 import { openExternalUrl } from "@/lib/open-external"
 import { trackEvent } from "@/lib/analytics/posthog"
 
@@ -28,13 +28,15 @@ const GAUGE_MAX = 10
 const RISK_LIGHT_GREEN = "#22c55e"
 const RISK_YELLOW = "#eab308"
 const RISK_RED = "#dc2626"
+const INK = "#2e3742"
+const MUTED = "#9dabbd"
 
 // Continuous visual zones on the 0-10 ring/scale: Low 0-3.33 (light green),
 // Moderate 3.33-6.66 (yellow), High 6.66-10 (red).
 const RISK_ZONES = [
-  { from: 0, to: 3.33, color: RISK_LIGHT_GREEN },
-  { from: 3.33, to: 6.66, color: RISK_YELLOW },
-  { from: 6.66, to: 10, color: RISK_RED },
+  { from: 0, to: 3.33, color: RISK_LIGHT_GREEN, name: "Low", range: "0 – 3.3" },
+  { from: 3.33, to: 6.66, color: RISK_YELLOW, name: "Moderate", range: "3.3 – 6.7" },
+  { from: 6.66, to: 10, color: RISK_RED, name: "High", range: "6.7 – 10" },
 ]
 
 function riskColor(score: number) {
@@ -57,6 +59,10 @@ function formatReportDate(iso?: string | null): string | null {
   if (Number.isNaN(d.getTime())) return null
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 }
+
+const pct = (s: number) => (Math.min(GAUGE_MAX, Math.max(0, s)) / GAUGE_MAX) * 100
+// Keeps floating labels inside the card while the marker itself stays exact.
+const clampLabel = (p: number) => Math.min(86, Math.max(14, p))
 
 interface RiskScoreResponse {
   score: number | null
@@ -86,22 +92,29 @@ type ViewStyle = "donut" | "scale" | "graph"
 
 const VIEW_OPTIONS: { id: ViewStyle; label: string; Icon: typeof PieChart }[] = [
   { id: "scale", label: "Scale", Icon: Ruler },
-  { id: "donut", label: "Donut", Icon: PieChart },
-  { id: "graph", label: "Graph", Icon: BarChart3 },
+  { id: "donut", label: "Gauge", Icon: PieChart },
+  { id: "graph", label: "Compare", Icon: BarChart3 },
 ]
 
-// Polar point on a full circle (0deg = 3 o'clock, clockwise positive in SVG y-down).
+// ---- 270° gauge geometry (opens at the bottom) ----
+const G_CX = 110
+const G_CY = 108
+const G_R = 82
+const G_START = 135
+const G_SWEEP = 270
+
 function polarPoint(cx: number, cy: number, r: number, angleDeg: number) {
   const a = (angleDeg * Math.PI) / 180
   return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }
 }
 
-// Arc path along a full-circle donut between two 0-10 scores (12 o'clock = 0, clockwise).
-function donutArc(cx: number, cy: number, r: number, fromScore: number, toScore: number) {
-  const a1 = -90 + (fromScore / GAUGE_MAX) * 360
-  const a2 = -90 + (toScore / GAUGE_MAX) * 360
-  const start = polarPoint(cx, cy, r, a1)
-  const end = polarPoint(cx, cy, r, a2)
+const scoreAngle = (s: number) => G_START + (Math.min(GAUGE_MAX, Math.max(0, s)) / GAUGE_MAX) * G_SWEEP
+
+function gaugeArc(r: number, fromScore: number, toScore: number) {
+  const a1 = scoreAngle(fromScore)
+  const a2 = scoreAngle(toScore)
+  const start = polarPoint(G_CX, G_CY, r, a1)
+  const end = polarPoint(G_CX, G_CY, r, a2)
   const largeArc = a2 - a1 > 180 ? 1 : 0
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`
 }
@@ -147,7 +160,7 @@ export default function HealthScoreSection({
   const [view, setView] = useState<ViewStyle>("scale")
 
   // Animate the active score from 0. Replays on score change AND on view change
-  // so each visualization (donut / scale / graph) fills in when it's shown.
+  // so each visualization (gauge / scale / compare) fills in when it's shown.
   const activeScore = hasRisk ? (riskScore as number) : 0
   const [displayScore, setDisplayScore] = useState(0)
   const animRef = useRef<number | undefined>(undefined)
@@ -168,21 +181,18 @@ export default function HealthScoreSection({
     }
   }, [activeScore, view])
 
-  const renderHeader = (subtitle?: React.ReactNode) => (
+  const renderHeader = () => (
     <div className="flex min-w-0 items-center gap-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef4fd]">
         <Activity className="h-5 w-5 text-[#156ddc]" />
       </span>
-      <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold leading-tight text-[#2e3742]">Health Risk Score</h2>
-        {subtitle && <p className="mt-0.5 truncate text-xs text-[#9dabbd]">{subtitle}</p>}
-      </div>
+      <h2 className="min-w-0 text-[15px] font-semibold leading-tight text-[#2e3742]">Health Risk Score</h2>
     </div>
   )
   const header = <div className="mb-3">{renderHeader()}</div>
 
-  const actionPills = (
-    <div className="mt-3 grid grid-cols-2 gap-2">
+  const actionLinks = (
+    <div className="mt-4 overflow-hidden rounded-2xl border border-[#eef1f4] bg-white">
       <button
         type="button"
         onClick={() => {
@@ -190,11 +200,18 @@ export default function HealthScoreSection({
           openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")
         }}
         aria-label="Watch how your Health Risk Score is calculated"
-        className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-[#e6ebf0] bg-white px-2 text-xs font-semibold text-[#2e3742] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:bg-[#f7f9fb] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+        className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-[#f7f9fb] active:bg-[#f0f3f5] focus:outline-none focus-visible:bg-[#f7f9fb]"
       >
-        <Youtube className="h-4 w-4 shrink-0 text-[#d1495b]" />
-        How it&apos;s calculated
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fdeef0]">
+          <Youtube className="h-4 w-4 text-[#d1495b]" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold text-[#2e3742]">How it&apos;s calculated</span>
+          <span className="block truncate text-xs text-[#9dabbd]">Watch a short explainer video</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-[#b4c0cd]" aria-hidden="true" />
       </button>
+      <div className="mx-3 h-px bg-[#eef1f4]" />
       <button
         type="button"
         onClick={() => {
@@ -202,10 +219,16 @@ export default function HealthScoreSection({
           openExternalUrl("https://healthscorelabs.medibuddy.in")
         }}
         aria-label="Learn more on MediBuddy"
-        className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-[#156ddc] px-2 text-xs font-semibold text-white shadow-[0_2px_6px_rgba(21,109,220,0.25)] transition-colors hover:bg-[#1260c4] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/40"
+        className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-[#f7f9fb] active:bg-[#f0f3f5] focus:outline-none focus-visible:bg-[#f7f9fb]"
       >
-        <Globe className="h-4 w-4 shrink-0" />
-        Learn more
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef4fd]">
+          <Globe className="h-4 w-4 text-[#156ddc]" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold text-[#2e3742]">Learn more</span>
+          <span className="block truncate text-xs text-[#9dabbd]">About MediBuddy Health Score Labs</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-[#b4c0cd]" aria-hidden="true" />
       </button>
     </div>
   )
@@ -222,7 +245,6 @@ export default function HealthScoreSection({
         <p className="mb-4 text-xs text-[#9dabbd]">Fetching your latest health score…</p>
         <div className="flex flex-col items-center py-4">
           <div className="relative flex h-40 w-40 items-center justify-center">
-            {/* Spinning ring to mirror the donut visualization */}
             <div className="absolute inset-0 rounded-full border-[10px] border-[#eef1f4]" />
             <div className="absolute inset-0 animate-spin rounded-full border-[10px] border-transparent border-t-[#156ddc]" />
             <div className="h-6 w-16 animate-pulse rounded bg-[#eef1f4]" />
@@ -241,23 +263,29 @@ export default function HealthScoreSection({
     const label = riskData!.riskLevel || "—"
     const reportDate = formatReportDate(riskData!.appointmentDate)
     const diff = benchmark ? Math.round((score - benchmark.avgScore) * 100) / 100 : null
-    // The risk zone the user currently falls in — highlighted in the donut & graph.
+    const diffColor = diff == null ? MUTED : diff < 0 ? "#16a34a" : diff > 0 ? RISK_RED : MUTED
     const activeZoneIndex = RISK_ZONES.findIndex(
       (z, i) => score >= z.from && (score < z.to || i === RISK_ZONES.length - 1),
     )
-    // The zone the MediBuddy average falls in.
-    const avgZoneIndex = benchmark
-      ? RISK_ZONES.findIndex((z, i) => benchmark.avgScore >= z.from && (benchmark.avgScore < z.to || i === RISK_ZONES.length - 1))
-      : -1
-    // Eased 0 -> 1 animation progress derived from the animated displayScore,
-    // reused to fill the donut ring, count up the center number, and grow the
-    // benchmark bar in sync so the whole view feels "built up".
+    // Eased 0 -> 1 progress derived from the animated displayScore, reused so the
+    // benchmark markers grow in sync with the score.
     const progress = score > 0 ? Math.min(1, displayScore / score) : 1
     const displayAvg = benchmark ? benchmark.avgScore * progress : 0
+    const youPct = pct(displayScore)
+    const avgPct = pct(displayAvg)
+
+    const labelPill = (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+        style={{ color, backgroundColor: `${color}1a` }}
+      >
+        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+        {label}
+      </span>
+    )
 
     return (
       <section aria-label="Health risk score" className="rounded-2xl border border-[#eef1f4] bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.05)]">
-        {/* Title + report date + view style toggle */}
         {renderHeader()}
         <div className="mb-5 mt-3 flex items-center justify-between gap-2">
           <p className="min-w-0 truncate text-xs text-[#9dabbd]">
@@ -290,99 +318,88 @@ export default function HealthScoreSection({
           </div>
         </div>
 
-        {/* ---- DONUT ---- */}
+        {/* ---- GAUGE (270° arc) ---- */}
         {view === "donut" && (
           <div className="flex flex-col items-center">
-            <svg viewBox="-40 -34 340 288" className="h-auto w-full max-w-[280px]" role="img" aria-label={`Risk score ${score} out of 10, ${label}. MediBuddy average ${benchmark ? benchmark.avgScore : "unavailable"}.`}>
-              {/* Colored risk zones (green / yellow / red) forming the ring.
-                  The zone the user currently falls in is highlighted (thicker,
-                  full opacity); the rest are dimmed. */}
-              {RISK_ZONES.map((z, i) => {
-                const isActive = i === activeZoneIndex
-                return (
-                  <path
-                    key={z.from}
-                    d={donutArc(110, 110, 88, z.from, z.to)}
-                    fill="none"
-                    stroke={z.color}
-                    strokeWidth={isActive ? 20 : 14}
-                    opacity={isActive ? 1 : 0.25}
-                  />
-                )
-              })}
-
-              {/* Animated fill arc — sweeps from 0 up to the score in the risk color */}
-              {displayScore > 0.02 && (
+            <svg
+              viewBox="-30 4 280 196"
+              className="h-auto w-full max-w-[290px]"
+              role="img"
+              aria-label={`Risk score ${formatScore(score)} out of 10, ${label}.${benchmark ? ` MediBuddy average ${benchmark.avgScore.toFixed(2)}.` : ""}`}
+            >
+              {/* Faint zone track */}
+              {RISK_ZONES.map((z) => (
                 <path
-                  d={donutArc(110, 110, 88, 0, displayScore)}
+                  key={z.from}
+                  d={gaugeArc(G_R, z.from + (z.from ? 0.06 : 0), z.to - (z.to < GAUGE_MAX ? 0.06 : 0))}
                   fill="none"
-                  stroke={color}
-                  strokeWidth="20"
+                  stroke={z.color}
+                  strokeOpacity={0.16}
+                  strokeWidth={12}
                   strokeLinecap="round"
+                />
+              ))}
+
+              {/* Progress arc */}
+              {displayScore > 0.02 && (
+                <path d={gaugeArc(G_R, 0, displayScore)} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round" />
+              )}
+
+              {/* Gap between avg and you, drawn on an inner ring */}
+              {benchmark && Math.abs(displayScore - displayAvg) > 0.05 && (
+                <path
+                  d={gaugeArc(G_R - 16, Math.min(displayScore, displayAvg), Math.max(displayScore, displayAvg))}
+                  fill="none"
+                  stroke={diffColor}
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                  strokeOpacity={0.7}
                 />
               )}
 
-              {/* Benchmark ("Avg") marker on the ring with score label */}
+              {/* Avg tick (outside the ring) */}
               {benchmark &&
                 (() => {
-                  const a = -90 + (displayAvg / GAUGE_MAX) * 360
-                  const inner = polarPoint(110, 110, 74, a)
-                  const outer = polarPoint(110, 110, 102, a)
-                  const lbl = polarPoint(110, 110, 116, a)
-                  const anchor = lbl.x > 112 ? "start" : lbl.x < 108 ? "end" : "middle"
+                  const a = scoreAngle(displayAvg)
+                  const p1 = polarPoint(G_CX, G_CY, G_R + 9, a)
+                  const p2 = polarPoint(G_CX, G_CY, G_R + 16, a)
+                  const lp = polarPoint(G_CX, G_CY, G_R + 24, a)
+                  const anchor = lp.x > G_CX + 4 ? "start" : lp.x < G_CX - 4 ? "end" : "middle"
                   return (
                     <>
-                      <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="#2e3742" strokeWidth="3" strokeLinecap="round" />
-                      <text x={lbl.x} y={lbl.y} textAnchor={anchor} dominantBaseline="middle" className="fill-[#4d5c6f] text-[11px] font-semibold">
-                        Avg {benchmark.avgScore}
+                      <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={INK} strokeWidth={2.5} strokeLinecap="round" />
+                      <text x={lp.x} y={lp.y} textAnchor={anchor} dominantBaseline="middle" className="fill-[#4d5c6f] text-[10px] font-semibold">
+                        Avg
                       </text>
                     </>
                   )
                 })()}
 
-              {/* "You" score marker on the ring — high-contrast so it stands out on any zone */}
+              {/* You knob */}
               {(() => {
-                const a = -90 + (displayScore / GAUGE_MAX) * 360
-                const p = polarPoint(110, 110, 88, a)
-                const lbl = polarPoint(110, 110, 122, a)
-                const anchor = lbl.x > 112 ? "start" : lbl.x < 108 ? "end" : "middle"
+                const p = polarPoint(G_CX, G_CY, G_R, scoreAngle(displayScore))
                 return (
                   <>
-                    {/* white halo + dark core */}
-                    <circle cx={p.x} cy={p.y} r="10" fill="#ffffff" />
-                    <circle cx={p.x} cy={p.y} r="7" fill="#2e3742" />
-                    <circle cx={p.x} cy={p.y} r="3" fill="#ffffff" />
-                    <text x={lbl.x} y={lbl.y} textAnchor={anchor} dominantBaseline="middle" className="fill-[#2e3742] text-[11px] font-bold">
-                      You {formatScore(score)}
-                    </text>
+                    <circle cx={p.x} cy={p.y} r={10} fill="#ffffff" stroke={color} strokeWidth={4} />
                   </>
                 )
               })()}
 
-              {/* Center readout (overall score) — counts up during the fill */}
-              <text x="110" y="100" textAnchor="middle" className="fill-[#2e3742] text-[40px] font-bold">
+              {/* Centre readout */}
+              <text x={G_CX} y={G_CY + 4} textAnchor="middle" className="fill-[#2e3742] text-[42px] font-semibold tracking-tight">
                 {formatScore(displayScore)}
               </text>
-              <text x="110" y="122" textAnchor="middle" className="fill-[#9dabbd] text-[13px] font-medium">
+              <text x={G_CX} y={G_CY + 26} textAnchor="middle" className="fill-[#9dabbd] text-[12px] font-medium">
                 out of 10
               </text>
+              <text x={G_CX - G_R + 6} y={G_CY + G_R - 2} textAnchor="middle" className="fill-[#b4c0cd] text-[10px] font-medium">
+                0
+              </text>
+              <text x={G_CX + G_R - 6} y={G_CY + G_R - 2} textAnchor="middle" className="fill-[#b4c0cd] text-[10px] font-medium">
+                10
+              </text>
             </svg>
-            {/* Legend */}
-            <div className="mt-2 flex items-center gap-3">
-              <span className="flex items-center gap-1 text-[10px] font-medium text-[#4d5c6f]">
-                <span className="h-2.5 w-2.5 rounded-full border-2 border-[#2e3742] bg-white" />
-                You {formatScore(score)}
-              </span>
-              {benchmark && (
-                <span className="flex items-center gap-1 text-[10px] font-medium text-[#4d5c6f]">
-                  <span className="h-2.5 w-0.5 bg-[#2e3742]" />
-                  MediBuddy avg {benchmark.avgScore}
-                </span>
-              )}
-            </div>
-            <span className="mt-2 rounded-pill px-2.5 py-0.5 text-xs font-semibold" style={{ color, backgroundColor: `${color}1a` }}>
-              {label}
-            </span>
+            <div className="-mt-3">{labelPill}</div>
           </div>
         )}
 
@@ -396,61 +413,75 @@ export default function HealthScoreSection({
                 </span>
                 <span className="text-sm font-medium text-[#9dabbd]">/ 10</span>
               </div>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                style={{ color, backgroundColor: `${color}1a` }}
-              >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
-                {label}
-              </span>
+              {labelPill}
             </div>
 
-            <div className="relative mt-6 h-2.5">
-              <div className="flex h-full w-full gap-1">
+            <div className="relative mb-9 mt-11 h-3">
+              {/* "You" callout above the track */}
+              <span
+                className="absolute bottom-full mb-3 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#2e3742] px-2 py-0.5 text-[11px] font-semibold text-white"
+                style={{ left: `${clampLabel(youPct)}%` }}
+              >
+                You {score.toFixed(2)}
+              </span>
+
+              <div className="flex h-full w-full gap-0.5">
                 {RISK_ZONES.map((z, i) => (
                   <div
                     key={z.from}
-                    className="h-full rounded-full"
+                    className="h-full first:rounded-l-full last:rounded-r-full"
                     style={{
                       width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`,
                       backgroundColor: z.color,
-                      opacity: i === activeZoneIndex ? 1 : 0.28,
+                      opacity: i === activeZoneIndex ? 1 : 0.22,
                     }}
                   />
                 ))}
               </div>
-              {benchmark && (
+
+              {/* Highlighted gap between avg and you */}
+              {benchmark && Math.abs(youPct - avgPct) > 1 && (
                 <div
-                  className="absolute top-full mt-1.5 flex -translate-x-1/2 flex-col items-center"
-                  style={{ left: `${(displayAvg / GAUGE_MAX) * 100}%` }}
-                >
+                  className="absolute top-1/2 h-5 -translate-y-1/2 rounded-full border-2"
+                  style={{
+                    left: `${Math.min(youPct, avgPct)}%`,
+                    width: `${Math.abs(youPct - avgPct)}%`,
+                    borderColor: diffColor,
+                    backgroundColor: `${diffColor}22`,
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+
+              {/* Avg tick + label below */}
+              {benchmark && (
+                <>
                   <span
-                    className="h-0 w-0 border-x-4 border-b-[5px] border-x-transparent border-b-[#4d5c6f]"
+                    className="absolute top-1/2 h-6 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2e3742]"
+                    style={{ left: `${avgPct}%` }}
                     aria-hidden="true"
                   />
-                  <span className="mt-0.5 whitespace-nowrap text-[10px] font-medium text-[#4d5c6f]">
+                  <span
+                    className="absolute top-full mt-2.5 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-[#4d5c6f]"
+                    style={{ left: `${clampLabel(avgPct)}%` }}
+                  >
                     Avg {benchmark.avgScore.toFixed(2)}
                   </span>
-                </div>
+                </>
               )}
+
+              {/* You knob */}
               <span
                 className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] bg-white shadow-[0_2px_6px_rgba(16,24,40,0.2)]"
-                style={{ left: `${(displayScore / GAUGE_MAX) * 100}%`, borderColor: color }}
+                style={{ left: `${youPct}%`, borderColor: color }}
                 aria-hidden="true"
               />
             </div>
 
-            <div className="mt-9 grid grid-cols-3 gap-1 text-[11px] font-medium">
-              {[
-                { name: "Low", range: "0 – 3.3" },
-                { name: "Moderate", range: "3.3 – 6.7" },
-                { name: "High", range: "6.7 – 10" },
-              ].map((z, i) => (
-                <div
-                  key={z.name}
-                  className={`flex flex-col ${i === 1 ? "items-center" : i === 2 ? "items-end" : "items-start"}`}
-                >
-                  <span style={{ color: i === activeZoneIndex ? RISK_ZONES[i].color : "#9dabbd" }}>{z.name}</span>
+            <div className="grid grid-cols-3 gap-1 text-[11px] font-medium">
+              {RISK_ZONES.map((z, i) => (
+                <div key={z.name} className={`flex flex-col ${i === 1 ? "items-center" : i === 2 ? "items-end" : "items-start"}`}>
+                  <span style={{ color: i === activeZoneIndex ? z.color : MUTED }}>{z.name}</span>
                   <span className="text-[10px] font-normal text-[#b4c0cd]">{z.range}</span>
                 </div>
               ))}
@@ -458,66 +489,51 @@ export default function HealthScoreSection({
           </div>
         )}
 
-        {/* ---- GRAPH (bar comparison) ---- */}
+        {/* ---- COMPARE (bars) ---- */}
         {view === "graph" && (
-          <div className="space-y-4 px-1 pt-2">
-            {/* You */}
-            <div>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="font-medium text-[#2e3742]">You</span>
-                <span className="font-semibold" style={{ color }}>
-                  {formatScore(displayScore)} / 10
-                </span>
-              </div>
-              <div className="relative h-6 w-full overflow-hidden rounded-md">
-                {/* Green/yellow/red zone track ��� active zone highlighted */}
-                <div className="absolute inset-0 flex">
-                  {RISK_ZONES.map((z, i) => (
-                    <div
-                      key={z.from}
-                      style={{
-                        width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`,
-                        backgroundColor: z.color,
-                        opacity: i === activeZoneIndex ? 0.45 : 0.12,
-                      }}
-                    />
-                  ))}
-                </div>
-                {/* Filled portion in the risk color */}
-                <div
-                  className="absolute inset-y-0 left-0 rounded-md transition-[width] duration-300"
-                  style={{ width: `${(displayScore / GAUGE_MAX) * 100}%`, backgroundColor: color }}
-                />
-              </div>
-            </div>
-            {/* MediBuddy benchmark */}
-            {benchmark && (
-              <div>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="font-medium text-[#4d5c6f]">MediBuddy avg</span>
-                  <span className="font-semibold text-[#4d5c6f]">{benchmark.avgScore.toFixed(2)} / 10</span>
-                </div>
-                <div className="relative h-6 w-full overflow-hidden rounded-md">
-                  <div className="absolute inset-0 flex">
-                    {RISK_ZONES.map((z, i) => (
-                      <div
-                        key={z.from}
-                        style={{
-                          width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`,
-                          backgroundColor: z.color,
-                          opacity: i === avgZoneIndex ? 0.45 : 0.12,
-                        }}
-                      />
-                    ))}
+          <div className="pt-1">
+            <div className="relative flex flex-col gap-5">
+              {[
+                { key: "you", name: "You", value: score, fillPct: youPct, fill: color, strong: true },
+                ...(benchmark
+                  ? [
+                      {
+                        key: "avg",
+                        name: `Avg · ${benchmark.band}`,
+                        value: benchmark.avgScore,
+                        fillPct: avgPct,
+                        fill: "#b4c0cd",
+                        strong: false,
+                      },
+                    ]
+                  : []),
+              ].map((row) => (
+                <div key={row.key}>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                    <span className={`truncate text-xs ${row.strong ? "font-semibold text-[#2e3742]" : "font-medium text-[#4d5c6f]"}`}>
+                      {row.name}
+                    </span>
+                    <span className="shrink-0 text-sm font-semibold tabular-nums" style={{ color: row.strong ? INK : "#4d5c6f" }}>
+                      {row.value.toFixed(2)}
+                      <span className="text-[11px] font-medium text-[#9dabbd]"> / 10</span>
+                    </span>
                   </div>
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-md"
-                    style={{ width: `${(displayAvg / GAUGE_MAX) * 100}%`, backgroundColor: riskColor(benchmark.avgScore) }}
-                  />
+                  <div className="h-3.5 w-full overflow-hidden rounded-full bg-[#f0f3f5]">
+                    <div className="h-full rounded-full" style={{ width: `${row.fillPct}%`, backgroundColor: row.fill }} />
+                  </div>
                 </div>
-              </div>
-            )}
-            <div className="flex justify-between text-[10px] font-medium text-[#9dabbd]">
+              ))}
+
+              {/* Dashed avg reference line through both bars */}
+              {benchmark && (
+                <span
+                  className="pointer-events-none absolute bottom-0 top-6 border-l-2 border-dashed border-[#2e3742]/40"
+                  style={{ left: `${avgPct}%` }}
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+            <div className="mt-2 flex justify-between text-[10px] font-medium text-[#b4c0cd]">
               {[0, 2, 4, 6, 8, 10].map((t) => (
                 <span key={t}>{t}</span>
               ))}
@@ -525,54 +541,46 @@ export default function HealthScoreSection({
           </div>
         )}
 
-        {/* ---- Benchmark comparison + guidance (shared) ---- */}
-        <div className="mt-5 rounded-xl border border-[#eef1f4] bg-[#f9fafc] p-3">
-          {benchmark && diff != null ? (
-            <div className="flex items-start gap-3">
+        {/* ---- You vs Avg comparison (shared) ---- */}
+        {benchmark && diff != null ? (
+          <div className="mt-5 rounded-2xl bg-[#f7f9fc] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-[#9dabbd]">Your score</p>
+                <p className="text-lg font-semibold tabular-nums text-[#2e3742]">{score.toFixed(2)}</p>
+              </div>
               <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                  diff < 0 ? "bg-[#16a34a]/10" : diff > 0 ? "bg-[#dc2626]/10" : "bg-[#9dabbd]/15"
-                }`}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums"
+                style={{ color: diffColor, backgroundColor: `${diffColor}1a` }}
               >
                 {diff < 0 ? (
-                  <TrendingDown className="h-4 w-4 text-[#16a34a]" />
+                  <TrendingDown className="h-3.5 w-3.5" aria-hidden="true" />
                 ) : diff > 0 ? (
-                  <TrendingUp className="h-4 w-4 text-[#dc2626]" />
+                  <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
                 ) : (
-                  <Minus className="h-4 w-4 text-[#9dabbd]" />
+                  <Minus className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
+                {diff > 0 ? "+" : diff < 0 ? "−" : ""}
+                {Math.abs(diff).toFixed(2)} pts
               </span>
-              <p className="text-[13px] leading-relaxed text-[#4d5c6f]">
-                {diff < 0 ? (
-                  <>
-                    You&apos;re <span className="font-semibold text-[#16a34a]">{Math.abs(diff).toFixed(2)} pts below</span> the
-                    MediBuddy average for <span className="font-medium">{benchmark.band}</span> ({benchmark.avgScore.toFixed(2)}/10) — lower
-                    risk than most in your group.
-                  </>
-                ) : diff > 0 ? (
-                  <>
-                    You&apos;re <span className="font-semibold text-[#dc2626]">{diff.toFixed(2)} pts above</span> the MediBuddy
-                    average for <span className="font-medium">{benchmark.band}</span> ({benchmark.avgScore.toFixed(2)}/10) — higher risk
-                    than most in your group.
-                  </>
-                ) : (
-                  <>
-                    You&apos;re right at the MediBuddy average for <span className="font-medium">{benchmark.band}</span> (
-                    {benchmark.avgScore.toFixed(2)}/10).
-                  </>
-                )}
-              </p>
+              <div className="min-w-0 text-right">
+                <p className="text-[11px] font-medium text-[#9dabbd]">MediBuddy avg</p>
+                <p className="text-lg font-semibold tabular-nums text-[#4d5c6f]">{benchmark.avgScore.toFixed(2)}</p>
+              </div>
             </div>
-          ) : (
-            <p className="text-xs leading-relaxed text-[#4d5c6f]">
-              Your overall health risk score across your reports. A lower score means lower health risk.
+            <p className="mt-2 border-t border-[#eef1f4] pt-2 text-xs leading-relaxed text-[#4d5c6f]">
+              {diff < 0 ? "Lower risk than the average for " : diff > 0 ? "Higher risk than the average for " : "Right at the average for "}
+              <span className="whitespace-nowrap font-medium text-[#2e3742]">{benchmark.band}</span>.{" "}
+              <span className="text-[#9dabbd]">Lower score = lower risk.</span>
             </p>
-          )}
-          <p className="mt-2 border-t border-[#eef1f4] pt-2 text-[11px] text-[#9dabbd]">Lower score = lower health risk (0 best, 10 highest risk).</p>
-        </div>
+          </div>
+        ) : (
+          <p className="mt-5 rounded-2xl bg-[#f7f9fc] p-3 text-xs leading-relaxed text-[#4d5c6f]">
+            Your overall health risk score across your reports. A lower score means lower health risk (0 best, 10 highest).
+          </p>
+        )}
 
-        {/* Action pills sit here, after the benchmark card, with room to breathe. */}
-        {actionPills}
+        {actionLinks}
       </section>
     )
   }
