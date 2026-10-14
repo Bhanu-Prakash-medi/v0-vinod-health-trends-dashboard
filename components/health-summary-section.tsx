@@ -396,54 +396,31 @@ export default function HealthSummarySection({
         </div>
 
         {totalParams > 0 && (
-          <div className="mb-4 rounded-2xl border border-[#edf0f3] bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8693a3]">
-                  Parameters in range
-                </p>
-                <p className="mt-1 text-2xl font-semibold leading-none tabular-nums tracking-tight text-[#1f2933]">
-                  {totalParams - totalFlagged}
-                  <span className="text-base font-medium text-[#a3afbd]"> / {totalParams}</span>
-                </p>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] font-medium text-[#7a8796]">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#3f9d46]" aria-hidden="true" />
-                  Normal
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#e5483c]" aria-hidden="true" />
-                  Flagged {totalFlagged}
-                </span>
-              </div>
+          <div className="mb-4 rounded-2xl bg-[#16202b] p-5 text-primary-foreground shadow-[0_12px_28px_-14px_rgba(22,32,43,0.55)]">
+            <p className="text-xs font-medium text-[#a9b4c1]">Parameters in normal range</p>
+            <div className="mt-2 flex items-baseline justify-between gap-3">
+              <p className="text-4xl font-semibold leading-none tabular-nums tracking-tight">
+                {totalParams - totalFlagged}
+                <span className="text-lg font-medium text-[#7d8a99]"> / {totalParams}</span>
+              </p>
+              <p className="text-right text-xs leading-relaxed text-[#a9b4c1]">
+                <span className="font-semibold text-[#ff8a80]">{totalFlagged} flagged</span>
+                <br />
+                across {attentionCount} {attentionCount === 1 ? "area" : "areas"}
+              </p>
             </div>
             <div
-              className="mt-3 flex h-2 w-full gap-0.5 overflow-hidden rounded-full"
+              className="mt-4 flex h-2 w-full gap-1"
               role="img"
-              aria-label={`${totalParams - totalFlagged} of ${totalParams} parameters in normal range`}
+              aria-label={`${totalParams - totalFlagged} of ${totalParams} parameters in normal range, ${totalFlagged} flagged`}
             >
-              {summaryItems
-                .filter((s: { displayParams: any[] }) => s.displayParams.length > 0)
-                .map(
-                  (
-                    s: { categoryName: string; displayParams: any[]; outOfRangeCount: number },
-                    i: number,
-                  ) => (
-                    <span
-                      key={`${s.categoryName}-${i}`}
-                      className="flex h-full"
-                      style={{ flexGrow: s.displayParams.length, flexBasis: 0 }}
-                      title={`${s.categoryName}: ${s.displayParams.length - s.outOfRangeCount}/${s.displayParams.length}`}
-                    >
-                      <span
-                        className="h-full bg-[#3f9d46]"
-                        style={{ flexGrow: s.displayParams.length - s.outOfRangeCount, flexBasis: 0 }}
-                      />
-                      <span className="h-full bg-[#e5483c]" style={{ flexGrow: s.outOfRangeCount, flexBasis: 0 }} />
-                    </span>
-                  ),
-                )}
+              <span
+                className="h-full rounded-full bg-[#4cb554]"
+                style={{ flexGrow: totalParams - totalFlagged, flexBasis: 0 }}
+              />
+              {totalFlagged > 0 && (
+                <span className="h-full rounded-full bg-[#ff6b5e]" style={{ flexGrow: totalFlagged, flexBasis: 0 }} />
+              )}
             </div>
           </div>
         )}
