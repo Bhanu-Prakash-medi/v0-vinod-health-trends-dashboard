@@ -1,3 +1,5 @@
+import CountUp from "@/components/count-up"
+
 interface SummaryOverviewProps {
   inRange: number
   total: number
@@ -36,14 +38,14 @@ export default function SummaryOverview({ inRange, total, flagged, areas }: Summ
           />
         </svg>
         <span className="absolute inset-0 flex items-center justify-center text-base font-semibold tabular-nums tracking-tight text-[#16202b]">
-          {percent}%
+          <CountUp value={`${percent}%`} />
         </span>
       </span>
 
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-[#8a96a3]">Parameters in range</p>
         <p className="mt-0.5 text-2xl font-semibold leading-tight tabular-nums tracking-tight text-[#16202b]">
-          {inRange}
+          <CountUp value={String(inRange)} />
           <span className="text-base font-medium text-[#a3adb8]"> / {total}</span>
         </p>
         {flagged > 0 ? (

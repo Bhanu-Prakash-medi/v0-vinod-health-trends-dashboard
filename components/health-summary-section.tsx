@@ -23,6 +23,7 @@ import {
 import { useEffect, useState } from "react"
 import HealthSummaryTile from "@/components/health-summary-tile"
 import SummaryOverview from "@/components/health-summary-overview"
+import { collectParameters } from "@/lib/collect-parameters"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   Select,
@@ -297,14 +298,14 @@ export default function HealthSummarySection({
       return { categoryName, displayParams, outOfRangeCount }
     })
     const attentionCount = summaryItems.filter((s: { outOfRangeCount: number }) => s.outOfRangeCount > 0).length
-    const totalParams = summaryItems.reduce(
-      (sum: number, s: { displayParams: any[] }) => sum + s.displayParams.length,
-      0,
-    )
-    const totalFlagged = summaryItems.reduce(
-      (sum: number, s: { outOfRangeCount: number }) => sum + s.outOfRangeCount,
-      0,
-    )
+    // Same unique-parameter list as "All Parameters", so both show one total.
+    const latestLabParams =
+      safeDateIndex === 0
+        ? patientData?.lab_reports?.find((r: any) => r.tag?.toLowerCase().includes("latest"))?.parameters
+        : undefined
+    const uniqueParams = collectParameters(latestLabParams, healthSummaryFromApi, patientData?.patient_info?.gender)
+    const totalParams = uniqueParams.length
+    const totalFlagged = uniqueParams.filter((p) => p.status === "abnormal").length
 
     return (
       // @container: this section renders inside a narrow column, so the header

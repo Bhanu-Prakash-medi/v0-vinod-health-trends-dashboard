@@ -4,12 +4,19 @@ import { useState } from "react"
 import { ArrowLeft, Search, X, SearchX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ApiHealthReport } from "@/lib/api"
-import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
-import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import { getParameterBand, getParameterBandScale, getParameterNormalRange } from "@/lib/parameter-bands"
-import { resolveParameterStatus } from "@/lib/parameter-status"
-import { formatParamDisplay } from "@/lib/format-param-value"
+import { collectParameters } from "@/lib/collect-parameters"
+import ParameterCard from "@/components/parameter-card"
+
+// A parameter matches when the typed text is a substring OR an ordered
+// subsequence of its name, so skipped letters still work ("thrxin" -> "Thyroxine").
+const isSubsequence = (query: string, target: string) => {
+  let qi = 0
+  for (let ti = 0; ti < target.length && qi < query.length; ti++) {
+    if (target[ti] === query[qi]) qi++
+  }
+  return qi === query.length
+}
 
 export default function AllParametersPage({
   patientData,
@@ -18,141 +25,47 @@ export default function AllParametersPage({
   const [searchQuery, setSearchQuery] = useState("")
 
   const latestLabReport = patientData.lab_reports?.find((report) => report.tag?.toLowerCase().includes("latest"))
-  const healthSummaryFromApi = patientData?.health_summary || []
+  const gender = patientData?.patient_info?.gender
+  const parameters = sortByCommonKnowledge(
+    collectParameters(latestLabReport?.parameters, patientData?.health_summary, gender),
+  )
 
-  // Helper function to get all parameters from health_summary
-  const getAllHealthSummaryParams = (): any[] => {
-    const params: any[] = []
-    const seenNames = new Set<string>()
-    
-    for (const category of healthSummaryFromApi) {
-      const categoryParams = category.parameters || []
-      for (const param of categoryParams) {
-        const paramName = (param.name || param.metric_name || "").toLowerCase()
-        if (paramName && !seenNames.has(paramName)) {
-          seenNames.add(paramName)
-          params.push({
-            metric_name: param.name || param.metric_name,
-            value: param.result || param.value,
-            unit: param.units || param.unit || "",
-            normal_range: param.range || param.normal_range || "",
-            status: param.status || "normal",
-          })
-        }
-      }
-    }
-    return params
-  }
+  if (parameters.length === 0) return null
 
-  // Merge parameters from trends API with health_summary parameters
-  const mergeParameters = (trendsParams: any[]): any[] => {
-    const healthParams = getAllHealthSummaryParams()
-    const merged: any[] = [...trendsParams]
-    const seenNames = new Set<string>()
-    
-    // Track existing parameter names from trends
-    for (const param of trendsParams) {
-      const paramName = (param.metric_name || param.name || "").toLowerCase()
-      if (paramName) seenNames.add(paramName)
-    }
-    
-    // Add health_summary parameters that don't exist in trends
-    for (const param of healthParams) {
-      const paramName = (param.metric_name || param.name || "").toLowerCase()
-      if (paramName && !seenNames.has(paramName)) {
-        seenNames.add(paramName)
-        merged.push(param)
-      }
-    }
-    
-    return merged
-  }
-
-  const trendsParams = latestLabReport?.parameters || []
-  const parametersArray = mergeParameters(trendsParams)
-
-  if (parametersArray.length === 0) {
-    return null
-  }
-
-  const allParameters = parametersArray
-    .map((param: any) => {
-      const metricName = param.metric_name || param.name || "Unknown"
-      const result = Number.parseFloat(param.value || param.result || "0") || 0
-      const range = param.normal_range || param.range || ""
-      const units = param.unit || param.units || ""
-      // Status from hardcoded band ranges / numeric range only (never the API
-      // status flag), so the badge and marker always match the value + range.
-      const status = resolveParameterStatus(
-        { name: metricName, value: result, range },
-        patientData?.patient_info?.gender,
-      )
-      const dynamicPosition = calculateDynamicPosition(result, range)
-
-      const band = getParameterBand(metricName, result, patientData?.patient_info?.gender)
-      const bandScale = getParameterBandScale(metricName, result, patientData?.patient_info?.gender)
-
-      const displayRange =
-        getParameterNormalRange(metricName, patientData?.patient_info?.gender) ?? range
-      const display = formatParamDisplay(metricName, result, units, displayRange)
-
-      return {
-        name: metricName,
-        status,
-        displayValue: display.value,
-        displayUnit: display.unit,
-        displayRange: display.range,
-        date: latestLabReport?.report_date || "",
-        range,
-        position: dynamicPosition,
-        result,
-        band,
-        bandScale,
-      }
-    })
-    .filter((param) => param.position !== null) // Filter out malformed ranges
-
-  // Order commonly known parameters first for non-medical users
-  const sortedParameters = sortByCommonKnowledge(allParameters)
-
-  // Fuzzy, case-insensitive matching. A parameter matches when the typed text
-  // is either a direct substring OR an ordered subsequence of its name, so
-  // partial/skipped letters still work (e.g. "thrxin" -> "Thyroxine").
-  const isSubsequence = (query: string, target: string) => {
-    let qi = 0
-    for (let ti = 0; ti < target.length && qi < query.length; ti++) {
-      if (target[ti] === query[qi]) qi++
-    }
-    return qi === query.length
-  }
-
+  const flagged = parameters.filter((p) => p.status === "abnormal").length
+  const date = latestLabReport?.report_date || ""
   const normalizedQuery = searchQuery.trim().toLowerCase()
-  const filteredParameters = normalizedQuery
-    ? sortedParameters.filter((param) => {
-        const name = (param.name || "").toLowerCase()
+  const filtered = normalizedQuery
+    ? parameters.filter((p) => {
+        const name = p.name.toLowerCase()
         return name.includes(normalizedQuery) || isSubsequence(normalizedQuery, name)
       })
-    : sortedParameters
+    : parameters
 
   return (
-    <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="mx-auto max-w-[420px] bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg">
-        <div className="sticky top-0 z-10 rounded-t-2xl border-b border-[#e5e7eb] bg-white px-4 py-3">
+    <div className="min-h-screen bg-[#f4f6f9]">
+      <div className="mx-auto max-w-[420px] bg-[#f4f6f9] sm:my-8 sm:rounded-2xl sm:shadow-lg">
+        <div className="sticky top-0 z-10 border-b border-[#e8edf3] bg-card/95 px-4 pb-3 pt-3 backdrop-blur sm:rounded-t-2xl">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">
-              <ArrowLeft className="h-5 w-5 text-[#2e3742]" />
+            <Button variant="ghost" size="sm" onClick={onBack} className="h-9 w-9 rounded-full p-0" aria-label="Back">
+              <ArrowLeft className="h-5 w-5 text-[#1d2733]" />
             </Button>
-            <h1 className="flex items-center gap-2 text-[15px] font-semibold text-[#2e3742]">
-              All Parameters
-              <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[11px] font-medium text-[#156ddc]">
-                {allParameters.length}
-              </span>
-            </h1>
+            <div className="min-w-0">
+              <h1 className="text-base font-semibold leading-tight text-[#1d2733]">All Parameters</h1>
+              <p className="text-xs text-[#7d8a98]">
+                <span className="font-semibold tabular-nums text-[#1d2733]">{parameters.length}</span> tested
+                {flagged > 0 && (
+                  <>
+                    {" · "}
+                    <span className="font-semibold tabular-nums text-[#d6453a]">{flagged}</span> flagged
+                  </>
+                )}
+              </p>
+            </div>
           </div>
 
-          {/* Parameter search */}
           <div className="relative mt-3">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9dabbd]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a3b0]" />
             <input
               type="text"
               inputMode="search"
@@ -160,14 +73,14 @@ export default function AllParametersPage({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search e.g. cholesterol"
               aria-label="Search parameters"
-              className="w-full rounded-xl border border-[#e5e7eb] bg-[#f7f9fa] py-2.5 pl-9 pr-9 text-sm text-[#2e3742] placeholder:text-[#9dabbd] focus:border-[#156ddc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#156ddc]/20"
+              className="w-full rounded-xl border border-[#e8edf3] bg-[#f4f6f9] py-2.5 pl-9 pr-9 text-sm text-[#1d2733] placeholder:text-[#98a3b0] focus:border-[#156ddc] focus:bg-card focus:outline-none focus:ring-2 focus:ring-[#156ddc]/20"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#9dabbd] transition-colors hover:bg-[#eef1f4] hover:text-[#2e3742]"
+                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#98a3b0] transition-colors hover:bg-[#eef1f4] hover:text-[#1d2733]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -175,128 +88,32 @@ export default function AllParametersPage({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 p-3">
-        {filteredParameters.map((param, index) => (
-          <div
-            key={index}
-            className="flex flex-col gap-2.5 rounded-xl border border-[#eef1f4] bg-white px-3.5 py-3"
-          >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 flex-1 items-center gap-1">
-                  <h3 className="truncate text-[13px] font-medium text-[#4d5c6f]">{param.name}</h3>
-                  <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
-                </div>
+        <div className="flex flex-col gap-3 p-3">
+          {filtered.map((param) => (
+            <ParameterCard key={param.name} param={param} date={date} gender={gender} />
+          ))}
 
-                {param.band ? (
-                  <span
-                    className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                    style={{ color: param.band.color, backgroundColor: `${param.band.color}14` }}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: param.band.color }} />
-                    {param.band.shortLabel}
-                  </span>
-                ) : (
-                  <span
-                    className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium ${
-                      param.status === "normal" ? "bg-[#edf7ee] text-[#459f49]" : "bg-[#fef0f0] text-[#de3d31]"
-                    }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${param.status === "normal" ? "bg-[#459f49]" : "bg-[#de3d31]"}`}
-                    />
-                    {param.status === "normal" ? "Normal" : "Abnormal"}
-                  </span>
-                )}
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+              <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#eaf2fe]">
+                <SearchX className="h-9 w-9 text-[#156ddc]" />
               </div>
-
-            <div className="flex items-end justify-between gap-4">
-              <div className="min-w-0">
-                <p className="flex items-baseline gap-1 leading-tight text-[#2e3742]">
-                  <span className="text-base font-semibold tabular-nums tracking-tight">{param.displayValue}</span>
-                  {param.displayUnit && (
-                    <span className="truncate text-[11px] font-normal text-[#7a8796]">{param.displayUnit}</span>
-                  )}
-                </p>
-                {param.date && <p className="mt-0.5 text-[10.5px] text-[#9dabbd]">{param.date}</p>}
-              </div>
-
-              <div className="w-[120px] shrink-0">
-                {/* Scale bar + marker wrapper */}
-                <div className="relative h-4">
-                  {param.bandScale ? (
-                    <>
-                      <div className="flex h-3 overflow-hidden rounded-full mt-0.5">
-                        {param.bandScale.segments.map((seg, i) => (
-                          <div
-                            key={i}
-                            className="h-3"
-                            style={{ width: `${seg.widthPct}%`, backgroundColor: seg.color }}
-                            title={seg.label}
-                          />
-                        ))}
-                      </div>
-
-                      <div
-                        className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white shadow-sm"
-                        style={{
-                          left: `${param.bandScale.markerPct}%`,
-                          top: "12px",
-                          borderColor: param.band?.color ?? "#2e3742",
-                        }}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex h-3 overflow-hidden rounded mt-0.5">
-                        <div className="w-1/3 bg-[#ef4444]" />
-                        <div className="w-1/3 bg-[#22c55e]" />
-                        <div className="w-1/3 bg-[#ef4444]" />
-                      </div>
-
-                      <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
-                      <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
-
-                      <div
-                        className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-                          param.status === "abnormal" ? "border-[#de3d31]" : "border-[#459f49]"
-                        } bg-white shadow-sm`}
-                        style={{ left: `${param.position}%`, top: "12px" }}
-                      />
-                    </>
-                  )}
-                </div>
-
-                {/* Normal Range text */}
-                <div className="mt-1.5 truncate text-right text-[10.5px] text-[#9dabbd]">
-                  Normal{" "}
-                  <span className="text-[#4d5c6f] tabular-nums">{param.displayRange}</span>
-                </div>
-              </div>
+              <h3 className="text-base font-semibold text-[#1d2733]">No parameters found</h3>
+              <p className="mt-1.5 max-w-[260px] text-pretty text-sm leading-relaxed text-[#98a3b0]">
+                We couldn&apos;t find any parameters matching{" "}
+                <span className="font-medium text-[#3d4957]">&ldquo;{searchQuery.trim()}&rdquo;</span>. Try a different
+                name like cholesterol, glucose, or vitamin.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSearchQuery("")}
+                className="mt-5 rounded-full border-[#156ddc] text-[#156ddc] hover:bg-[#eaf2fe] hover:text-[#156ddc]"
+              >
+                Clear search
+              </Button>
             </div>
-          </div>
-        ))}
-
-        {filteredParameters.length === 0 && (
-          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#eaf2fe] to-[#e6f7ee]">
-              <SearchX className="h-9 w-9 text-[#156ddc]" />
-            </div>
-            <h3 className="text-base font-semibold text-[#2e3742]">No parameters found</h3>
-            <p className="mt-1.5 max-w-[260px] text-pretty text-sm leading-relaxed text-[#9dabbd]">
-              We couldn&apos;t find any parameters matching{" "}
-              <span className="font-medium text-[#4d5c6f]">&ldquo;{searchQuery.trim()}&rdquo;</span>. Try a different
-              name like cholesterol, glucose, or vitamin.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSearchQuery("")}
-              className="mt-5 rounded-full border-[#156ddc] text-[#156ddc] hover:bg-[#eaf2fe] hover:text-[#156ddc]"
-            >
-              Clear search
-            </Button>
-          </div>
-        )}
+          )}
         </div>
       </div>
     </div>

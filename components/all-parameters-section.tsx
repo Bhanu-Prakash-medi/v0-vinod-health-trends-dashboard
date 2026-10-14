@@ -1,15 +1,12 @@
 "use client"
 
-import { Grid3x3, ChevronRight } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { ChevronRight, FlaskConical } from "lucide-react"
 import type { ApiHealthReport } from "@/lib/api"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
-import { calculateDynamicPosition } from "@/lib/calculateDynamicPosition"
 import { sortByCommonKnowledge } from "@/lib/parameterPriority"
-import BiomarkerInfoButton from "@/components/biomarker-info-button"
-import { getParameterBand, getParameterBandScale, getParameterNormalRange } from "@/lib/parameter-bands"
-import { resolveParameterStatus } from "@/lib/parameter-status"
+import { collectParameters } from "@/lib/collect-parameters"
+import ParameterCard from "@/components/parameter-card"
+import CountUp from "@/components/count-up"
 
 export default function AllParametersSection({
   patientData,
@@ -17,236 +14,55 @@ export default function AllParametersSection({
   vasbenefId,
 }: { patientData: ApiHealthReport; onViewAll?: () => void; vasbenefId?: string | number }) {
   const latestLabReport = patientData.lab_reports?.find((report) => report.tag?.toLowerCase().includes("latest"))
-  const healthSummaryFromApi = patientData?.health_summary || []
+  const gender = patientData?.patient_info?.gender
+  const parameters = collectParameters(latestLabReport?.parameters, patientData?.health_summary, gender)
 
-  // Helper function to get all parameters from health_summary
-  const getAllHealthSummaryParams = (): any[] => {
-    const params: any[] = []
-    const seenNames = new Set<string>()
-    
-    for (const category of healthSummaryFromApi) {
-      const categoryParams = category.parameters || []
-      for (const param of categoryParams) {
-        const paramName = (param.name || param.metric_name || "").toLowerCase()
-        if (paramName && !seenNames.has(paramName)) {
-          seenNames.add(paramName)
-          params.push({
-            metric_name: param.name || param.metric_name,
-            value: param.result || param.value,
-            unit: param.units || param.unit || "",
-            normal_range: param.range || param.normal_range || "",
-            status: param.status || "normal",
-          })
-        }
-      }
-    }
-    return params
-  }
+  if (parameters.length === 0) return null
 
-  // Merge parameters from trends API with health_summary parameters
-  const mergeParameters = (trendsParams: any[]): any[] => {
-    const healthParams = getAllHealthSummaryParams()
-    const merged: any[] = [...trendsParams]
-    const seenNames = new Set<string>()
-    
-    // Track existing parameter names from trends
-    for (const param of trendsParams) {
-      const paramName = (param.metric_name || param.name || "").toLowerCase()
-      if (paramName) seenNames.add(paramName)
-    }
-    
-    // Add health_summary parameters that don't exist in trends
-    for (const param of healthParams) {
-      const paramName = (param.metric_name || param.name || "").toLowerCase()
-      if (paramName && !seenNames.has(paramName)) {
-        seenNames.add(paramName)
-        merged.push(param)
-      }
-    }
-    
-    return merged
-  }
-
-  const trendsParams = latestLabReport?.parameters || []
-  const parametersArray = mergeParameters(trendsParams)
-
-  if (parametersArray.length === 0) {
-    return null
-  }
-
-  const allParameters = parametersArray
-    .map((param: any) => {
-      const metricName = param.metric_name || param.name || "Unknown"
-      const result = Number.parseFloat(param.value || param.result || "0") || 0
-      const range = param.normal_range || param.range || ""
-      const units = param.unit || param.units || ""
-      // Status from hardcoded band ranges / numeric range only (never the API
-      // status flag), so the badge and marker always match the value + range.
-      const status = resolveParameterStatus(
-        { name: metricName, value: result, range },
-        patientData?.patient_info?.gender,
-      )
-      const dynamicPosition = calculateDynamicPosition(result, range)
-
-      // For the 7 custom-band parameters, resolve the granular band (color +
-      // label). Non-listed parameters keep the default normal/abnormal display.
-      const band = getParameterBand(metricName, result, patientData?.patient_info?.gender)
-      const bandScale = getParameterBandScale(metricName, result, patientData?.patient_info?.gender)
-
-      return {
-        name: metricName,
-        status,
-        currentValue: `${result} ${units}`.trim(),
-        date: latestLabReport?.report_date || "",
-        range,
-        position: dynamicPosition,
-        result,
-        band,
-        bandScale,
-      }
-    })
-    .filter((param) => param.position !== null) // Case 4: Filter out malformed ranges
-
-  // Order commonly known parameters first for non-medical users
-  const sortedParameters = sortByCommonKnowledge(allParameters)
-  const displayedParameters = sortedParameters.slice(0, 3)
+  const flagged = parameters.filter((p) => p.status === "abnormal").length
+  const displayed = sortByCommonKnowledge(parameters).slice(0, 3)
+  const date = latestLabReport?.report_date || ""
 
   return (
-    <section>
-      {/* Disclaimer */}
-      <p className="mb-4 text-muted-foreground text-center italic tracking-wider text-[10px] font-light">
+    <section className="flex flex-col gap-4">
+      <p className="text-muted-foreground text-center italic tracking-wider text-[10px] font-light">
         This is an AI-generated report and may not be fully accurate. Please consult a qualified doctor for medical or clinical advice.
       </p>
 
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Grid3x3 className="h-6 w-6 text-[#000000]" />
-          <h2 className="text-base font-semibold text-[#2e3742]">
-            All Parameters <span className="text-[#9dabbd]">({allParameters.length})</span>
-          </h2>
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#156ddc] text-primary-foreground shadow-[0_6px_16px_-6px_rgba(21,109,220,0.6)]">
+            <FlaskConical className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="whitespace-nowrap text-base font-semibold leading-tight text-[#1d2733]">All Parameters</h2>
+            <p className="mt-0.5 whitespace-nowrap text-xs text-[#7d8a98]">
+              <CountUp value={String(parameters.length)} className="font-semibold tabular-nums text-[#1d2733]" /> tested
+              {flagged > 0 && (
+                <>
+                  {" · "}
+                  <CountUp value={String(flagged)} className="font-semibold tabular-nums text-[#d6453a]" /> flagged
+                </>
+              )}
+            </p>
+          </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
+          type="button"
           onClick={() => {
             trackHealthTrendsEvent("All Parameters - See All", vasbenefId)
             onViewAll?.()
           }}
-          className="flex items-center gap-1 text-xs font-medium text-[#156ddc] hover:bg-transparent hover:text-[#156ddc]/80"
+          className="flex shrink-0 items-center gap-0.5 rounded-full border border-[#dbe6f5] bg-card px-3 py-1.5 text-xs font-semibold text-[#156ddc] transition-colors hover:bg-[#eef4fd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/40"
         >
-          See All
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+          See all
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </header>
 
-      {/* Parameter Cards */}
-      <div className="space-y-3">
-        {displayedParameters.map((param, index) => (
-          <Card key={index} className="overflow-hidden border border-[#f0f3f5] py-0">
-            <div className="p-4 pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex flex-1 items-center gap-2">
-                  <h3 className="text-sm font-medium text-[#2e3742]">{param.name}</h3>
-                  <BiomarkerInfoButton name={param.name} gender={patientData?.patient_info?.gender} />
-                </div>
-
-                {/* Status Tag - matching trends section style */}
-                {param.band ? (
-                  <div
-                    className="rounded-full px-2.5 py-1 text-xs font-medium"
-                    style={{ color: param.band.color, backgroundColor: `${param.band.color}1A` }}
-                  >
-                    {param.band.shortLabel}
-                  </div>
-                ) : (
-                  <div
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      param.status === "normal" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                    }`}
-                  >
-                    {param.status === "normal" ? "Normal" : "Abnormal"}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="border-t border-[#f0f3f5]" />
-
-            {/* Data Section */}
-            <div className="flex items-center justify-between p-4">
-              <div>
-                <p
-                  className={`text-xs font-medium ${
-                    param.band ? "" : param.status === "abnormal" ? "text-red-600" : "text-green-600"
-                  }`}
-                  style={param.band ? { color: param.band.color } : undefined}
-                >
-                  {param.currentValue}
-                </p>
-                <p className="mt-0.5 text-[10px] text-[#9dabbd]">{param.date}</p>
-              </div>
-
-              {/* Visual Scale */}
-              <div className="w-[140px]">
-                {/* Scale bar + marker wrapper */}
-                <div className="relative h-4">
-                  {param.bandScale ? (
-                    <>
-                      {/* Band-colored scale */}
-                      <div className="flex overflow-hidden rounded-full gap-0 items-center h-3 mt-0.5">
-                        {param.bandScale.segments.map((seg, i) => (
-                          <div
-                            key={i}
-                            className="h-3"
-                            style={{ width: `${seg.widthPct}%`, backgroundColor: seg.color }}
-                            title={seg.label}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Indicator */}
-                      <div
-                        className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white shadow-sm"
-                        style={{
-                          left: `${param.bandScale.markerPct}%`,
-                          top: "12px",
-                          borderColor: param.band?.color ?? "#2e3742",
-                        }}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      {/* Scale bar */}
-                      <div className="flex overflow-hidden rounded gap-0 justify-between items-center h-3 mt-0.5">
-                        <div className="w-1/3 bg-[#ef4444] h-3" />
-                        <div className="w-1/3 bg-[#22c55e] h-3" />
-                        <div className="w-1/3 bg-[#ef4444] h-3" />
-                      </div>
-
-                      {/* Separators */}
-                      <div className="absolute left-1/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
-                      <div className="absolute left-2/3 top-0 h-4 w-[1px] border-l border-dashed border-white" />
-
-                      {/* Indicator */}
-                      <div
-                        className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-                          param.status === "abnormal" ? "border-red-600" : "border-green-600"
-                        } bg-white shadow-sm`}
-                        style={{ left: `${param.position}%`, top: "12px" }}
-                      />
-                    </>
-                  )}
-                </div>
-
-                {/* Normal Range text */}
-                <div className="text-center text-[9px] text-[#9dabbd] mt-2">
-                  Normal Range:{" "}
-                  {getParameterNormalRange(param.name, patientData?.patient_info?.gender) ?? param.range}
-                </div>
-              </div>
-            </div>
-          </Card>
+      <div className="flex flex-col gap-3">
+        {displayed.map((param) => (
+          <ParameterCard key={param.name} param={param} date={date} gender={gender} />
         ))}
       </div>
     </section>
