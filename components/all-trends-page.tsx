@@ -5,7 +5,19 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
+import {
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  ReferenceArea,
+} from "recharts"
+import TrendCardHeader from "@/components/trend-card-header"
 import { getTrendData, hasValidRange } from "@/lib/health-utils"
 import { trackEvent } from "@/lib/analytics/posthog"
 import type { ApiHealthReport } from "@/lib/api"
@@ -308,64 +320,29 @@ export default function AllTrendsPage({
           }
 
           return (
-            <Card key={`${trend.name}-${trendIndex}`} className="border border-[#f0f3f5] p-4 shadow-sm">
-              <div className="mb-4 flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-semibold text-[#2e3742]">{trend.name}</h3>
-                    <BiomarkerInfoButton name={trend.name} gender={patientData?.patient_info?.gender} />
-                    <div
-                      className={`flex h-6 w-6 items-center justify-center rounded-full ${
-                        isImproving ? "bg-green-50" : isWorsening ? "bg-red-50" : isStable ? "bg-gray-50" : "bg-gray-50"
-                      }`}
-                    >
-                      {isImproving ? (
-                        <TrendingDown className="h-3.5 w-3.5 text-green-600" />
-                      ) : isWorsening ? (
-                        <TrendingUp className="h-3.5 w-3.5 text-red-600" />
-                      ) : isStable ? (
-                        <Minus className="h-3.5 w-3.5 text-gray-600" />
-                      ) : trend.change > 0 ? (
-                        <TrendingUp className="h-3.5 w-3.5 text-blue-600" />
-                      ) : (
-                        <TrendingDown className="h-3.5 w-3.5 text-blue-600" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span
-                      className={`text-lg font-bold ${band ? "" : "text-[#2e3742]"}`}
-                      style={band ? { color: band.color } : undefined}
-                    >
-                      {trend.current} {trend.unit}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-[#9dabbd]">Range: {displayRange}</p>
-                </div>
-                {band ? (
-                  <div
-                    className="rounded-full px-2.5 py-1 text-xs font-medium"
-                    style={{ color: band.color, backgroundColor: `${band.color}1A` }}
-                  >
-                    {band.shortLabel}
-                  </div>
-                ) : (
-                  <div
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      currentIsNormal ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                    }`}
-                  >
-                    {currentIsNormal ? "Normal" : "Abnormal"}
-                  </div>
-                )}
-              </div>
+            <article
+              key={`${trend.name}-${trendIndex}`}
+              className="flex flex-col gap-3 overflow-hidden rounded-2xl border border-[#e8edf3] bg-card p-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)]"
+            >
+              <TrendCardHeader
+                name={trend.name}
+                gender={patientData?.patient_info?.gender}
+                current={trend.current}
+                unit={trend.unit}
+                displayRange={displayRange}
+                accent={band?.color ?? lineColor}
+                label={band?.shortLabel ?? (currentIsNormal ? "Normal" : "Out of range")}
+                changePercent={trend.changePercent}
+                readings={trend.data.length}
+              />
 
               {trend.data && trend.data.length > 0 && (
-                <div className="w-full h-64">
+                <div className="-mx-1 flex flex-col gap-1">
+                  <div className="h-44 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
+                    <ComposedChart
                       data={trend.data}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                      margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
                       onClick={handleChartClick}
                       style={{ cursor: "pointer" }}
                     >
@@ -375,28 +352,36 @@ export default function AllTrendsPage({
                             <stop key={i} offset={`${s.offset}%`} stopColor={s.color} />
                           ))}
                         </linearGradient>
+                        <linearGradient id={`${gradientId}-fill`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={lineColor} stopOpacity={0.18} />
+                          <stop offset="100%" stopColor={lineColor} stopOpacity={0} />
+                        </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                      <CartesianGrid stroke="#eef2f6" vertical={false} />
                       <XAxis
                         dataKey="timestamp"
                         type="number"
                         domain={["dataMin", "dataMax"]}
-                        tick={{ fontSize: 12, fill: "#6b7280" }}
-                        axisLine={{ stroke: "#e5e7eb" }}
-                        tickLine={{ stroke: "#e5e7eb" }}
-                        dy={10}
-                        padding={{ left: 30, right: 30 }}
+                        tick={{ fontSize: 10, fill: "#98a3b0" }}
+                        axisLine={false}
+                        tickLine={false}
+                        dy={6}
+                        padding={{ left: 16, right: 16 }}
                         tickFormatter={formatDate}
                         scale="time"
                       />
                       <YAxis
-                        tick={{ fontSize: 12, fill: "#6b7280" }}
-                        axisLine={{ stroke: "#e5e7eb" }}
-                        tickLine={{ stroke: "#e5e7eb" }}
+                        tick={{ fontSize: 10, fill: "#98a3b0" }}
+                        axisLine={false}
+                        tickLine={false}
                         domain={["auto", "auto"]}
-                        tickFormatter={(value) => value.toFixed(1)}
-                        width={45}
+                        tickFormatter={(value) => Number(value).toFixed(value >= 100 ? 0 : 1)}
+                        width={40}
                       />
+                      {!bandRefLines && rangeData?.type === "range" && (
+                        <ReferenceArea y1={rangeData.min} y2={rangeData.max} fill="#22b864" fillOpacity={0.06} />
+                      )}
+                      <Area type="monotone" dataKey="value" stroke="none" fill={`url(#${gradientId}-fill)`} />
                       {bandRefLines ? (
                         // Multi-range parameter: reference lines at the clinical
                         // healthy-band bounds (direction-aware).
@@ -405,7 +390,7 @@ export default function AllTrendsPage({
                             key={`${line.label}-${line.value}`}
                             y={line.value}
                             stroke={referenceColor}
-                            strokeDasharray="5 5"
+                            strokeDasharray="4 4" strokeOpacity={0.55}
                             strokeWidth={1}
                             label={{ value: line.label, position: "right", fill: referenceColor, fontSize: 10 }}
                           />
@@ -417,14 +402,14 @@ export default function AllTrendsPage({
                               <ReferenceLine
                                 y={rangeData.min}
                                 stroke={referenceColor}
-                                strokeDasharray="5 5"
+                                strokeDasharray="4 4" strokeOpacity={0.55}
                                 strokeWidth={1}
                                 label={{ value: "Min", position: "right", fill: referenceColor, fontSize: 10 }}
                               />
                               <ReferenceLine
                                 y={rangeData.max}
                                 stroke={referenceColor}
-                                strokeDasharray="5 5"
+                                strokeDasharray="4 4" strokeOpacity={0.55}
                                 strokeWidth={1}
                                 label={{ value: "Normal Limit", position: "right", fill: referenceColor, fontSize: 10 }}
                               />
@@ -434,7 +419,7 @@ export default function AllTrendsPage({
                             <ReferenceLine
                               y={rangeData.max}
                               stroke={referenceColor}
-                              strokeDasharray="5 5"
+                              strokeDasharray="4 4" strokeOpacity={0.55}
                               strokeWidth={1}
                               label={{ value: "Max", position: "right", fill: referenceColor, fontSize: 10 }}
                             />
@@ -443,7 +428,7 @@ export default function AllTrendsPage({
                             <ReferenceLine
                               y={rangeData.min}
                               stroke={referenceColor}
-                              strokeDasharray="5 5"
+                              strokeDasharray="4 4" strokeOpacity={0.55}
                               strokeWidth={1}
                               label={{ value: "Min", position: "right", fill: referenceColor, fontSize: 10 }}
                             />
@@ -451,13 +436,16 @@ export default function AllTrendsPage({
                         </>
                       )}
                       <Tooltip
+                        cursor={{ stroke: "#d7dee7", strokeWidth: 1 }}
                         contentStyle={{
                           backgroundColor: "#fff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
+                          border: "none",
+                          borderRadius: "12px",
+                          boxShadow: "0 8px 24px -8px rgba(16,24,40,0.25)",
                           fontSize: "12px",
                           padding: "8px 12px",
                         }}
+                        labelStyle={{ color: "#98a3b0", fontSize: "11px" }}
                         formatter={(value: number) => [`${value} ${trend.unit}`, trend.name]}
                         labelFormatter={(timestamp) => formatDate(timestamp as number)}
                       />
@@ -465,32 +453,30 @@ export default function AllTrendsPage({
                         type="monotone"
                         dataKey="value"
                         stroke={`url(#${gradientId})`}
-                        strokeWidth={3}
+                        strokeWidth={2.5}
+                        strokeLinecap="round"
                         dot={(props: any) => {
                           const { cx, cy, payload, index } = props
                           const c = colorForValue(Number.parseFloat(String(payload.value)))
+                          const isLatest = index === trend.data.length - 1
                           return (
-                            <circle
-                              key={`dot-${index}`}
-                              cx={cx}
-                              cy={cy}
-                              r={6}
-                              fill="#fff"
-                              stroke={c}
-                              strokeWidth={3}
-                            />
+                            <g key={`dot-${index}`}>
+                              {isLatest && <circle cx={cx} cy={cy} r={9} fill={c} fillOpacity={0.16} />}
+                              <circle cx={cx} cy={cy} r={isLatest ? 5 : 4} fill={c} stroke="#fff" strokeWidth={2} />
+                            </g>
                           )
                         }}
-                        activeDot={{ r: 8, strokeWidth: 2, stroke: lineColor }}
+                        activeDot={{ r: 7, strokeWidth: 2, stroke: "#fff", fill: lineColor }}
                       />
-                    </LineChart>
+                    </ComposedChart>
                   </ResponsiveContainer>
-                  <p className="mt-1 text-center text-[10px] text-[#9dabbd]">
+                  </div>
+                  <p className="text-center text-[10px] text-[#98a3b0]">
                     Tap a point to view that date&apos;s reading
                   </p>
                 </div>
               )}
-            </Card>
+            </article>
           )
         })}
 
