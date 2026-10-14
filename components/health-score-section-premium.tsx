@@ -45,15 +45,13 @@ function riskColor(score: number) {
   return RISK_RED
 }
 
-// Show the exact score from the API with no rounding or truncation. toPrecision(12)
-// only strips floating-point noise (e.g. 0.30000000000000004). While the count-up
-// animation runs, intermediate values use the same number of decimals as the final
-// score so the digits don't jump around.
-function formatScore(n: number, finalScore: number = n) {
-  const exact = String(Number(finalScore.toPrecision(12)))
-  if (n === finalScore) return exact
-  const decimals = exact.split(".")[1]?.length ?? 0
-  return n.toFixed(decimals)
+// One decimal, truncated rather than rounded (0.995798 -> "0.9") so a low score is
+// never displayed as higher than it is. toPrecision(12) strips floating-point noise
+// first so values like 2.3 (stored as 2.2999999...) don't truncate to 2.2.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function formatScore(n: number, _finalScore: number = n) {
+  const truncated = Math.trunc(Number((n * 10).toPrecision(12))) / 10
+  return truncated.toFixed(1)
 }
 
 // Format the report date (e.g. "22 Jul 2026") so the user knows which report
