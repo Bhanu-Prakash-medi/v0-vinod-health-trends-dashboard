@@ -90,7 +90,7 @@ export default function AllParametersPage({
 
         <div className="flex flex-col gap-3 p-3">
           {filtered.map((param) => (
-            <ParameterCard key={param.name} param={param} date={date} gender={gender} />
+            <ParameterCard key={param.name} param={param} date={date} gender={gender} compact />
           ))}
 
           {filtered.length === 0 && (

@@ -20,9 +20,10 @@ interface ParameterCardProps {
   param: CollectedParameter
   date?: string
   gender?: string | null
+  compact?: boolean
 }
 
-export default function ParameterCard({ param, date, gender }: ParameterCardProps) {
+export default function ParameterCard({ param, date, gender, compact = false }: ParameterCardProps) {
   const band = getParameterBand(param.name, param.value, gender)
   const bandScale = getParameterBandScale(param.name, param.value, gender)
   const accent = band?.color ?? (param.status === "normal" ? NORMAL : ABNORMAL)
@@ -54,11 +55,17 @@ export default function ParameterCard({ param, date, gender }: ParameterCardProp
   return (
     <article
       ref={ref}
-      className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-[#e8edf3] bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)]"
+      className={`relative flex flex-col overflow-hidden rounded-2xl border border-[#e8edf3] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)] ${
+        compact ? "gap-3 px-4 py-3.5" : "gap-4 p-4"
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1 pt-0.5">
-          <h3 className="text-pretty text-[15px] font-semibold leading-snug text-[#1d2733]">{param.name}</h3>
+          <h3
+            className={`text-pretty font-semibold leading-snug text-[#1d2733] ${compact ? "text-sm" : "text-[15px]"}`}
+          >
+            {param.name}
+          </h3>
           <BiomarkerInfoButton name={param.name} gender={gender ?? undefined} />
         </div>
         <span
@@ -73,9 +80,15 @@ export default function ParameterCard({ param, date, gender }: ParameterCardProp
       <div className="flex items-baseline gap-1.5">
         <CountUp
           value={display.value}
-          className="text-2xl font-semibold leading-none tracking-tight tabular-nums text-[#121a24]"
+          className={`font-semibold leading-none tracking-tight tabular-nums text-[#121a24] ${
+            compact ? "text-xl" : "text-2xl"
+          }`}
         />
-        {display.unit && <span className="truncate text-[13px] font-medium text-[#7d8a98]">{display.unit}</span>}
+        {display.unit && (
+          <span className={`truncate font-medium text-[#7d8a98] ${compact ? "text-xs" : "text-[13px]"}`}>
+            {display.unit}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
