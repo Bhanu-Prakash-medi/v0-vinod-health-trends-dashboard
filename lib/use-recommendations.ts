@@ -96,6 +96,22 @@ export function statusTone(status = "") {
   }
 }
 
+export function actionTip(p: RecParameter) {
+  return (
+    p.recommendations?.lifestyle?.[0]?.change ||
+    p.recommendations?.diet?.include?.[0]?.food ||
+    p.explanation?.what_it_means ||
+    ""
+  )
+}
+
+export function formatReportDate(date?: string) {
+  if (!date) return ""
+  const d = new Date(date)
+  if (Number.isNaN(d.getTime())) return date
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+}
+
 export function reasonFor(p: RecParameter) {
   return p.explanation?.your_result || p.explanation?.what_it_means || p.explanation?.why_it_happens || ""
 }
