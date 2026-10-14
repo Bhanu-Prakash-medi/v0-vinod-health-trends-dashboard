@@ -569,7 +569,7 @@
   color: rgb(255 255 255 / 0.8);
 }
 
-/* Parameter cards — elevated tiles with a bold value and a tactile scale */
+/* Parameter cards — quiet, light tiles with a soft navy hierarchy */
 [data-design="premium"] #nav-parameters section > .mb-4.flex button {
   border-radius: 9999px;
   background-color: #e8f1fd;
@@ -601,36 +601,35 @@
     0 18px 32px -16px rgb(21 109 220 / 0.4);
 }
 [data-design="premium"] #nav-parameters .space-y-3 > div > div:first-child {
-  background-image: linear-gradient(135deg, #0b2a5b 0%, #156ddc 100%);
-  padding-block: 0.875rem;
+  background-color: #f7faff;
+  padding-block: 0.75rem;
 }
 [data-design="premium"] #nav-parameters .space-y-3 > div > div:first-child h3 {
-  color: #ffffff;
-  font-weight: 600;
+  color: #0b2a5b;
+  font-weight: 500;
+  letter-spacing: -0.005em;
 }
 [data-design="premium"] #nav-parameters .space-y-3 > div > div:first-child button,
 [data-design="premium"] #nav-parameters .space-y-3 > div > div:first-child button svg {
-  color: rgb(255 255 255 / 0.75);
+  color: #8aa0c0;
 }
 [data-design="premium"] #nav-parameters .space-y-3 > div > div:first-child .justify-between > .rounded-full {
   flex-shrink: 0;
-  background-color: #ffffff !important;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
-}
-[data-design="premium"] #nav-parameters .space-y-3 > div > div:first-child .flex-1 * {
-  background-color: transparent !important;
-  border-color: rgb(255 255 255 / 0.6) !important;
-  color: rgb(255 255 255 / 0.8) !important;
+  font-weight: 500;
 }
 [data-design="premium"] #nav-parameters .space-y-3 > div > .border-t {
   display: none;
+}
+[data-design="premium"] #nav-parameters .space-y-3 > div > div:first-child {
+  border-bottom: 1px solid #edf2fa;
 }
 [data-design="premium"] #nav-parameters .space-y-3 > div > div:last-child {
   gap: 1rem;
 }
 [data-design="premium"] #nav-parameters .space-y-3 > div > div:last-child > div:first-child > p:first-child {
-  font-size: 1.125rem;
-  font-weight: 700;
+  color: #0b2a5b;
+  font-size: 1rem;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 [data-design="premium"] #nav-parameters .space-y-3 > div > div:last-child > div:first-child > p:last-child {
