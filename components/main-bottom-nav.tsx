@@ -72,7 +72,7 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
       >
         <div
           className={`flex items-stretch ${
-            premium ? "rounded-3xl bg-[#0b2a5b] shadow-[0_12px_32px_-8px_rgba(11,42,91,0.55)]" : ""
+            premium ? "rounded-3xl bg-[#156ddc] shadow-[0_12px_32px_-8px_rgba(21,109,220,0.55)]" : ""
           }`}
         >
           <ul ref={listRef} className="flex min-w-0 flex-1 overflow-x-auto scrollbar-hide">

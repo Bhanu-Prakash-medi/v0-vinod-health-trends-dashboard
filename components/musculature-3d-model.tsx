@@ -575,7 +575,7 @@ export default function Musculature3DModel({
                     />
                   )}
                   <span
-                    className={`relative flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#ffffff] shadow-[0_0_0_3px_rgba(255,255,255,0.25),0_2px_8px_rgba(11,42,91,0.45)] transition-transform duration-200 group-hover:scale-125 group-focus-visible:scale-125 ${
+                    className={`relative flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#ffffff] shadow-[0_0_0_3px_rgba(255,255,255,0.25),0_2px_8px_rgba(21,109,220,0.45)] transition-transform duration-200 group-hover:scale-125 group-focus-visible:scale-125 ${
                       isSelected ? "scale-125" : ""
                     }`}
                   >
@@ -594,7 +594,7 @@ export default function Musculature3DModel({
                 >
                   <span className="h-px w-5 bg-[#ffffff]/70" />
                   <span
-                    className={`flex items-center gap-1 whitespace-nowrap rounded-full border border-[#ffffff]/25 bg-[#0b2a5b]/80 px-2 py-0.5 text-[10px] font-medium leading-4 text-[#ffffff] shadow-[0_4px_12px_rgba(11,42,91,0.35)] backdrop-blur-sm transition-colors group-hover:bg-[#156ddc] group-focus-visible:bg-[#156ddc] ${
+                    className={`flex items-center gap-1 whitespace-nowrap rounded-full border border-[#ffffff]/25 bg-[#156ddc]/80 px-2 py-0.5 text-[10px] font-medium leading-4 text-[#ffffff] shadow-[0_4px_12px_rgba(21,109,220,0.35)] backdrop-blur-sm transition-colors group-hover:bg-[#156ddc] group-focus-visible:bg-[#156ddc] ${
                       isSelected ? "bg-[#156ddc]" : ""
                     }`}
                   >
@@ -652,7 +652,7 @@ export default function Musculature3DModel({
                           {selectedOrganData.icon && <selectedOrganData.icon className="h-6 w-6" />}
                         </div>
                         <div>
-                          <h3 className="text-base font-semibold text-[#0b2a5b]">{selectedOrganData.name}</h3>
+                          <h3 className="text-base font-semibold text-[#2e3742]">{selectedOrganData.name}</h3>
                           <p
                             className={`text-sm font-medium ${
                               selectedOrganData.status === "normal" ? "text-[#156ddc]" : "text-[#e5484d]"
@@ -694,7 +694,7 @@ export default function Musculature3DModel({
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-[#0b2a5b]">
+                        <p className="text-sm text-[#2e3742]">
                           All {selectedOrganData.relatedTests.length} parameters are within normal range.
                         </p>
                       )}

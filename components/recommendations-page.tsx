@@ -172,7 +172,7 @@ export default function RecommendationsPage({
               type="button"
               onClick={onBack}
               aria-label="Back"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#ffffff] transition-colors hover:bg-[#0b3c7d]/40"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#ffffff] transition-colors hover:bg-[#ffffff]/15"
             >
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </button>
@@ -186,7 +186,7 @@ export default function RecommendationsPage({
 
           {data && !isLoading && (
             <>
-              <div className="mx-4 mt-3 flex rounded-full bg-[#0b3c7d]/30 p-0.5" role="tablist" aria-label="Recommendation type">
+              <div className="mx-4 mt-3 flex rounded-full bg-[#ffffff]/15 p-0.5" role="tablist" aria-label="Recommendation type">
                 <SegTab active={view === "priority"} onClick={() => switchView("priority")} label="Top priorities" count={priority.length} />
                 <SegTab active={view === "all"} onClick={() => switchView("all")} label="All parameters" count={allParams.length} />
               </div>
@@ -211,7 +211,7 @@ export default function RecommendationsPage({
                         onClick={() => selectParam(p)}
                         className={`inline-flex h-7 shrink-0 snap-center items-center gap-1.5 rounded-full border px-2.5 text-[11px] transition-colors ${
                           active
-                            ? "border-[#ffffff] bg-[#ffffff] text-[#0b3c7d]"
+                            ? "border-[#ffffff] bg-[#ffffff] text-[#156ddc]"
                             : "border-[#ffffff]/20 bg-transparent text-[#ffffff]/85 hover:bg-[#ffffff]/10"
                         }`}
                       >
@@ -275,7 +275,7 @@ export default function RecommendationsPage({
                   <article
                     onTouchStart={onTouchStart}
                     onTouchEnd={onTouchEnd}
-                    className="touch-pan-y overflow-hidden rounded-3xl border border-[#eef1f4] bg-[#ffffff] shadow-[0_8px_24px_-12px_rgba(11,60,125,0.12)]"
+                    className="touch-pan-y overflow-hidden rounded-3xl border border-[#eef1f4] bg-[#ffffff] shadow-[0_8px_24px_-12px_rgba(21,109,220,0.12)]"
                   >
                     <ParameterHeader param={selected} />
 
@@ -371,7 +371,7 @@ function SegTab({ active, onClick, label, count }: { active: boolean; onClick: (
       aria-selected={active}
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 text-[12px] transition-colors ${
-        active ? "bg-[#ffffff] font-medium text-[#0b3c7d] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#ffffff]/80 hover:text-[#ffffff]"
+        active ? "bg-[#ffffff] font-medium text-[#156ddc] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#ffffff]/80 hover:text-[#ffffff]"
       }`}
     >
       {label}

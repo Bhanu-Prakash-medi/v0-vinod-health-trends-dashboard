@@ -1064,7 +1064,7 @@ export default function HealthDashboard() {
         }`}
       >
         {premium ? (
-          <header className="ht-hero relative rounded-b-[28px] bg-[#0b2a5b] pb-16">
+          <header className="ht-hero relative rounded-b-[28px] bg-[#156ddc] pb-16">
             <div className="flex items-center justify-between px-5 pt-6 md:px-8">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#ffffff]/60">MediBuddy</p>

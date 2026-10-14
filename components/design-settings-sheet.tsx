@@ -29,7 +29,7 @@ function ClassicPreview() {
 function PremiumPreview() {
   return (
     <div className="relative flex h-full flex-col bg-[#eef3fa]" aria-hidden="true">
-      <div className="flex h-12 flex-col gap-1 rounded-b-xl bg-[#0b2a5b] p-2.5">
+      <div className="flex h-12 flex-col gap-1 rounded-b-xl bg-[#156ddc] p-2.5">
         <div className="h-1.5 w-8 rounded-full bg-[#ffffff]/40" />
         <div className="h-2 w-14 rounded-full bg-[#ffffff]/80" />
       </div>
@@ -57,7 +57,7 @@ export default function DesignSettingsSheet({ open, onOpenChange }: { open: bool
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="mx-auto max-w-[420px] rounded-t-3xl border-0 bg-[#ffffff] px-5 pb-8">
         <SheetHeader className="px-0 pb-2 text-left">
-          <SheetTitle className="text-lg font-semibold text-[#0b2a5b]">Appearance</SheetTitle>
+          <SheetTitle className="text-lg font-semibold text-[#2e3742]">Appearance</SheetTitle>
           <SheetDescription className="text-sm text-[#6b7a8c]">Choose how your health dashboard looks.</SheetDescription>
         </SheetHeader>
 
@@ -78,7 +78,7 @@ export default function DesignSettingsSheet({ open, onOpenChange }: { open: bool
                 <div className="h-28 w-full sm:h-36">{opt.id === "classic" ? <ClassicPreview /> : <PremiumPreview />}</div>
                 <div className="flex items-start justify-between gap-2 border-t border-[#eef1f4] p-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#0b2a5b]">{opt.name}</p>
+                    <p className="text-sm font-semibold text-[#2e3742]">{opt.name}</p>
                     <p className="mt-0.5 text-xs leading-relaxed text-[#6b7a8c] text-pretty">{opt.description}</p>
                   </div>
                   <span
