@@ -2,10 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 
 const HEALTHTRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
 
-// Fallback access token used when no `accesstoken` header is present (e.g. the
-// v0 preview / local testing where the real `redirect` cookie is absent).
-const DEBUG_ACCESS_TOKEN = "9b019a19c1ee4d818aa35c41a920bf88"
-
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 20000): Promise<Response> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
@@ -22,7 +18,11 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout = 200
 // the accesstoken header, falling back to the debug token when absent.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const accessToken = request.headers.get("accesstoken") || DEBUG_ACCESS_TOKEN
+  const accessToken = request.headers.get("accesstoken")
+
+  if (!accessToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
 
   if (!id) {
     return NextResponse.json({ error: "vasBenefId required" }, { status: 400 })
