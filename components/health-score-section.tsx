@@ -168,17 +168,21 @@ export default function HealthScoreSection({
     }
   }, [activeScore, view])
 
-  const header = (
-    <div className="mb-3 flex items-center gap-2">
-      <Activity className="h-5 w-5 shrink-0 text-[#156ddc]" />
-      <h2 className="text-base font-semibold text-[#2e3742]">Health Risk Score</h2>
+  const renderHeader = (subtitle?: React.ReactNode) => (
+    <div className="flex min-w-0 items-center gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef4fd]">
+        <Activity className="h-5 w-5 text-[#156ddc]" />
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-[15px] font-semibold leading-tight text-[#2e3742]">Health Risk Score</h2>
+        {subtitle && <p className="mt-0.5 truncate text-xs text-[#9dabbd]">{subtitle}</p>}
+      </div>
     </div>
   )
+  const header = <div className="mb-3">{renderHeader()}</div>
 
-  // Action pills — rendered on their own full-width row beneath the benchmark
-  // card so the labels always fit on one line (they used to crowd the header).
   const actionPills = (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
+    <div className="mt-3 grid grid-cols-2 gap-2">
       <button
         type="button"
         onClick={() => {
@@ -186,9 +190,9 @@ export default function HealthScoreSection({
           openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")
         }}
         aria-label="Watch how your Health Risk Score is calculated"
-        className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[#f2d4d4] bg-[#fdf2f2] px-3 py-1.5 text-xs font-medium text-[#d1495b] transition-colors hover:bg-[#fbe8e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d1495b]/30"
+        className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-[#e6ebf0] bg-white px-2 text-xs font-semibold text-[#2e3742] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:bg-[#f7f9fb] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
       >
-        <Youtube className="h-3.5 w-3.5 shrink-0" />
+        <Youtube className="h-4 w-4 shrink-0 text-[#d1495b]" />
         How it&apos;s calculated
       </button>
       <button
@@ -198,9 +202,9 @@ export default function HealthScoreSection({
           openExternalUrl("https://healthscorelabs.medibuddy.in")
         }}
         aria-label="Learn more on MediBuddy"
-        className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[#d5e6fb] bg-[#f2f8ff] px-3 py-1.5 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e3f0ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+        className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-[#156ddc] px-2 text-xs font-semibold text-white shadow-[0_2px_6px_rgba(21,109,220,0.25)] transition-colors hover:bg-[#1260c4] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/40"
       >
-        <Globe className="h-3.5 w-3.5 shrink-0" />
+        <Globe className="h-4 w-4 shrink-0" />
         Learn more
       </button>
     </div>
@@ -252,19 +256,20 @@ export default function HealthScoreSection({
     const displayAvg = benchmark ? benchmark.avgScore * progress : 0
 
     return (
-      <section aria-label="Health risk score" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
-        {header}
-
-        {/* Report date + view style toggle */}
-        <div className="mb-4 flex items-center justify-between gap-2">
-          {reportDate ? (
-            <p className="text-xs text-[#9dabbd]">
-              Based on the last AHC report <span className="font-medium text-[#4d5c6f]">({reportDate})</span>
-            </p>
-          ) : (
-            <p className="text-xs text-[#9dabbd]">Based on the last AHC report</p>
-          )}
-          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#f0f3f5] p-0.5" role="tablist" aria-label="Chart style">
+      <section aria-label="Health risk score" className="rounded-2xl border border-[#eef1f4] bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.05)]">
+        {/* Title + report date + view style toggle */}
+        {renderHeader()}
+        <div className="mb-5 mt-3 flex items-center justify-between gap-2">
+          <p className="min-w-0 truncate text-xs text-[#9dabbd]">
+            {reportDate ? (
+              <>
+                AHC report · <span className="font-medium text-[#4d5c6f]">{reportDate}</span>
+              </>
+            ) : (
+              "Based on your last AHC report"
+            )}
+          </p>
+          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-[#f0f3f5] p-0.5" role="tablist" aria-label="Chart style">
             {VIEW_OPTIONS.map(({ id, label: vLabel, Icon }) => {
               const active = view === id
               return (
@@ -274,12 +279,11 @@ export default function HealthScoreSection({
                   aria-selected={active}
                   aria-label={`${vLabel} view`}
                   onClick={() => setView(id)}
-                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
                     active ? "bg-white text-[#156ddc] shadow-sm" : "text-[#9dabbd] hover:text-[#4d5c6f]"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{vLabel}</span>
                 </button>
               )
             })}
@@ -384,42 +388,71 @@ export default function HealthScoreSection({
 
         {/* ---- LINEAR SCALE ---- */}
         {view === "scale" && (
-          <div className="px-1 pt-2">
-            <div className="mb-2 flex items-end justify-between">
-              <span className="text-3xl font-bold leading-none text-[#2e3742]">{formatScore(score)}</span>
-              <span className="rounded-pill px-2.5 py-0.5 text-xs font-semibold" style={{ color, backgroundColor: `${color}1a` }}>
+          <div>
+            <div className="flex items-end justify-between gap-3">
+              <div className="flex items-baseline gap-1">
+                <span className="text-[40px] font-semibold leading-none tracking-tight tabular-nums text-[#2e3742]">
+                  {formatScore(displayScore)}
+                </span>
+                <span className="text-sm font-medium text-[#9dabbd]">/ 10</span>
+              </div>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                style={{ color, backgroundColor: `${color}1a` }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
                 {label}
               </span>
             </div>
-            <div className="relative pt-6 pb-1">
-              {/* User marker */}
-              <div
-                className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
-                style={{ left: `${(displayScore / GAUGE_MAX) * 100}%` }}
-              >
-                <span className="rounded bg-[#2e3742] px-1.5 py-0.5 text-[10px] font-semibold text-white">You</span>
-                <div className="h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-[#2e3742]" />
-              </div>
-              {/* Zones */}
-              <div className="flex h-3.5 w-full overflow-hidden rounded-full">
-                {RISK_ZONES.map((z) => (
-                  <div key={z.from} style={{ width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`, backgroundColor: z.color }} />
+
+            <div className="relative mt-6 h-2.5">
+              <div className="flex h-full w-full gap-1">
+                {RISK_ZONES.map((z, i) => (
+                  <div
+                    key={z.from}
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`,
+                      backgroundColor: z.color,
+                      opacity: i === activeZoneIndex ? 1 : 0.28,
+                    }}
+                  />
                 ))}
               </div>
-              {/* Benchmark marker */}
               {benchmark && (
                 <div
-                  className="absolute -translate-x-1/2"
-                  style={{ left: `${(benchmark.avgScore / GAUGE_MAX) * 100}%`, top: "1.5rem" }}
+                  className="absolute top-full mt-1.5 flex -translate-x-1/2 flex-col items-center"
+                  style={{ left: `${(displayAvg / GAUGE_MAX) * 100}%` }}
                 >
-                  <div className="mx-auto h-5 w-0.5 bg-[#2e3742]" />
-                  <span className="mt-0.5 block whitespace-nowrap text-[9px] font-medium text-[#4d5c6f]">Avg</span>
+                  <span
+                    className="h-0 w-0 border-x-4 border-b-[5px] border-x-transparent border-b-[#4d5c6f]"
+                    aria-hidden="true"
+                  />
+                  <span className="mt-0.5 whitespace-nowrap text-[10px] font-medium text-[#4d5c6f]">
+                    Avg {benchmark.avgScore.toFixed(2)}
+                  </span>
                 </div>
               )}
+              <span
+                className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] bg-white shadow-[0_2px_6px_rgba(16,24,40,0.2)]"
+                style={{ left: `${(displayScore / GAUGE_MAX) * 100}%`, borderColor: color }}
+                aria-hidden="true"
+              />
             </div>
-            <div className="mt-5 flex justify-between text-[10px] font-medium text-[#9dabbd]">
-              {[0, 2, 4, 6, 8, 10].map((t) => (
-                <span key={t}>{t}</span>
+
+            <div className="mt-9 grid grid-cols-3 gap-1 text-[11px] font-medium">
+              {[
+                { name: "Low", range: "0 – 3.3" },
+                { name: "Moderate", range: "3.3 – 6.7" },
+                { name: "High", range: "6.7 – 10" },
+              ].map((z, i) => (
+                <div
+                  key={z.name}
+                  className={`flex flex-col ${i === 1 ? "items-center" : i === 2 ? "items-end" : "items-start"}`}
+                >
+                  <span style={{ color: i === activeZoneIndex ? RISK_ZONES[i].color : "#9dabbd" }}>{z.name}</span>
+                  <span className="text-[10px] font-normal text-[#b4c0cd]">{z.range}</span>
+                </div>
               ))}
             </div>
           </div>
@@ -493,17 +526,23 @@ export default function HealthScoreSection({
         )}
 
         {/* ---- Benchmark comparison + guidance (shared) ---- */}
-        <div className="mt-4 rounded-xl bg-[#f7f9fb] p-3">
+        <div className="mt-5 rounded-xl border border-[#eef1f4] bg-[#f9fafc] p-3">
           {benchmark && diff != null ? (
-            <div className="flex items-start gap-2">
-              {diff < 0 ? (
-                <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-[#16a34a]" />
-              ) : diff > 0 ? (
-                <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-[#dc2626]" />
-              ) : (
-                <Minus className="mt-0.5 h-4 w-4 shrink-0 text-[#9dabbd]" />
-              )}
-              <p className="text-xs leading-relaxed text-[#4d5c6f]">
+            <div className="flex items-start gap-3">
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                  diff < 0 ? "bg-[#16a34a]/10" : diff > 0 ? "bg-[#dc2626]/10" : "bg-[#9dabbd]/15"
+                }`}
+              >
+                {diff < 0 ? (
+                  <TrendingDown className="h-4 w-4 text-[#16a34a]" />
+                ) : diff > 0 ? (
+                  <TrendingUp className="h-4 w-4 text-[#dc2626]" />
+                ) : (
+                  <Minus className="h-4 w-4 text-[#9dabbd]" />
+                )}
+              </span>
+              <p className="text-[13px] leading-relaxed text-[#4d5c6f]">
                 {diff < 0 ? (
                   <>
                     You&apos;re <span className="font-semibold text-[#16a34a]">{Math.abs(diff).toFixed(2)} pts below</span> the
@@ -529,7 +568,7 @@ export default function HealthScoreSection({
               Your overall health risk score across your reports. A lower score means lower health risk.
             </p>
           )}
-          <p className="mt-1.5 pl-6 text-[10px] text-[#9dabbd]">Lower score = lower health risk (0 best, 10 highest risk).</p>
+          <p className="mt-2 border-t border-[#eef1f4] pt-2 text-[11px] text-[#9dabbd]">Lower score = lower health risk (0 best, 10 highest risk).</p>
         </div>
 
         {/* Action pills sit here, after the benchmark card, with room to breathe. */}
