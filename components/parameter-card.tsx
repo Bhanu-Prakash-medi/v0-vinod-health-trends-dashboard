@@ -58,7 +58,7 @@ export default function ParameterCard({ param, date, gender }: ParameterCardProp
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1 pt-0.5">
-          <h3 className="text-pretty text-sm font-semibold leading-snug text-[#1d2733]">{param.name}</h3>
+          <h3 className="text-pretty text-[15px] font-semibold leading-snug text-[#1d2733]">{param.name}</h3>
           <BiomarkerInfoButton name={param.name} gender={gender ?? undefined} />
         </div>
         <span
@@ -73,9 +73,9 @@ export default function ParameterCard({ param, date, gender }: ParameterCardProp
       <div className="flex items-baseline gap-1.5">
         <CountUp
           value={display.value}
-          className="text-[28px] font-semibold leading-none tracking-tight tabular-nums text-[#121a24]"
+          className="text-2xl font-semibold leading-none tracking-tight tabular-nums text-[#121a24]"
         />
-        {display.unit && <span className="truncate text-xs font-medium text-[#7d8a98]">{display.unit}</span>}
+        {display.unit && <span className="truncate text-[13px] font-medium text-[#7d8a98]">{display.unit}</span>}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -105,7 +105,7 @@ export default function ParameterCard({ param, date, gender }: ParameterCardProp
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-3 text-[11px]">
+        <div className="flex items-center justify-between gap-3 text-xs">
           <span className="text-[#98a3b0]">{date}</span>
           <span className="truncate text-[#98a3b0]">
             Normal <span className="font-semibold tabular-nums text-[#3d4957]">{display.range}</span>
