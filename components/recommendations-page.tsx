@@ -174,8 +174,8 @@ export default function RecommendationsPage({
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight text-[#ffffff]">Health Insights</h1>
-              <p className="truncate text-xs text-[#e8f2ff]/80">
+              <h1 className="text-[15px] font-medium leading-tight tracking-tight text-[#ffffff]">Health Insights</h1>
+              <p className="truncate text-[11px] text-[#e8f2ff]/75">
                 {dateLabel ? `From your ${dateLabel} report` : "From your latest report"}
               </p>
             </div>
@@ -183,7 +183,7 @@ export default function RecommendationsPage({
 
           {data && !isLoading && (
             <>
-              <div className="mx-4 mt-3 flex rounded-xl bg-[#0b3c7d]/35 p-1" role="tablist" aria-label="Recommendation type">
+              <div className="mx-4 mt-3 flex rounded-full bg-[#0b3c7d]/30 p-0.5" role="tablist" aria-label="Recommendation type">
                 <SegTab active={view === "priority"} onClick={() => switchView("priority")} label="Top priorities" count={priority.length} />
                 <SegTab active={view === "all"} onClick={() => switchView("all")} label="All parameters" count={allParams.length} />
               </div>
@@ -206,7 +206,7 @@ export default function RecommendationsPage({
                         role="option"
                         aria-selected={Boolean(active)}
                         onClick={() => selectParam(p)}
-                        className={`inline-flex h-8 shrink-0 snap-center items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
+                        className={`inline-flex h-7 shrink-0 snap-center items-center gap-1.5 rounded-full border px-2.5 text-[11px] transition-colors ${
                           active
                             ? "border-[#ffffff] bg-[#ffffff] text-[#0b3c7d]"
                             : "border-[#ffffff]/20 bg-transparent text-[#ffffff]/85 hover:bg-[#ffffff]/10"
@@ -252,7 +252,7 @@ export default function RecommendationsPage({
                   aria-expanded={summaryOpen}
                   className="flex items-start gap-2 text-left"
                 >
-                  <span className={`flex-1 text-sm leading-relaxed text-[#4d5c6f] text-pretty ${summaryOpen ? "" : "line-clamp-2"}`}>
+                  <span className={`flex-1 text-[13px] leading-relaxed text-[#4d5c6f] text-pretty ${summaryOpen ? "" : "line-clamp-2"}`}>
                     {data.overall_summary}
                   </span>
                   <ChevronDown
@@ -272,7 +272,7 @@ export default function RecommendationsPage({
                   <article
                     onTouchStart={onTouchStart}
                     onTouchEnd={onTouchEnd}
-                    className="touch-pan-y overflow-hidden rounded-2xl bg-[#ffffff] shadow-[0_1px_2px_rgba(46,55,66,0.06)]"
+                    className="touch-pan-y overflow-hidden rounded-3xl border border-[#eef1f4] bg-[#ffffff] shadow-[0_8px_24px_-12px_rgba(11,60,125,0.12)]"
                   >
                     <ParameterHeader param={selected} />
 
@@ -287,7 +287,7 @@ export default function RecommendationsPage({
                               role="tab"
                               aria-selected={active}
                               onClick={() => selectSection(s.id)}
-                              className={`-mb-px whitespace-nowrap border-b-2 pb-2.5 pt-1 text-[13px] transition-colors focus:outline-none focus-visible:text-[#156ddc] ${
+                              className={`-mb-px whitespace-nowrap border-b-[1.5px] pb-2.5 pt-1 text-[12px] transition-colors focus:outline-none focus-visible:text-[#156ddc] ${
                                 active
                                   ? "border-[#156ddc] font-medium text-[#156ddc]"
                                   : "border-transparent text-[#9dabbd] hover:text-[#4d5c6f]"
@@ -329,7 +329,7 @@ export default function RecommendationsPage({
                       >
                         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                       </button>
-                      <span className="text-xs font-medium text-[#9dabbd]" aria-live="polite">
+                      <span className="text-[11px] text-[#9dabbd]" aria-live="polite">
                         {`${selectedIndex + 1} of ${items.length} · swipe to switch`}
                       </span>
                       <button
@@ -367,12 +367,12 @@ function SegTab({ active, onClick, label, count }: { active: boolean; onClick: (
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors ${
-        active ? "bg-[#ffffff] text-[#0b3c7d] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#ffffff]/85 hover:text-[#ffffff]"
+      className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 text-[12px] transition-colors ${
+        active ? "bg-[#ffffff] font-medium text-[#0b3c7d] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#ffffff]/80 hover:text-[#ffffff]"
       }`}
     >
       {label}
-      <span className={`text-[11px] ${active ? "text-[#156ddc]" : "text-[#e8f2ff]/70"}`}>{count}</span>
+      <span className={`text-[10px] tabular-nums ${active ? "text-[#156ddc]" : "text-[#e8f2ff]/60"}`}>{count}</span>
     </button>
   )
 }
@@ -382,24 +382,26 @@ function ParameterHeader({ param }: { param: RecParameter }) {
   const tone = statusTone(param.status)
   return (
     <div className="flex flex-col gap-4 px-5 pb-4 pt-5">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#156ddc]" aria-hidden="true">
-          <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#156ddc]" aria-hidden="true">
+          <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
         </span>
-        <h2 className="min-w-0 flex-1 text-[15px] font-medium leading-snug text-[#2e3742] text-pretty">{param.parameter}</h2>
+        <h2 className="min-w-0 flex-1 text-[13px] font-medium leading-snug text-[#4d5c6f] text-pretty">{param.parameter}</h2>
         {tone.label && (
-          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${tone.pill}`}>{tone.label}</span>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${tone.pill}`}>
+            {tone.label}
+          </span>
         )}
       </div>
       {(param.value || param.normal_range) && (
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex items-end justify-between gap-3 border-t border-[#f0f3f5] pt-4">
           {param.value && (
-            <p className="text-2xl font-medium leading-none tracking-tight text-[#2e3742] tabular-nums">{param.value}</p>
+            <p className="text-[22px] font-light leading-none tracking-tight text-[#2e3742] tabular-nums">{param.value}</p>
           )}
           {param.normal_range && (
-            <p className="text-right text-xs leading-relaxed text-[#9dabbd]">
-              <span className="block">Normal range</span>
-              <span className="text-[#4d5c6f]">{param.normal_range}</span>
+            <p className="text-right text-[11px] leading-relaxed text-[#9dabbd]">
+              <span className="block uppercase tracking-wider text-[10px]">Normal</span>
+              <span className="text-[#4d5c6f] tabular-nums">{param.normal_range}</span>
             </p>
           )}
         </div>
@@ -423,21 +425,19 @@ function SectionContent({
   const rec = param.recommendations || {}
 
   if (section === "understand") {
-    const rows: { title: string; text?: string; icon: LucideIcon; tint: string; fg: string }[] = [
-      { title: "What it is", text: exp.what_it_is, icon: BookOpen, tint: "bg-[#156ddc]", fg: "text-[#ffffff]" },
-      { title: "Why it happens", text: exp.why_it_happens, icon: Lightbulb, tint: "bg-[#0b3c7d]", fg: "text-[#ffffff]" },
+    const rows: { title: string; text?: string; icon: LucideIcon }[] = [
+      { title: "What it is", text: exp.what_it_is, icon: BookOpen },
+      { title: "Why it happens", text: exp.why_it_happens, icon: Lightbulb },
     ].filter((r) => r.text)
     return (
-      <dl className="flex flex-col gap-3">
-        {rows.map(({ title, text, icon: Icon, tint, fg }) => (
-          <div key={title} className="flex gap-3 rounded-2xl bg-[#e8f2ff] p-3.5">
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`} aria-hidden="true">
-              <Icon className={`h-[18px] w-[18px] ${fg}`} strokeWidth={2} />
-            </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <dt className="text-sm font-semibold text-[#0b3c7d]">{title}</dt>
-              <dd className="text-sm leading-relaxed text-[#4d5c6f] text-pretty">{text}</dd>
-            </div>
+      <dl className="flex flex-col divide-y divide-[#f0f3f5]">
+        {rows.map(({ title, text, icon: Icon }) => (
+          <div key={title} className="flex flex-col gap-1.5 py-3.5 first:pt-0 last:pb-0">
+            <dt className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-[#156ddc]">
+              <Icon className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
+              {title}
+            </dt>
+            <dd className="text-[13px] leading-relaxed text-[#4d5c6f] text-pretty">{text}</dd>
           </div>
         ))}
       </dl>
@@ -451,21 +451,21 @@ function SectionContent({
           {(rec.lifestyle || []).map((l, i) => (
             <li key={`${l.change}-${i}`} className="flex gap-3 py-3 first:pt-0 last:pb-0">
               <span
-                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#156ddc] text-[11px] font-semibold text-[#ffffff]"
+                className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[10px] font-medium tabular-nums text-[#156ddc]"
                 aria-hidden="true"
               >
                 {i + 1}
               </span>
               <div className="flex min-w-0 flex-col gap-1">
-                <p className="text-sm font-semibold leading-snug text-[#2e3742]">{l.change}</p>
-                {l.how && <p className="text-sm leading-relaxed text-[#4d5c6f]">{l.how}</p>}
-                {l.why && <p className="text-xs leading-relaxed text-[#9dabbd]">{l.why}</p>}
+                <p className="text-[13px] font-medium leading-snug text-[#2e3742]">{l.change}</p>
+                {l.how && <p className="text-[13px] leading-relaxed text-[#4d5c6f]">{l.how}</p>}
+                {l.why && <p className="text-[11px] leading-relaxed text-[#9dabbd]">{l.why}</p>}
               </div>
             </li>
           ))}
         </ol>
         {rec.self_care_note && (
-          <p className="rounded-xl bg-[#e8f2ff] px-3 py-2.5 text-xs leading-relaxed text-[#0b3c7d]">{rec.self_care_note}</p>
+          <p className="rounded-2xl bg-[#f7f9fa] px-3.5 py-3 text-[12px] leading-relaxed text-[#4d5c6f]">{rec.self_care_note}</p>
         )}
       </div>
     )
@@ -481,7 +481,7 @@ function SectionContent({
   const otherTests = next.other_tests || []
   return (
     <div className="flex flex-col gap-2">
-      {next.consult_doctor?.advice && <p className="text-sm leading-relaxed text-[#4d5c6f]">{next.consult_doctor.advice}</p>}
+      {next.consult_doctor?.advice && <p className="text-[13px] leading-relaxed text-[#4d5c6f]">{next.consult_doctor.advice}</p>}
       {(specialists.length > 0 || tests.length > 0) && (
         <div className="flex flex-col divide-y divide-[#f0f3f5]">
           {specialists.map((s) => (
@@ -493,8 +493,8 @@ function SectionContent({
         </div>
       )}
       {otherTests.length > 0 && (
-        <p className="mt-2 rounded-xl bg-[#f7f9fa] px-3.5 py-3 text-xs leading-relaxed text-[#4d5c6f]">
-          <span className="block text-[#9dabbd]">Also ask your doctor about</span>
+        <p className="mt-2 rounded-2xl bg-[#f7f9fa] px-3.5 py-3 text-[12px] leading-relaxed text-[#4d5c6f]">
+          <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-[#9dabbd]">Also ask your doctor about</span>
           {otherTests.join(", ")}
         </p>
       )}
@@ -547,11 +547,11 @@ function DietSection({ include, limit }: { include: RecFood[]; limit: RecFood[] 
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="tablist" aria-label="Diet guidance" className="grid grid-cols-2 gap-1 rounded-full bg-[#e8f2ff] p-1">
+      <div role="tablist" aria-label="Diet guidance" className="grid grid-cols-2 gap-0.5 rounded-full bg-[#f2f5f8] p-0.5">
         {(
           [
-            { id: "include", label: "Eat more", count: include.length, icon: Check, on: "bg-[#156ddc] text-[#ffffff]" },
-            { id: "limit", label: "Limit", count: limit.length, icon: X, on: "bg-[#c93838] text-[#ffffff]" },
+            { id: "include", label: "Eat more", count: include.length, icon: Check, on: "bg-[#ffffff] text-[#156ddc] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" },
+            { id: "limit", label: "Limit", count: limit.length, icon: X, on: "bg-[#ffffff] text-[#c93838] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" },
           ] as const
         ).map((t) => {
           const active = view === t.id
@@ -563,50 +563,36 @@ function DietSection({ include, limit }: { include: RecFood[]; limit: RecFood[] 
               aria-selected={active}
               disabled={t.count === 0}
               onClick={() => setView(t.id)}
-              className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 disabled:opacity-40 ${
-                active ? t.on : "text-[#4d5c6f] hover:text-[#2e3742]"
+              className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 disabled:opacity-40 ${
+                active ? t.on : "text-[#9dabbd] hover:text-[#4d5c6f]"
               }`}
             >
-              <t.icon className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+              <t.icon className="h-3 w-3" strokeWidth={2.25} aria-hidden="true" />
               {t.label}
-              <span className={`text-xs ${active ? "opacity-80" : "text-[#9dabbd]"}`}>{t.count}</span>
+              <span className="text-[10px] tabular-nums opacity-70">{t.count}</span>
             </button>
           )
         })}
       </div>
 
-      <ul role="tabpanel" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <ul role="tabpanel" className="flex flex-col divide-y divide-[#f0f3f5]">
         {items.map((f, i) => {
           const Icon = foodIcon(f.food, isInclude)
           return (
-            <li
-              key={`${view}-${f.food}-${i}`}
-              className={`flex gap-3 rounded-2xl p-3 ${isInclude ? "bg-[#e8f2ff]" : "bg-[#fdf1f1]"}`}
-            >
+            <li key={`${view}-${f.food}-${i}`} className="flex gap-3 py-3 first:pt-1 last:pb-0">
               <span
-                className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ffffff] ${
-                  isInclude ? "text-[#156ddc]" : "text-[#c93838]"
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                  isInclude ? "bg-[#e8f2ff] text-[#156ddc]" : "bg-[#fdf1f1] text-[#c93838]"
                 }`}
                 aria-hidden="true"
               >
-                <Icon className="h-5 w-5" strokeWidth={1.9} />
-                <span
-                  className={`absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-[#ffffff] ${
-                    isInclude ? "bg-[#156ddc]" : "bg-[#c93838]"
-                  }`}
-                >
-                  {isInclude ? (
-                    <Check className="h-2.5 w-2.5 text-[#ffffff]" strokeWidth={3.5} />
-                  ) : (
-                    <X className="h-2.5 w-2.5 text-[#ffffff]" strokeWidth={3.5} />
-                  )}
-                </span>
+                <Icon className="h-4 w-4" strokeWidth={1.6} />
               </span>
               <div className="flex min-w-0 flex-col gap-0.5">
-                <p className="text-sm font-semibold text-[#2e3742]">{f.food}</p>
-                {f.why && <p className="text-xs leading-relaxed text-[#4d5c6f]">{f.why}</p>}
+                <p className="text-[13px] font-medium text-[#2e3742]">{f.food}</p>
+                {f.why && <p className="text-[12px] leading-relaxed text-[#4d5c6f]">{f.why}</p>}
                 {f.tip && (
-                  <p className={`text-xs font-medium leading-relaxed ${isInclude ? "text-[#156ddc]" : "text-[#c93838]"}`}>{f.tip}</p>
+                  <p className={`text-[11px] leading-relaxed ${isInclude ? "text-[#156ddc]" : "text-[#c93838]"}`}>{f.tip}</p>
                 )}
               </div>
             </li>
@@ -634,11 +620,12 @@ function CtaRow({
       onClick={onClick}
       className="group flex w-full items-center gap-3 py-3 text-left focus:outline-none"
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff]" aria-hidden="true">
-        <Icon className="h-4 w-4 text-[#156ddc]" strokeWidth={1.75} />
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff]" aria-hidden="true">
+        <Icon className="h-3.5 w-3.5 text-[#156ddc]" strokeWidth={1.75} />
       </span>
-      <span className="min-w-0 flex-1 text-sm leading-snug text-[#2e3742] line-clamp-2">{label}</span>
-      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-[#156ddc]/25 px-3 py-1 text-xs font-medium text-[#156ddc] transition-colors group-hover:bg-[#e8f2ff] group-focus-visible:bg-[#e8f2ff]">
+      <span className="min-w-0 flex-1 text-[13px] leading-snug text-[#2e3742] line-clamp-2">{label}</span>
+      <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium text-[#156ddc] transition-opacity group-hover:opacity-80">
+
         {action}
         <ChevronRight className="h-3 w-3" aria-hidden="true" />
       </span>
