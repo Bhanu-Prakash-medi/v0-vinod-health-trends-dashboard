@@ -1,7 +1,7 @@
 "use client"
 
-import { ArrowLeft, Check, ChevronDown, ChevronRight, FlaskConical, Info, RefreshCw, Stethoscope, X, type LucideIcon } from "lucide-react"
-import { useMemo, useState } from "react"
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Info, RefreshCw, Stethoscope, X, type LucideIcon } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { ApiHealthReport } from "@/lib/api"
 import { isNativeAppPlatform } from "@/lib/api"
 import { openExternalUrl } from "@/lib/open-external"
@@ -79,6 +79,37 @@ export default function RecommendationsPage({
     trackEvent("recommendations_click", { service: "parameter_select", parameter: p.parameter })
   }
 
+  const selectedIndex = selected ? items.findIndex((p) => paramKey(p) === paramKey(selected)) : -1
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const chipRow = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!selected || !chipRow.current) return
+    const chip = chipRow.current.querySelector<HTMLElement>(`[data-key="${CSS.escape(paramKey(selected))}"]`)
+    chip?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+  }, [selected])
+
+  const stepParam = (delta: number) => {
+    const next = items[selectedIndex + delta]
+    if (next) selectParam(next)
+  }
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0]
+    touchStart.current = { x: t.clientX, y: t.clientY }
+  }
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    stepParam(dx < 0 ? 1 : -1)
+  }
+
   const selectSection = (id: SectionId) => {
     setSection(id)
     trackEvent("recommendations_click", { service: "section_select", section: id, parameter: selected?.parameter })
@@ -114,7 +145,8 @@ export default function RecommendationsPage({
 
               {items.length > 0 && (
                 <div
-                  className="flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  ref={chipRow}
+                  className="flex snap-x gap-2 overflow-x-auto overscroll-x-contain px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   role="listbox"
                   aria-label="Select a parameter"
                 >
@@ -124,11 +156,12 @@ export default function RecommendationsPage({
                     return (
                       <button
                         key={paramKey(p)}
+                        data-key={paramKey(p)}
                         type="button"
                         role="option"
                         aria-selected={Boolean(active)}
                         onClick={() => selectParam(p)}
-                        className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
+                        className={`inline-flex h-8 shrink-0 snap-center items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
                           active
                             ? "border-[#156ddc] bg-[#156ddc] text-[#ffffff]"
                             : "border-[#e3e8ee] bg-[#ffffff] text-[#4d5c6f] hover:border-[#c9d3de]"
@@ -187,7 +220,12 @@ export default function RecommendationsPage({
                 </p>
               ) : (
                 selected && (
-                  <article className="overflow-hidden rounded-2xl bg-[#ffffff] shadow-[0_1px_2px_rgba(46,55,66,0.06)]">
+                  <>
+                  <article
+                    onTouchStart={onTouchStart}
+                    onTouchEnd={onTouchEnd}
+                    className="touch-pan-y overflow-hidden rounded-2xl bg-[#ffffff] shadow-[0_1px_2px_rgba(46,55,66,0.06)]"
+                  >
                     <ParameterHeader param={selected} />
 
                     {available.length > 1 && (
@@ -233,6 +271,33 @@ export default function RecommendationsPage({
                       </div>
                     )}
                   </article>
+
+                  {items.length > 1 && (
+                    <div className="flex items-center justify-between px-1">
+                      <button
+                        type="button"
+                        onClick={() => stepParam(-1)}
+                        disabled={selectedIndex <= 0}
+                        aria-label="Previous parameter"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffffff] text-[#4d5c6f] shadow-[0_1px_2px_rgba(46,55,66,0.08)] transition-opacity disabled:opacity-30"
+                      >
+                        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                      <span className="text-xs font-medium text-[#9dabbd]" aria-live="polite">
+                        {`${selectedIndex + 1} of ${items.length} · swipe to switch`}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => stepParam(1)}
+                        disabled={selectedIndex >= items.length - 1}
+                        aria-label="Next parameter"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffffff] text-[#4d5c6f] shadow-[0_1px_2px_rgba(46,55,66,0.08)] transition-opacity disabled:opacity-30"
+                      >
+                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                  </>
                 )
               )}
 
