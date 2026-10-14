@@ -163,19 +163,19 @@ export default function RecommendationsPage({
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto min-h-screen max-w-[420px] bg-[#f7f9fa] sm:my-8 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:shadow-lg">
-        <header className="sticky top-0 z-20 border-b border-[#eef1f4] bg-[#ffffff]">
+        <header className="sticky top-0 z-20 bg-[#156ddc] pb-1">
           <div className="flex items-center gap-1 px-2 pt-2">
             <button
               type="button"
               onClick={onBack}
               aria-label="Back"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#2e3742] transition-colors hover:bg-[#f0f3f5]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#ffffff] transition-colors hover:bg-[#0b3c7d]/40"
             >
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight text-[#2e3742]">Health Insights</h1>
-              <p className="truncate text-xs text-[#9dabbd]">
+              <h1 className="text-base font-semibold leading-tight text-[#ffffff]">Health Insights</h1>
+              <p className="truncate text-xs text-[#e8f2ff]/80">
                 {dateLabel ? `From your ${dateLabel} report` : "From your latest report"}
               </p>
             </div>
@@ -183,7 +183,7 @@ export default function RecommendationsPage({
 
           {data && !isLoading && (
             <>
-              <div className="mx-4 mt-3 flex rounded-xl bg-[#f0f3f5] p-1" role="tablist" aria-label="Recommendation type">
+              <div className="mx-4 mt-3 flex rounded-xl bg-[#0b3c7d]/35 p-1" role="tablist" aria-label="Recommendation type">
                 <SegTab active={view === "priority"} onClick={() => switchView("priority")} label="Top priorities" count={priority.length} />
                 <SegTab active={view === "all"} onClick={() => switchView("all")} label="All parameters" count={allParams.length} />
               </div>
@@ -208,11 +208,14 @@ export default function RecommendationsPage({
                         onClick={() => selectParam(p)}
                         className={`inline-flex h-8 shrink-0 snap-center items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
                           active
-                            ? "border-[#156ddc] bg-[#156ddc] text-[#ffffff]"
-                            : "border-[#e3e8ee] bg-[#ffffff] text-[#4d5c6f] hover:border-[#c9d3de]"
+                            ? "border-[#ffffff] bg-[#ffffff] text-[#156ddc] font-semibold"
+                            : "border-[#ffffff]/30 bg-[#ffffff]/10 text-[#ffffff] hover:bg-[#ffffff]/20"
                         }`}
                       >
-                        {!active && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tone.dot}`} aria-hidden="true" />}
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${active ? tone.dot : "bg-[#ffffff]/70"}`}
+                          aria-hidden="true"
+                        />
                         <span className="max-w-36 truncate">{p.parameter}</span>
                       </button>
                     )
@@ -274,7 +277,7 @@ export default function RecommendationsPage({
                     <ParameterHeader param={selected} />
 
                     {available.length > 1 && (
-                      <div className="flex border-b border-[#eef1f4] px-2" role="tablist" aria-label="Recommendation details">
+                      <div className="mx-4 mb-1 mt-4 flex gap-1 rounded-full bg-[#e8f2ff] p-1" role="tablist" aria-label="Recommendation details">
                         {available.map((s) => {
                           const active = s.id === activeSection
                           return (
@@ -284,15 +287,11 @@ export default function RecommendationsPage({
                               role="tab"
                               aria-selected={active}
                               onClick={() => selectSection(s.id)}
-                              className={`relative flex-1 py-3 text-xs font-semibold transition-colors ${
-                                active ? "text-[#156ddc]" : "text-[#9dabbd] hover:text-[#4d5c6f]"
+                              className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 ${
+                                active ? "bg-[#156ddc] text-[#ffffff] shadow-sm" : "text-[#156ddc] hover:bg-[#ffffff]/60"
                               }`}
                             >
                               {s.label}
-                              <span
-                                className={`absolute inset-x-3 bottom-0 h-0.5 rounded-full ${active ? "bg-[#156ddc]" : "bg-transparent"}`}
-                                aria-hidden="true"
-                              />
                             </button>
                           )
                         })}
@@ -367,11 +366,11 @@ function SegTab({ active, onClick, label, count }: { active: boolean; onClick: (
       aria-selected={active}
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
-        active ? "bg-[#ffffff] text-[#2e3742] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#6b7a8c] hover:text-[#2e3742]"
+        active ? "bg-[#ffffff] text-[#0b3c7d] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#ffffff]/85 hover:text-[#ffffff]"
       }`}
     >
       {label}
-      <span className={`text-[11px] ${active ? "text-[#156ddc]" : "text-[#9dabbd]"}`}>{count}</span>
+      <span className={`text-[11px] ${active ? "text-[#156ddc]" : "text-[#e8f2ff]/70"}`}>{count}</span>
     </button>
   )
 }
@@ -380,8 +379,8 @@ function ParameterHeader({ param }: { param: RecParameter }) {
   const Icon = organIcon(param.organ)
   const tone = statusTone(param.status)
   return (
-    <div className="flex items-center gap-3 p-4">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#156ddc]" aria-hidden="true">
+    <div className="flex items-center gap-3 border-b border-[#e8f2ff] bg-[#e8f2ff]/60 p-4">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#156ddc] text-[#ffffff] shadow-sm" aria-hidden="true">
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0 flex-1">
@@ -416,18 +415,18 @@ function SectionContent({
 
   if (section === "understand") {
     const rows: { title: string; text?: string; icon: LucideIcon; tint: string; fg: string }[] = [
-      { title: "What it is", text: exp.what_it_is, icon: BookOpen, tint: "bg-[#e8f2ff]", fg: "text-[#156ddc]" },
-      { title: "Why it happens", text: exp.why_it_happens, icon: Lightbulb, tint: "bg-[#fff4e0]", fg: "text-[#c47a00]" },
+      { title: "What it is", text: exp.what_it_is, icon: BookOpen, tint: "bg-[#156ddc]", fg: "text-[#ffffff]" },
+      { title: "Why it happens", text: exp.why_it_happens, icon: Lightbulb, tint: "bg-[#0b3c7d]", fg: "text-[#ffffff]" },
     ].filter((r) => r.text)
     return (
       <dl className="flex flex-col gap-3">
         {rows.map(({ title, text, icon: Icon, tint, fg }) => (
-          <div key={title} className="flex gap-3 rounded-2xl bg-[#f7f9fa] p-3.5">
+          <div key={title} className="flex gap-3 rounded-2xl bg-[#e8f2ff] p-3.5">
             <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`} aria-hidden="true">
               <Icon className={`h-[18px] w-[18px] ${fg}`} strokeWidth={2} />
             </span>
             <div className="flex min-w-0 flex-col gap-0.5">
-              <dt className="text-sm font-semibold text-[#2e3742]">{title}</dt>
+              <dt className="text-sm font-semibold text-[#0b3c7d]">{title}</dt>
               <dd className="text-sm leading-relaxed text-[#4d5c6f] text-pretty">{text}</dd>
             </div>
           </div>
@@ -443,7 +442,7 @@ function SectionContent({
           {(rec.lifestyle || []).map((l, i) => (
             <li key={`${l.change}-${i}`} className="flex gap-3 py-3 first:pt-0 last:pb-0">
               <span
-                className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[11px] font-semibold text-[#156ddc]"
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#156ddc] text-[11px] font-semibold text-[#ffffff]"
                 aria-hidden="true"
               >
                 {i + 1}
@@ -457,7 +456,7 @@ function SectionContent({
           ))}
         </ol>
         {rec.self_care_note && (
-          <p className="rounded-xl bg-[#f7f9fa] px-3 py-2.5 text-xs leading-relaxed text-[#4d5c6f]">{rec.self_care_note}</p>
+          <p className="rounded-xl bg-[#e8f2ff] px-3 py-2.5 text-xs leading-relaxed text-[#0b3c7d]">{rec.self_care_note}</p>
         )}
       </div>
     )
@@ -539,10 +538,10 @@ function DietSection({ include, limit }: { include: RecFood[]; limit: RecFood[] 
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="tablist" aria-label="Diet guidance" className="grid grid-cols-2 gap-1 rounded-full bg-[#f0f3f5] p-1">
+      <div role="tablist" aria-label="Diet guidance" className="grid grid-cols-2 gap-1 rounded-full bg-[#e8f2ff] p-1">
         {(
           [
-            { id: "include", label: "Eat more", count: include.length, icon: Check, on: "bg-[#1f8a4c] text-[#ffffff]" },
+            { id: "include", label: "Eat more", count: include.length, icon: Check, on: "bg-[#156ddc] text-[#ffffff]" },
             { id: "limit", label: "Limit", count: limit.length, icon: X, on: "bg-[#c93838] text-[#ffffff]" },
           ] as const
         ).map((t) => {
@@ -573,18 +572,18 @@ function DietSection({ include, limit }: { include: RecFood[]; limit: RecFood[] 
           return (
             <li
               key={`${view}-${f.food}-${i}`}
-              className={`flex gap-3 rounded-2xl p-3 ${isInclude ? "bg-[#eefaf3]" : "bg-[#fdf1f1]"}`}
+              className={`flex gap-3 rounded-2xl p-3 ${isInclude ? "bg-[#e8f2ff]" : "bg-[#fdf1f1]"}`}
             >
               <span
                 className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ffffff] ${
-                  isInclude ? "text-[#1f8a4c]" : "text-[#c93838]"
+                  isInclude ? "text-[#156ddc]" : "text-[#c93838]"
                 }`}
                 aria-hidden="true"
               >
                 <Icon className="h-5 w-5" strokeWidth={1.9} />
                 <span
                   className={`absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-[#ffffff] ${
-                    isInclude ? "bg-[#1f8a4c]" : "bg-[#c93838]"
+                    isInclude ? "bg-[#156ddc]" : "bg-[#c93838]"
                   }`}
                 >
                   {isInclude ? (
@@ -598,7 +597,7 @@ function DietSection({ include, limit }: { include: RecFood[]; limit: RecFood[] 
                 <p className="text-sm font-semibold text-[#2e3742]">{f.food}</p>
                 {f.why && <p className="text-xs leading-relaxed text-[#4d5c6f]">{f.why}</p>}
                 {f.tip && (
-                  <p className={`text-xs font-medium leading-relaxed ${isInclude ? "text-[#1f8a4c]" : "text-[#c93838]"}`}>{f.tip}</p>
+                  <p className={`text-xs font-medium leading-relaxed ${isInclude ? "text-[#156ddc]" : "text-[#c93838]"}`}>{f.tip}</p>
                 )}
               </div>
             </li>
@@ -624,11 +623,13 @@ function CtaRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 bg-[#ffffff] px-3 py-3 text-left transition-colors hover:bg-[#f7f9fa] focus:outline-none focus-visible:bg-[#f7f9fa]"
+      className="flex w-full items-center gap-3 bg-[#ffffff] px-3 py-3 text-left transition-colors hover:bg-[#e8f2ff]/50 focus:outline-none focus-visible:bg-[#e8f2ff]/50"
     >
-      <Icon className="h-[18px] w-[18px] shrink-0 text-[#156ddc]" aria-hidden="true" />
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff]" aria-hidden="true">
+        <Icon className="h-[18px] w-[18px] text-[#156ddc]" />
+      </span>
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#2e3742]">{label}</span>
-      <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#156ddc]">
+      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#156ddc] px-3 py-1.5 text-xs font-semibold text-[#ffffff]">
         {action}
         <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
       </span>
