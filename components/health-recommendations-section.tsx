@@ -7,11 +7,14 @@ import { organIcon, paramKey, reasonFor, statusTone, useRecommendations } from "
 
 interface HealthRecommendationsSectionProps {
   patientData: ApiHealthReport
-  onSeeAll: (paramId?: string) => void
+  onSeeAll?: (paramId?: string) => void
 }
 
 export default function HealthRecommendationsSection({ patientData, onSeeAll }: HealthRecommendationsSectionProps) {
   const { enabled, reportDate, data, error, isLoading, retry, priority } = useRecommendations(patientData)
+  const openRecommendations = (paramId?: string) => {
+    if (typeof onSeeAll === "function") onSeeAll(paramId)
+  }
 
   if (!enabled) return null
   if (data && !isLoading && priority.length === 0) return null
@@ -38,7 +41,7 @@ export default function HealthRecommendationsSection({ patientData, onSeeAll }: 
         {data && priority.length > 0 && (
           <button
             type="button"
-            onClick={() => onSeeAll()}
+            onClick={() => openRecommendations()}
             className="inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-1 text-sm font-semibold text-[#156ddc] transition-colors hover:bg-[#e8f2ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
           >
             See all
@@ -67,7 +70,7 @@ export default function HealthRecommendationsSection({ patientData, onSeeAll }: 
         <ul className="flex flex-col overflow-hidden rounded-2xl border border-[#f0f3f5] bg-[#ffffff]">
           {priority.map((p, i) => (
             <li key={paramKey(p)} className={i > 0 ? "border-t border-[#f0f3f5]" : undefined}>
-              <PreviewRow param={p} onClick={() => onSeeAll(paramKey(p))} />
+              <PreviewRow param={p} onClick={() => openRecommendations(paramKey(p))} />
             </li>
           ))}
         </ul>
