@@ -165,6 +165,15 @@ export interface ApiHealthReport {
    *  Only reports with contractType 9716 are sent to the Health Risk Score API;
    *  summary and trends ignore this field. */
   contractType?: string | number | null
+  /** Minimal payload of the latest report, sent to the recommendations API. */
+  recommendationSource?: RecommendationSource
+}
+
+export interface RecommendationSource {
+  id: number | string
+  status: string
+  report_data: { mbUserId: string; rVasBenefId: string; fullfilmentDate: string }
+  parameters: Array<{ unit: string; value: string | number; status: string; metric_name: string; normal_range: string }>
 }
 
 /**
@@ -1025,7 +1034,50 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
     health_summary: healthSummary,
     latestReportDate: fullfilmentDate,
     contractType,
+    recommendationSource: buildRecommendationSource(data, reportData, fullfilmentDate, transformedParameters),
   }
+}
+
+function buildRecommendationSource(
+  data: any,
+  reportData: any,
+  fullfilmentDate: string,
+  parameters: Record<string, any>,
+): RecommendationSource | undefined {
+  const params = Object.entries(parameters)
+    .filter(([, p]) => p && p.result !== "" && p.result !== null && p.result !== undefined)
+    .map(([metric_name, p]) => ({
+      unit: String(p.units ?? ""),
+      value: p.result,
+      status: String(p.status ?? "normal"),
+      metric_name,
+      normal_range: String(p.range ?? ""),
+    }))
+  if (params.length === 0) return undefined
+  const mbUserId = getValueCaseInsensitive(reportData, "mbUserId") ?? ""
+  const rVasBenefId = getValueCaseInsensitive(reportData, "rVasBenefId") ?? getValueCaseInsensitive(reportData, "vasBenefId") ?? ""
+  return {
+    id: getValueCaseInsensitive(data, "id") ?? getValueCaseInsensitive(reportData, "id") ?? "",
+    status: String(getValueCaseInsensitive(data, "status") ?? ""),
+    report_data: { mbUserId: String(mbUserId), rVasBenefId: String(rVasBenefId), fullfilmentDate },
+    parameters: params,
+  }
+}
+
+function pickLatestRecommendationSource(reports: ApiHealthReport[]): RecommendationSource | undefined {
+  let latest: RecommendationSource | undefined
+  let latestTime = Number.NEGATIVE_INFINITY
+  for (const r of reports) {
+    const src = r.recommendationSource
+    if (!src) continue
+    const t = parseDate(src.report_data.fullfilmentDate || "").getTime()
+    const time = Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t
+    if (!latest || time > latestTime) {
+      latest = src
+      latestTime = time
+    }
+  }
+  return latest
 }
 
 /**
@@ -1699,5 +1751,6 @@ export function mergeReportsKeepLatest(
     // the data shown. latestReport (picked by comparing only each report's
     // first entry) can resolve to a different date and caused a mismatch.
     latestReportDate: latestReportData?.fullfilmentDate || latestReportData?.date || latestReport.latestReportDate,
+    recommendationSource: pickLatestRecommendationSource(reports),
   }
 }
