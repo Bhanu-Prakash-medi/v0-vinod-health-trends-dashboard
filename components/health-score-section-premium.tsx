@@ -45,10 +45,15 @@ function riskColor(score: number) {
   return RISK_RED
 }
 
-// Show the score to one decimal place, TRUNCATED (not rounded) so a value like
-// 0.995798 renders as "0.9" rather than "1.0".
-function formatScore(n: number) {
-  return (Math.trunc(n * 10) / 10).toFixed(1)
+// Show the exact score from the API with no rounding or truncation. toPrecision(12)
+// only strips floating-point noise (e.g. 0.30000000000000004). While the count-up
+// animation runs, intermediate values use the same number of decimals as the final
+// score so the digits don't jump around.
+function formatScore(n: number, finalScore: number = n) {
+  const exact = String(Number(finalScore.toPrecision(12)))
+  if (n === finalScore) return exact
+  const decimals = exact.split(".")[1]?.length ?? 0
+  return n.toFixed(decimals)
 }
 
 // Format the report date (e.g. "22 Jul 2026") so the user knows which report
@@ -365,7 +370,7 @@ export default function HealthScoreSection({
 
               {/* Centre readout */}
               <text x={G_CX} y={G_CY + 8} textAnchor="middle" className="fill-[#2e3742] text-[38px] font-semibold tracking-tight">
-                {formatScore(displayScore)}
+                {formatScore(displayScore, score)}
               </text>
               <text x={G_CX} y={G_CY + 26} textAnchor="middle" className="fill-[#9dabbd] text-[11px] font-medium">
                 Your score / 10
@@ -386,7 +391,7 @@ export default function HealthScoreSection({
                 <span className="h-3 w-3 shrink-0 rounded-full border-[3px] bg-white" style={{ borderColor: color }} aria-hidden="true" />
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium leading-tight text-[#9dabbd]">You · outer ring</p>
-                  <p className="text-sm font-semibold tabular-nums text-[#2e3742]">{score.toFixed(2)}</p>
+                  <p className="text-sm font-semibold tabular-nums text-[#2e3742]">{formatScore(score)}</p>
                 </div>
               </div>
               {benchmark && (
@@ -406,13 +411,13 @@ export default function HealthScoreSection({
         {view === "scale" && (
           <div>
             <div className="flex items-end justify-between gap-3">
-              <div className="flex items-baseline gap-1">
-                <span className="text-[40px] font-semibold leading-none tracking-tight tabular-nums text-[#2e3742]">
-                  {formatScore(displayScore)}
+              <div className="flex min-w-0 items-baseline gap-1">
+                <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums text-[#2e3742] sm:text-[40px]">
+                  {formatScore(displayScore, score)}
                 </span>
-                <span className="text-sm font-medium text-[#9dabbd]">/ 10</span>
+                <span className="whitespace-nowrap text-sm font-medium text-[#9dabbd]">/ 10</span>
               </div>
-              {labelPill}
+              <div className="shrink-0 whitespace-nowrap">{labelPill}</div>
             </div>
 
             {/* Track: YOU pinned above, AVG pinned below — labels never collide */}
@@ -421,7 +426,7 @@ export default function HealthScoreSection({
                 className="absolute bottom-full mb-3.5 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-[0_2px_6px_rgba(16,24,40,0.15)]"
                 style={{ left: `${clampLabel(youPct)}%`, backgroundColor: INK }}
               >
-                You · {score.toFixed(2)}
+                You · {formatScore(score)}
               </span>
               <span
                 className="absolute bottom-full mb-2.5 h-2 w-2 -translate-x-1/2 translate-y-1/2 rotate-45"
@@ -541,7 +546,7 @@ export default function HealthScoreSection({
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-[11px] font-medium text-[#9dabbd]">Your score</p>
-                <p className="text-lg font-semibold tabular-nums text-[#2e3742]">{score.toFixed(2)}</p>
+                <p className="text-lg font-semibold tabular-nums text-[#2e3742]">{formatScore(score)}</p>
               </div>
               <span
                 className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums"

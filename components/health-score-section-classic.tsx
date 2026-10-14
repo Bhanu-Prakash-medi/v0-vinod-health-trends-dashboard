@@ -43,10 +43,15 @@ function riskColor(score: number) {
   return RISK_RED
 }
 
-// Show the score to one decimal place, TRUNCATED (not rounded) so a value like
-// 0.995798 renders as "0.9" rather than "1.0".
-function formatScore(n: number) {
-  return (Math.trunc(n * 10) / 10).toFixed(1)
+// Show the exact score from the API with no rounding or truncation. toPrecision(12)
+// only strips floating-point noise (e.g. 0.30000000000000004). While the count-up
+// animation runs, intermediate values use the same number of decimals as the final
+// score so the digits don't jump around.
+function formatScore(n: number, finalScore: number = n) {
+  const exact = String(Number(finalScore.toPrecision(12)))
+  if (n === finalScore) return exact
+  const decimals = exact.split(".")[1]?.length ?? 0
+  return n.toFixed(decimals)
 }
 
 // Format the report date (e.g. "22 Jul 2026") so the user knows which report
@@ -357,7 +362,7 @@ export default function HealthScoreSection({
 
               {/* Center readout (overall score) — counts up during the fill */}
               <text x="110" y="100" textAnchor="middle" className="fill-[#2e3742] text-[40px] font-bold">
-                {formatScore(displayScore)}
+                {formatScore(displayScore, score)}
               </text>
               <text x="110" y="122" textAnchor="middle" className="fill-[#9dabbd] text-[13px] font-medium">
                 out of 10
@@ -433,7 +438,7 @@ export default function HealthScoreSection({
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className="font-medium text-[#2e3742]">You</span>
                 <span className="font-semibold" style={{ color }}>
-                  {formatScore(displayScore)} / 10
+                  {formatScore(displayScore, score)} / 10
                 </span>
               </div>
               <div className="relative h-6 w-full overflow-hidden rounded-md">
