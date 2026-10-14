@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     .map((p) => ({
       unit: str(p?.unit, 40),
       value: typeof p?.value === "number" ? p.value : str(p?.value, 60),
-      status: str(p?.status, 30),
+      status: str(p?.status, 30).trim().toLowerCase(),
       metric_name: str(p?.metric_name, 120),
       normal_range: str(p?.normal_range, 80),
     }))
