@@ -161,10 +161,7 @@ export default function RecommendationsPage({
   }
 
   return (
-    <div
-      className="min-h-screen bg-[#f7f9fa] tracking-[-0.01em] [font-feature-settings:'tnum','ss01'] [&_button]:font-[inherit]"
-      style={{ fontFamily: "var(--font-insights), system-ui, sans-serif" }}
-    >
+    <div className="min-h-screen bg-[#f7f9fa] [&_button]:font-[inherit]">
       <div className="mx-auto min-h-screen max-w-[420px] bg-[#f7f9fa] sm:my-8 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:shadow-lg">
         <header className="sticky top-0 z-20 bg-[#156ddc] pb-1">
           <div className="flex items-center gap-1 px-2 pt-2">
@@ -177,8 +174,8 @@ export default function RecommendationsPage({
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-[17px] font-bold leading-tight tracking-tight text-[#ffffff]">Health Insights</h1>
-              <p className="truncate text-[11px] font-medium text-[#e8f2ff]/80">
+              <h1 className="text-[16px] font-semibold leading-tight tracking-tight text-[#ffffff]">Health Insights</h1>
+              <p className="truncate text-[11px] font-light text-[#e8f2ff]/85">
                 {dateLabel ? `From your ${dateLabel} report` : "From your latest report"}
               </p>
             </div>
@@ -211,8 +208,8 @@ export default function RecommendationsPage({
                         onClick={() => selectParam(p)}
                         className={`inline-flex h-8 shrink-0 snap-center items-center gap-1.5 rounded-full border px-3 text-[12px] transition-colors ${
                           active
-                            ? "border-[#ffffff] bg-[#ffffff] font-bold text-[#156ddc] shadow-[0_2px_6px_rgba(10,40,90,0.18)]"
-                            : "border-[#ffffff]/30 bg-[#ffffff]/10 font-semibold text-[#ffffff] hover:bg-[#ffffff]/20"
+                            ? "border-[#ffffff] bg-[#ffffff] font-medium text-[#156ddc] shadow-[0_2px_6px_rgba(10,40,90,0.18)]"
+                            : "border-[#ffffff]/25 bg-[#ffffff]/10 font-normal text-[#ffffff] hover:bg-[#ffffff]/20"
                         }`}
                       >
                         <span
@@ -255,7 +252,7 @@ export default function RecommendationsPage({
                   aria-expanded={summaryOpen}
                   className="flex items-start gap-2 text-left"
                 >
-                  <span className={`flex-1 text-[13px] leading-relaxed text-[#4d5c6f] text-pretty ${summaryOpen ? "" : "line-clamp-2"}`}>
+                  <span className={`flex-1 text-[12.5px] font-light leading-relaxed text-[#4d5c6f] text-pretty ${summaryOpen ? "" : "line-clamp-2"}`}>
                     {data.overall_summary}
                   </span>
                   <ChevronDown
@@ -294,7 +291,7 @@ export default function RecommendationsPage({
                               role="tab"
                               aria-selected={active}
                               onClick={() => selectSection(s.id)}
-                              className={`h-8 flex-auto whitespace-nowrap rounded-full border px-2.5 text-[11.5px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 ${
+                              className={`h-8 flex-auto whitespace-nowrap rounded-full border px-2.5 text-[11.5px] font-normal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 ${
                                 active
                                   ? "border-[#156ddc] bg-[#156ddc] text-[#ffffff] shadow-[0_2px_6px_rgba(21,109,220,0.25)]"
                                   : "border-[#dde5ee] bg-[#ffffff] text-[#4d5c6f] hover:border-[#156ddc]/40 hover:text-[#156ddc]"
@@ -332,7 +329,7 @@ export default function RecommendationsPage({
                         onClick={() => stepParam(-1)}
                         disabled={selectedIndex <= 0}
                         aria-label="Previous parameter"
-                        className="inline-flex h-9 items-center gap-1 rounded-full border border-[#dde5ee] bg-[#ffffff] pl-2.5 pr-3.5 text-[12px] font-semibold text-[#156ddc] shadow-[0_1px_2px_rgba(46,55,66,0.06)] transition-colors hover:border-[#156ddc]/40 disabled:border-[#eef1f4] disabled:text-[#c3ccd7] disabled:shadow-none"
+                        className="inline-flex h-9 items-center gap-1 rounded-full border border-[#dde5ee] bg-[#ffffff] pl-2.5 pr-3.5 text-[12px] font-medium text-[#156ddc] shadow-[0_1px_2px_rgba(46,55,66,0.06)] transition-colors hover:border-[#156ddc]/40 disabled:border-[#eef1f4] disabled:text-[#c3ccd7] disabled:shadow-none"
                       >
                         <ChevronLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
                         Previous
@@ -346,7 +343,7 @@ export default function RecommendationsPage({
                         onClick={() => stepParam(1)}
                         disabled={selectedIndex >= items.length - 1}
                         aria-label="Next parameter"
-                        className="inline-flex h-9 items-center gap-1 rounded-full bg-[#156ddc] pl-3.5 pr-2.5 text-[12px] font-semibold text-[#ffffff] shadow-[0_2px_8px_rgba(21,109,220,0.3)] transition-opacity hover:opacity-90 disabled:bg-[#eef1f4] disabled:text-[#c3ccd7] disabled:shadow-none"
+                        className="inline-flex h-9 items-center gap-1 rounded-full bg-[#156ddc] pl-3.5 pr-2.5 text-[12px] font-medium text-[#ffffff] shadow-[0_2px_8px_rgba(21,109,220,0.3)] transition-opacity hover:opacity-90 disabled:bg-[#eef1f4] disabled:text-[#c3ccd7] disabled:shadow-none"
                       >
                         Next
                         <ChevronRight className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
@@ -378,12 +375,12 @@ function SegTab({ active, onClick, label, count }: { active: boolean; onClick: (
       aria-selected={active}
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[12px] transition-colors ${
-        active ? "bg-[#ffffff] font-bold text-[#156ddc] shadow-[0_2px_6px_rgba(10,40,90,0.18)]" : "font-semibold text-[#ffffff]/85 hover:text-[#ffffff]"
+        active ? "bg-[#ffffff] font-medium text-[#156ddc] shadow-[0_2px_6px_rgba(10,40,90,0.18)]" : "font-normal text-[#ffffff]/85 hover:text-[#ffffff]"
       }`}
     >
       {label}
       <span
-        className={`rounded-full px-1.5 text-[10px] font-bold tabular-nums ${active ? "bg-[#e8f2ff] text-[#156ddc]" : "bg-[#ffffff]/15 text-[#ffffff]"}`}
+        className={`rounded-full px-1.5 text-[10px] font-medium tabular-nums ${active ? "bg-[#e8f2ff] text-[#156ddc]" : "bg-[#ffffff]/15 text-[#ffffff]"}`}
       >
         {count}
       </span>
@@ -400,9 +397,9 @@ function ParameterHeader({ param }: { param: RecParameter }) {
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff] text-[#156ddc]" aria-hidden="true">
           <Icon className="h-4 w-4" strokeWidth={2} />
         </span>
-        <h2 className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-[#2e3742] text-pretty">{param.parameter}</h2>
+        <h2 className="min-w-0 flex-1 text-[15px] font-medium leading-snug text-[#2e3742] text-pretty">{param.parameter}</h2>
         {tone.label && (
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${tone.pill}`}>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${tone.pill}`}>
             {tone.label}
           </span>
         )}
@@ -410,12 +407,12 @@ function ParameterHeader({ param }: { param: RecParameter }) {
       {(param.value || param.normal_range) && (
         <div className="flex items-end justify-between gap-3 border-t border-[#f0f3f5] pt-4">
           {param.value && (
-            <p className="text-[24px] font-extrabold leading-none tracking-tight text-[#2e3742] tabular-nums">{param.value}</p>
+            <p className="text-[24px] font-semibold leading-none tracking-tight text-[#2e3742] tabular-nums">{param.value}</p>
           )}
           {param.normal_range && (
             <p className="text-right text-[11px] leading-relaxed text-[#9dabbd]">
-              <span className="block text-[10px] font-semibold uppercase tracking-wider">Normal</span>
-              <span className="font-semibold text-[#4d5c6f] tabular-nums">{param.normal_range}</span>
+              <span className="block text-[10px] font-normal uppercase tracking-wider">Normal</span>
+              <span className="font-medium text-[#4d5c6f] tabular-nums">{param.normal_range}</span>
             </p>
           )}
         </div>
@@ -447,11 +444,11 @@ function SectionContent({
       <dl className="flex flex-col divide-y divide-[#f0f3f5]">
         {rows.map(({ title, text, icon: Icon }) => (
           <div key={title} className="flex flex-col gap-1.5 py-3.5 first:pt-0 last:pb-0">
-            <dt className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#156ddc]">
+            <dt className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-[#156ddc]">
               <Icon className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
               {title}
             </dt>
-            <dd className="text-[13px] leading-relaxed text-[#4d5c6f] text-pretty">{text}</dd>
+            <dd className="text-[13px] font-light leading-relaxed text-[#3d4a5a] text-pretty">{text}</dd>
           </div>
         ))}
       </dl>
