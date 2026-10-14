@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import HealthSummaryTile from "@/components/health-summary-tile"
+import SummaryOverview from "@/components/health-summary-overview"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   Select,
@@ -396,33 +397,7 @@ export default function HealthSummarySection({
         </div>
 
         {totalParams > 0 && (
-          <div className="mb-4 rounded-2xl bg-[#16202b] p-5 text-primary-foreground shadow-[0_12px_28px_-14px_rgba(22,32,43,0.55)]">
-            <p className="text-xs font-medium text-[#a9b4c1]">Parameters in normal range</p>
-            <div className="mt-2 flex items-baseline justify-between gap-3">
-              <p className="text-4xl font-semibold leading-none tabular-nums tracking-tight">
-                {totalParams - totalFlagged}
-                <span className="text-lg font-medium text-[#7d8a99]"> / {totalParams}</span>
-              </p>
-              <p className="text-right text-xs leading-relaxed text-[#a9b4c1]">
-                <span className="font-semibold text-[#ff8a80]">{totalFlagged} flagged</span>
-                <br />
-                across {attentionCount} {attentionCount === 1 ? "area" : "areas"}
-              </p>
-            </div>
-            <div
-              className="mt-4 flex h-2 w-full gap-1"
-              role="img"
-              aria-label={`${totalParams - totalFlagged} of ${totalParams} parameters in normal range, ${totalFlagged} flagged`}
-            >
-              <span
-                className="h-full rounded-full bg-[#4cb554]"
-                style={{ flexGrow: totalParams - totalFlagged, flexBasis: 0 }}
-              />
-              {totalFlagged > 0 && (
-                <span className="h-full rounded-full bg-[#ff6b5e]" style={{ flexGrow: totalFlagged, flexBasis: 0 }} />
-              )}
-            </div>
-          </div>
+          <SummaryOverview inRange={totalParams - totalFlagged} total={totalParams} flagged={totalFlagged} areas={attentionCount} />
         )}
 
         {/* Cards Grid - from API health_summary */}
