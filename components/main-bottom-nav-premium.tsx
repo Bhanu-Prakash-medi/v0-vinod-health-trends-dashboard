@@ -9,7 +9,7 @@ import DesignSettingsSheet from "@/components/design-settings-sheet"
 
 export type BottomNavItem = { id: string; label: string; icon: LucideIcon }
 
-export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
+export default function MainBottomNav({ items, showDesign = true }: { items: BottomNavItem[]; showDesign?: boolean }) {
   const { design } = useDesign()
   const premium = design === "premium"
   const [active, setActive] = useState(items[0]?.id)
@@ -97,6 +97,8 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
               )
             })}
           </ul>
+          {showDesign && (
+          <>
           <div className={`my-2 w-px shrink-0 ${premium ? "bg-[#ffffff]/15" : "bg-[#eef1f4]"}`} aria-hidden="true" />
           <button
             type="button"
@@ -109,9 +111,11 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
             </span>
             <span className={`text-[10px] font-medium leading-none ${labelClass(settingsOpen)}`}>Design</span>
           </button>
+          </>
+          )}
         </div>
       </nav>
-      <DesignSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {showDesign && <DesignSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />}
     </>
   )
 }

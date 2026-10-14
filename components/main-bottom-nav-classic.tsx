@@ -8,7 +8,7 @@ import DesignSettingsSheet from "@/components/design-settings-sheet"
 
 export type BottomNavItem = { id: string; label: string; icon: LucideIcon }
 
-export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
+export default function MainBottomNav({ items, showDesign = true }: { items: BottomNavItem[]; showDesign?: boolean }) {
   const [active, setActive] = useState(items[0]?.id)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const idsKey = items.map((i) => i.id).join("|")
@@ -70,6 +70,7 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
             </li>
           )
         })}
+        {showDesign && (
         <li className="flex flex-1">
           <button
             type="button"
@@ -89,9 +90,10 @@ export default function MainBottomNav({ items }: { items: BottomNavItem[] }) {
             </span>
           </button>
         </li>
+        )}
       </ul>
     </nav>
-    <DesignSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
+    {showDesign && <DesignSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />}
     </>
   )
 }

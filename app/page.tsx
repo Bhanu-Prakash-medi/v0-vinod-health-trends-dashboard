@@ -1308,7 +1308,7 @@ export default function HealthDashboard() {
         <Footer />
       </div>
       </div>
-      {showMainNav && <MainBottomNav items={mainNavItems} />}
+      {showMainNav && <MainBottomNav items={mainNavItems} showDesign={pmEntityId !== "1006639"} />}
     </>
   )
 }
