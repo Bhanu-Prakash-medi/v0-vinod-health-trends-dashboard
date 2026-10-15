@@ -1000,11 +1000,9 @@ export default function HealthDashboard() {
   const mainNavItems: BottomNavItem[] = [
     { id: "nav-overview", label: "Profile", icon: NavOverviewIcon },
     { id: "nav-summary", label: "Summary", icon: NavSummaryIcon },
-    ...(premium ? [{ id: "nav-twin", label: "Twin", icon: NavTwinIcon }] : []),
+    { id: "nav-twin", label: "Twin", icon: NavTwinIcon },
     ...(hasTrends ? [{ id: "nav-trends", label: "Trends", icon: NavTrendsIcon }] : []),
-    premium
-      ? { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon }
-      : { id: "nav-tests", label: "Tests", icon: NavTestsIcon },
+    { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon },
     { id: "nav-plan", label: "Insights", icon: NavPlanIcon },
     { id: "nav-reports", label: "Reports", icon: NavReportsIcon },
   ]
@@ -1212,6 +1210,7 @@ export default function HealthDashboard() {
                       />
                     </SectionViewTracker>
               {!premium && (
+                <div id="nav-twin" className="scroll-mt-20">
                     <SectionViewTracker section="digital_twin">
                       <InsightsSection
                         patientData={currentProfileData}
@@ -1219,6 +1218,7 @@ export default function HealthDashboard() {
                         healthSummaryOverride={selectedHealthSummary}
                       />
                     </SectionViewTracker>
+                </div>
               )}
               </div>
               {premium && (
