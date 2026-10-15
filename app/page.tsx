@@ -985,11 +985,9 @@ export default function HealthDashboard() {
   const mainNavItems: BottomNavItem[] = [
     { id: "nav-overview", label: "Profile", icon: NavOverviewIcon },
     { id: "nav-summary", label: "Summary", icon: NavSummaryIcon },
-    ...(premium ? [{ id: "nav-twin", label: "Twin", icon: NavTwinIcon }] : []),
+    { id: "nav-twin", label: "Twin", icon: NavTwinIcon },
     ...(hasTrends ? [{ id: "nav-trends", label: "Trends", icon: NavTrendsIcon }] : []),
-    premium
-      ? { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon }
-      : { id: "nav-tests", label: "Tests", icon: NavTestsIcon },
+    { id: "nav-parameters", label: "Parameters", icon: NavTestsIcon },
     { id: "nav-plan", label: "Insights", icon: NavPlanIcon },
     { id: "nav-reports", label: "Reports", icon: NavReportsIcon },
   ]
@@ -1043,7 +1041,7 @@ export default function HealthDashboard() {
       <div data-design={design} className={`min-h-screen ${premium ? "bg-[#eef3fa]" : "bg-[#f7f9fa]"}`}>
       <div
         className={`mx-auto max-w-[420px] ${
-          premium ? "bg-[#eef3fa] sm:my-8 sm:overflow-hidden sm:rounded-[28px] sm:shadow-xl" : "bg-white sm:my-8 sm:rounded-2xl sm:shadow-lg"
+          premium ? "bg-[#eef3fa] sm:mb-8 sm:overflow-hidden sm:rounded-b-[28px] sm:shadow-xl" : "bg-white sm:mb-8 sm:rounded-b-2xl sm:shadow-lg"
         }`}
       >
         <AppTopBar
@@ -1060,6 +1058,7 @@ export default function HealthDashboard() {
               familyMembers={familyMembers}
               activeFamily={activeBeneficiary?.uid || ""}
               setActiveFamily={handleBeneficiaryChange}
+              className="pb-2 pt-3"
             />
           </header>
         ) : (
@@ -1067,10 +1066,11 @@ export default function HealthDashboard() {
             familyMembers={familyMembers}
             activeFamily={activeBeneficiary?.uid || ""}
             setActiveFamily={handleBeneficiaryChange}
+            className="pb-0 pt-4"
           />
         )}
         <div
-          className={`space-y-6 px-4 py-6 ${premium ? "ht-premium-body relative -mt-14 pt-0 md:px-8" : ""} ${
+          className={`space-y-6 px-4 py-6 ${premium ? "ht-premium-body relative -mt-14 pt-0 md:px-8" : "pt-3"} ${
             showMainNav ? (premium ? "pb-32" : "pb-24") : ""
           }`}
         >
@@ -1197,6 +1197,7 @@ export default function HealthDashboard() {
                       />
                     </SectionViewTracker>
               {!premium && (
+                <div id="nav-twin" className="scroll-mt-20">
                     <SectionViewTracker section="digital_twin">
                       <InsightsSection
                         patientData={currentProfileData}
@@ -1204,6 +1205,7 @@ export default function HealthDashboard() {
                         healthSummaryOverride={selectedHealthSummary}
                       />
                     </SectionViewTracker>
+                </div>
               )}
               </div>
               {premium && (

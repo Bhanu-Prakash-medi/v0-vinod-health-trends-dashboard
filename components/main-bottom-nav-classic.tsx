@@ -31,6 +31,13 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
     return () => observer.disconnect()
   }, [idsKey])
 
+  useEffect(() => {
+    if (!active) return
+    document
+      .querySelector<HTMLElement>(`[data-nav-id="${active}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+  }, [active])
+
   const go = (id: string) => {
     setActive(id)
     trackEvent("bottom_nav_click", { section: id })
@@ -45,11 +52,11 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
       aria-label="Dashboard sections"
       className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[420px] border-t border-[#eef1f4] bg-[#ffffff] pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="flex">
+      <ul className="flex overflow-x-auto overscroll-x-contain px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item) => {
           const isActive = item.id === active
           return (
-            <li key={item.id} className="flex flex-1">
+            <li key={item.id} data-nav-id={item.id} className="flex min-w-[68px] flex-1 shrink-0">
               <button
                 type="button"
                 onClick={() => go(item.id)}
@@ -71,7 +78,7 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
           )
         })}
         {showDesign && (
-        <li className="flex flex-1">
+        <li className="flex min-w-[68px] flex-1 shrink-0">
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}

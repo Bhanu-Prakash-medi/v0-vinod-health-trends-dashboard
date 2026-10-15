@@ -18,11 +18,12 @@ interface TopNavigationProps {
   }>
   activeFamily: string
   setActiveFamily: (uid: string) => void
+  className?: string
 }
 
-export default function TopNavigation({ familyMembers, activeFamily, setActiveFamily }: TopNavigationProps) {
+export default function TopNavigation({ familyMembers, activeFamily, setActiveFamily, className = "py-6" }: TopNavigationProps) {
   return (
-    <div className="bg-gradient-to-b from-[#f1f7ff] to-transparent px-4 py-6">
+    <div className={`bg-gradient-to-b from-[#f1f7ff] to-transparent px-4 ${className}`}>
       {/* Family Member Chips - Dynamic from beneficiaries API */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {familyMembers.map((member) => (
