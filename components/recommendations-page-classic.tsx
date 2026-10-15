@@ -1,51 +1,6 @@
 "use client"
 
-import {
-  Apple,
-  ArrowLeft,
-  Ban,
-  Banana,
-  Bean,
-  Beef,
-  BookOpen,
-  Candy,
-  Carrot,
-  Check,
-  Cherry,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Citrus,
-  Coffee,
-  Cookie,
-  Croissant,
-  CupSoda,
-  Droplets,
-  Drumstick,
-  Egg,
-  EggFried,
-  Fish,
-  FlaskConical,
-  Grape,
-  IceCream,
-  Info,
-  Leaf,
-  Lightbulb,
-  Milk,
-  Nut,
-  Pizza,
-  Popcorn,
-  RefreshCw,
-  Salad,
-  Sandwich,
-  Soup,
-  Sprout,
-  Stethoscope,
-  Wheat,
-  Wine,
-  X,
-  type LucideIcon,
-} from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Info, RefreshCw, Stethoscope, X, type LucideIcon } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { ApiHealthReport } from "@/lib/api"
 import { isNativeAppPlatform } from "@/lib/api"
@@ -163,19 +118,19 @@ export default function RecommendationsPage({
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
       <div className="mx-auto min-h-screen max-w-[420px] bg-[#f7f9fa] sm:my-8 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:shadow-lg">
-        <header className="sticky top-0 z-20 bg-[#156ddc] pb-1">
+        <header className="sticky top-0 z-20 border-b border-[#eef1f4] bg-[#ffffff]">
           <div className="flex items-center gap-1 px-2 pt-2">
             <button
               type="button"
               onClick={onBack}
               aria-label="Back"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#ffffff] transition-colors hover:bg-[#0b3c7d]/40"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#2e3742] transition-colors hover:bg-[#f0f3f5]"
             >
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-base font-semibold leading-tight text-[#ffffff]">Health Insights</h1>
-              <p className="truncate text-xs text-[#e8f2ff]/80">
+              <h1 className="text-base font-semibold leading-tight text-[#2e3742]">Health Insights</h1>
+              <p className="truncate text-xs text-[#9dabbd]">
                 {dateLabel ? `From your ${dateLabel} report` : "From your latest report"}
               </p>
             </div>
@@ -183,7 +138,7 @@ export default function RecommendationsPage({
 
           {data && !isLoading && (
             <>
-              <div className="mx-4 mt-3 flex rounded-xl bg-[#0b3c7d]/35 p-1" role="tablist" aria-label="Recommendation type">
+              <div className="mx-4 mt-3 flex rounded-xl bg-[#f0f3f5] p-1" role="tablist" aria-label="Recommendation type">
                 <SegTab active={view === "priority"} onClick={() => switchView("priority")} label="Top priorities" count={priority.length} />
                 <SegTab active={view === "all"} onClick={() => switchView("all")} label="All parameters" count={allParams.length} />
               </div>
@@ -208,14 +163,11 @@ export default function RecommendationsPage({
                         onClick={() => selectParam(p)}
                         className={`inline-flex h-8 shrink-0 snap-center items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
                           active
-                            ? "border-[#ffffff] bg-[#ffffff] text-[#156ddc] font-semibold"
-                            : "border-[#ffffff]/30 bg-[#ffffff]/10 text-[#ffffff] hover:bg-[#ffffff]/20"
+                            ? "border-[#156ddc] bg-[#156ddc] text-[#ffffff]"
+                            : "border-[#e3e8ee] bg-[#ffffff] text-[#4d5c6f] hover:border-[#c9d3de]"
                         }`}
                       >
-                        <span
-                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${active ? tone.dot : "bg-[#ffffff]/70"}`}
-                          aria-hidden="true"
-                        />
+                        {!active && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tone.dot}`} aria-hidden="true" />}
                         <span className="max-w-36 truncate">{p.parameter}</span>
                       </button>
                     )
@@ -277,7 +229,7 @@ export default function RecommendationsPage({
                     <ParameterHeader param={selected} />
 
                     {available.length > 1 && (
-                      <div className="mx-4 mb-1 mt-4 flex gap-1 rounded-full bg-[#e8f2ff] p-1" role="tablist" aria-label="Recommendation details">
+                      <div className="flex border-b border-[#eef1f4] px-2" role="tablist" aria-label="Recommendation details">
                         {available.map((s) => {
                           const active = s.id === activeSection
                           return (
@@ -287,11 +239,15 @@ export default function RecommendationsPage({
                               role="tab"
                               aria-selected={active}
                               onClick={() => selectSection(s.id)}
-                              className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 ${
-                                active ? "bg-[#156ddc] text-[#ffffff] shadow-sm" : "text-[#156ddc] hover:bg-[#ffffff]/60"
+                              className={`relative flex-1 py-3 text-xs font-semibold transition-colors ${
+                                active ? "text-[#156ddc]" : "text-[#9dabbd] hover:text-[#4d5c6f]"
                               }`}
                             >
                               {s.label}
+                              <span
+                                className={`absolute inset-x-3 bottom-0 h-0.5 rounded-full ${active ? "bg-[#156ddc]" : "bg-transparent"}`}
+                                aria-hidden="true"
+                              />
                             </button>
                           )
                         })}
@@ -366,11 +322,11 @@ function SegTab({ active, onClick, label, count }: { active: boolean; onClick: (
       aria-selected={active}
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
-        active ? "bg-[#ffffff] text-[#0b3c7d] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#ffffff]/85 hover:text-[#ffffff]"
+        active ? "bg-[#ffffff] text-[#2e3742] shadow-[0_1px_2px_rgba(46,55,66,0.1)]" : "text-[#6b7a8c] hover:text-[#2e3742]"
       }`}
     >
       {label}
-      <span className={`text-[11px] ${active ? "text-[#156ddc]" : "text-[#e8f2ff]/70"}`}>{count}</span>
+      <span className={`text-[11px] ${active ? "text-[#156ddc]" : "text-[#9dabbd]"}`}>{count}</span>
     </button>
   )
 }
@@ -379,8 +335,8 @@ function ParameterHeader({ param }: { param: RecParameter }) {
   const Icon = organIcon(param.organ)
   const tone = statusTone(param.status)
   return (
-    <div className="flex items-center gap-3 border-b border-[#e8f2ff] bg-[#e8f2ff]/60 p-4">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#156ddc] text-[#ffffff] shadow-sm" aria-hidden="true">
+    <div className="flex items-center gap-3 p-4">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[#156ddc]" aria-hidden="true">
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0 flex-1">
@@ -414,21 +370,18 @@ function SectionContent({
   const rec = param.recommendations || {}
 
   if (section === "understand") {
-    const rows: { title: string; text?: string; icon: LucideIcon; tint: string; fg: string }[] = [
-      { title: "What it is", text: exp.what_it_is, icon: BookOpen, tint: "bg-[#156ddc]", fg: "text-[#ffffff]" },
-      { title: "Why it happens", text: exp.why_it_happens, icon: Lightbulb, tint: "bg-[#0b3c7d]", fg: "text-[#ffffff]" },
+    const rows = [
+      { title: "What it is", text: exp.what_it_is },
+      { title: "Your result", text: exp.your_result },
+      { title: "Why it happens", text: exp.why_it_happens },
+      { title: "What it means", text: exp.what_it_means },
     ].filter((r) => r.text)
     return (
-      <dl className="flex flex-col gap-3">
-        {rows.map(({ title, text, icon: Icon, tint, fg }) => (
-          <div key={title} className="flex gap-3 rounded-2xl bg-[#e8f2ff] p-3.5">
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`} aria-hidden="true">
-              <Icon className={`h-[18px] w-[18px] ${fg}`} strokeWidth={2} />
-            </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <dt className="text-sm font-semibold text-[#0b3c7d]">{title}</dt>
-              <dd className="text-sm leading-relaxed text-[#4d5c6f] text-pretty">{text}</dd>
-            </div>
+      <dl className="flex flex-col divide-y divide-[#f0f3f5]">
+        {rows.map((r) => (
+          <div key={r.title} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
+            <dt className="text-xs font-semibold text-[#156ddc]">{r.title}</dt>
+            <dd className="text-sm leading-relaxed text-[#2e3742] text-pretty">{r.text}</dd>
           </div>
         ))}
       </dl>
@@ -442,7 +395,7 @@ function SectionContent({
           {(rec.lifestyle || []).map((l, i) => (
             <li key={`${l.change}-${i}`} className="flex gap-3 py-3 first:pt-0 last:pb-0">
               <span
-                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#156ddc] text-[11px] font-semibold text-[#ffffff]"
+                className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#e8f2ff] text-[11px] font-semibold text-[#156ddc]"
                 aria-hidden="true"
               >
                 {i + 1}
@@ -456,14 +409,21 @@ function SectionContent({
           ))}
         </ol>
         {rec.self_care_note && (
-          <p className="rounded-xl bg-[#e8f2ff] px-3 py-2.5 text-xs leading-relaxed text-[#0b3c7d]">{rec.self_care_note}</p>
+          <p className="rounded-xl bg-[#f7f9fa] px-3 py-2.5 text-xs leading-relaxed text-[#4d5c6f]">{rec.self_care_note}</p>
         )}
       </div>
     )
   }
 
   if (section === "diet") {
-    return <DietSection key={paramKey(param)} include={rec.diet?.include || []} limit={rec.diet?.limit || []} />
+    const include = rec.diet?.include || []
+    const limit = rec.diet?.limit || []
+    return (
+      <div className="flex flex-col gap-5">
+        {include.length > 0 && <FoodList kind="include" items={include} />}
+        {limit.length > 0 && <FoodList kind="limit" items={limit} />}
+      </div>
+    )
   }
 
   const next = param.next_steps || {}
@@ -493,118 +453,32 @@ function SectionContent({
   )
 }
 
-const FOOD_ICON_RULES: [RegExp, LucideIcon][] = [
-  [/oat|wheat|millet|ragi|jowar|bajra|grain|rice|roti|chapati|bread|barley|quinoa|poha/i, Wheat],
-  [/dal|lentil|bean|rajma|chana|chickpea|legume|soy|pulse|sprout/i, Bean],
-  [/nut|almond|walnut|cashew|peanut|seed|flax|chia/i, Nut],
-  [/fish|salmon|sardine|mackerel|tuna|seafood|prawn/i, Fish],
-  [/fried egg/i, EggFried],
-  [/egg/i, Egg],
-  [/milk|curd|yogurt|yoghurt|paneer|dairy|buttermilk|cheese|ghee|butter/i, Milk],
-  [/chicken|poultry|drumstick/i, Drumstick],
-  [/meat|mutton|beef|pork|red meat|sausage|bacon/i, Beef],
-  [/guava|banana/i, Banana],
-  [/orange|lemon|citrus|amla|lime/i, Citrus],
-  [/grape|berr/i, Grape],
-  [/cherry|pomegranate/i, Cherry],
-  [/apple|fruit|papaya|pear/i, Apple],
-  [/carrot|beet|root/i, Carrot],
-  [/spinach|leaf|leafy|green|methi|palak|kale|vegetable|veggie|gourd|broccoli/i, Leaf],
-  [/salad|cucumber/i, Salad],
-  [/soup|stew/i, Soup],
-  [/water|hydrat|coconut water/i, Droplets],
-  [/tea|coffee|caffeine/i, Coffee],
-  [/soda|cola|soft drink|juice|sugary drink|beverage/i, CupSoda],
-  [/alcohol|wine|beer|liquor/i, Wine],
-  [/sweet|sugar|candy|mithai|dessert|jaggery|chocolate/i, Candy],
-  [/ice cream/i, IceCream],
-  [/biscuit|cookie|cake|bakery|pastry|maida/i, Cookie],
-  [/croissant|bakery/i, Croissant],
-  [/pizza|fast food|junk/i, Pizza],
-  [/sandwich|burger/i, Sandwich],
-  [/chips|namkeen|snack|popcorn|fried|pakora|samosa/i, Popcorn],
-  [/salt|pickle|papad|processed/i, Ban],
-]
-
-function foodIcon(name: string, isInclude: boolean): LucideIcon {
-  const hit = FOOD_ICON_RULES.find(([re]) => re.test(name))
-  return hit ? hit[1] : isInclude ? Sprout : Ban
-}
-
-function DietSection({ include, limit }: { include: RecFood[]; limit: RecFood[] }) {
-  const [view, setView] = useState<"include" | "limit">(include.length > 0 ? "include" : "limit")
-  const isInclude = view === "include"
-  const items = isInclude ? include : limit
-
+function FoodList({ kind, items }: { kind: "include" | "limit"; items: RecFood[] }) {
+  const isInclude = kind === "include"
+  const MarkIcon = isInclude ? Check : X
   return (
-    <div className="flex flex-col gap-3">
-      <div role="tablist" aria-label="Diet guidance" className="grid grid-cols-2 gap-1 rounded-full bg-[#e8f2ff] p-1">
-        {(
-          [
-            { id: "include", label: "Eat more", count: include.length, icon: Check, on: "bg-[#156ddc] text-[#ffffff]" },
-            { id: "limit", label: "Limit", count: limit.length, icon: X, on: "bg-[#c93838] text-[#ffffff]" },
-          ] as const
-        ).map((t) => {
-          const active = view === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              disabled={t.count === 0}
-              onClick={() => setView(t.id)}
-              className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 disabled:opacity-40 ${
-                active ? t.on : "text-[#4d5c6f] hover:text-[#2e3742]"
-              }`}
-            >
-              <t.icon className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-              {t.label}
-              <span className={`text-xs ${active ? "opacity-80" : "text-[#9dabbd]"}`}>{t.count}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      <ul role="tabpanel" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {items.map((f, i) => {
-          const Icon = foodIcon(f.food, isInclude)
-          return (
-            <li
-              key={`${view}-${f.food}-${i}`}
-              className={`flex gap-3 rounded-2xl p-3 ${isInclude ? "bg-[#e8f2ff]" : "bg-[#fdf1f1]"}`}
-            >
-              <span
-                className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ffffff] ${
-                  isInclude ? "text-[#156ddc]" : "text-[#c93838]"
-                }`}
-                aria-hidden="true"
-              >
-                <Icon className="h-5 w-5" strokeWidth={1.9} />
-                <span
-                  className={`absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-[#ffffff] ${
-                    isInclude ? "bg-[#156ddc]" : "bg-[#c93838]"
-                  }`}
-                >
-                  {isInclude ? (
-                    <Check className="h-2.5 w-2.5 text-[#ffffff]" strokeWidth={3.5} />
-                  ) : (
-                    <X className="h-2.5 w-2.5 text-[#ffffff]" strokeWidth={3.5} />
-                  )}
-                </span>
-              </span>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <p className="text-sm font-semibold text-[#2e3742]">{f.food}</p>
-                {f.why && <p className="text-xs leading-relaxed text-[#4d5c6f]">{f.why}</p>}
-                {f.tip && (
-                  <p className={`text-xs font-medium leading-relaxed ${isInclude ? "text-[#156ddc]" : "text-[#c93838]"}`}>{f.tip}</p>
-                )}
-              </div>
-            </li>
-          )
-        })}
+    <section className="flex flex-col gap-2">
+      <h3 className={`text-xs font-semibold ${isInclude ? "text-[#1f8a4c]" : "text-[#c93838]"}`}>
+        {isInclude ? "Eat more" : "Limit or avoid"}
+      </h3>
+      <ul className="flex flex-col divide-y divide-[#f0f3f5]">
+        {items.map((f, i) => (
+          <li key={`${f.food}-${i}`} className="flex gap-2.5 py-2.5 first:pt-0 last:pb-0">
+            <MarkIcon
+              className={`mt-0.5 h-4 w-4 shrink-0 ${isInclude ? "text-[#1f8a4c]" : "text-[#c93838]"}`}
+              strokeWidth={2.5}
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[#2e3742]">{f.food}</p>
+              {(f.why || f.tip) && (
+                <p className="mt-0.5 text-xs leading-relaxed text-[#6b7a8c]">{[f.why, f.tip].filter(Boolean).join(" ")}</p>
+              )}
+            </div>
+          </li>
+        ))}
       </ul>
-    </div>
+    </section>
   )
 }
 
@@ -623,13 +497,11 @@ function CtaRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 bg-[#ffffff] px-3 py-3 text-left transition-colors hover:bg-[#e8f2ff]/50 focus:outline-none focus-visible:bg-[#e8f2ff]/50"
+      className="flex w-full items-center gap-3 bg-[#ffffff] px-3 py-3 text-left transition-colors hover:bg-[#f7f9fa] focus:outline-none focus-visible:bg-[#f7f9fa]"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff]" aria-hidden="true">
-        <Icon className="h-[18px] w-[18px] text-[#156ddc]" />
-      </span>
+      <Icon className="h-[18px] w-[18px] shrink-0 text-[#156ddc]" aria-hidden="true" />
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#2e3742]">{label}</span>
-      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#156ddc] px-3 py-1.5 text-xs font-semibold text-[#ffffff]">
+      <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#156ddc]">
         {action}
         <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
       </span>
