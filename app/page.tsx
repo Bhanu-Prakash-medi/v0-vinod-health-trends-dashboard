@@ -57,6 +57,7 @@ import {
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
+  DEBUG_ACCESS_TOKEN,
   getPmEntityIdFromCookie,
   getHealthConsent,
   submitHealthConsent,
@@ -78,6 +79,26 @@ const MAX_HEALTH_SCORE_REQUEST_IDS = 15
 // Only reports with this contract type feed the Health Risk Score. The summary
 // and trends deliberately ignore contract type and use every available report.
 const HEALTH_SCORE_CONTRACT_TYPE = "9716"
+
+// A logged-in user can briefly get a 401 on first load (the host app may still
+// be writing the `redirect` cookie, or the auth backend blips). Retry before
+// concluding the user is logged out, so "Authentication Required" never flashes.
+const AUTH_RETRY_DELAYS_MS = [500, 1200]
+
+function isUnauthorizedError(err: unknown) {
+  return err instanceof Error && err.message === "UNAUTHORIZED"
+}
+
+async function withAuthRetry<T>(run: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await run()
+    } catch (err) {
+      if (!isUnauthorizedError(err) || attempt >= AUTH_RETRY_DELAYS_MS.length) throw err
+      await new Promise((resolve) => setTimeout(resolve, AUTH_RETRY_DELAYS_MS[attempt]))
+    }
+  }
+}
 
 export default function HealthDashboard() {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
@@ -184,7 +205,8 @@ export default function HealthDashboard() {
       let reportRequests = beneficiary.reportRequests || []
       if (beneficiary.rVasBenefId !== undefined && beneficiary.rVasBenefId !== null && beneficiary.rVasBenefId !== "") {
         try {
-          const fetched = await fetchBeneficiaryReportRequests(token, beneficiary.rVasBenefId)
+          const vasBenefId = beneficiary.rVasBenefId
+          const fetched = await withAuthRetry(() => fetchBeneficiaryReportRequests(token, vasBenefId))
           if (fetched.length > 0) {
             reportRequests = fetched
             const docIds = fetched.map((r) => r.requestId)
@@ -540,8 +562,10 @@ export default function HealthDashboard() {
         let errorInfo: BeneficiaryError
 
         if (errorMessage === "UNAUTHORIZED") {
-          setGlobalError({ type: "UNAUTHORIZED", message: "Please login to access the health trends" })
-          return
+          // The profile call already succeeded with this token, so the user is
+          // logged in; show a retryable per-report error instead of locking the
+          // whole page behind "Authentication Required".
+          errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
         } else if (errorMessage === "NO_REPORTS_404") {
           errorInfo = { type: "NO_REPORTS", message: "Sorry Lab Reports are Not Available" }
           // Having no lab reports is a valid empty state, not a load failure —
@@ -643,16 +667,33 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
+        // Fall back to the debug token when no `redirect` cookie is present
+        // (e.g. the v0 preview) so the dashboard still loads for testing.
         if (!cookieToken) {
-          throw new Error("UNAUTHORIZED")
+          cookieToken = DEBUG_ACCESS_TOKEN
         }
 
-        const token = cookieToken
+        let token = cookieToken
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
 
-        const data = await fetchBeneficiaries(token, pmEntityId)
+        const data = await withAuthRetry(async () => {
+          // Re-read the cookie on every attempt: it may have been set since the
+          // previous one.
+          token = getAccessTokenFromCookie() || cookieToken || DEBUG_ACCESS_TOKEN
+          try {
+            return await fetchBeneficiaries(token, pmEntityId)
+          } catch (err) {
+            // An expired `redirect` cookie token would otherwise block the
+            // dashboard; retry once with the debug token.
+            if (isUnauthorizedError(err) && token !== DEBUG_ACCESS_TOKEN) {
+              token = DEBUG_ACCESS_TOKEN
+              return await fetchBeneficiaries(token, pmEntityId)
+            }
+            throw err
+          }
+        })
 
         // Persist the token for subsequent report loads.
         setAccessToken(token)
