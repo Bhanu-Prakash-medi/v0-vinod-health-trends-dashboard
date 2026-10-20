@@ -25,6 +25,7 @@ import {
 } from "lucide-react"
 import RecommendationsPage from "@/components/recommendations-page"
 import FeedbackSection from "@/components/feedback-section"
+import FaqSection from "@/components/faq-section"
 
 // Temporarily hidden; flip to true to re-enable.
 const SHOW_REPORT_UPLOAD = false
@@ -1311,6 +1312,9 @@ export default function HealthDashboard() {
                   emailId={pickPrimaryEmail(userEmail)}
                   accessToken={accessToken}
                 />
+              <div id="nav-faq" className="ht-card scroll-mt-20">
+                <FaqSection />
+              </div>
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
               </div>
