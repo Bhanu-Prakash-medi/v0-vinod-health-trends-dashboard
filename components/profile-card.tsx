@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { ChevronRight, Info, Plus, ShieldAlert, X } from "lucide-react"
+import { ChevronRight, FileText, Info, Plus, Scale, ShieldAlert, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
 import { fetchBmi } from "@/lib/api"
@@ -171,15 +171,19 @@ export default function ProfileCard({
   const localBmiDate = formatBmiDate(new Date().toISOString())
 
   return (
-    <div className="relative rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
+    <div className="relative rounded-3xl border border-[#eef2f6] bg-white p-4 shadow-[0_10px_30px_-12px_rgba(21,109,220,0.25)]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-20 rounded-t-3xl bg-gradient-to-b from-[#eef5ff] to-transparent"
+      />
       {/* Disclaimer: top-right corner of the profile card */}
-      <div className="absolute right-2 top-2 z-30">
+      <div className="absolute right-3 top-3 z-30">
         <button
           type="button"
           onClick={() => setShowDisclaimer((v) => !v)}
           aria-label="Disclaimer"
           aria-expanded={showDisclaimer}
-          className="flex items-center gap-1 rounded-full border border-[#e0e6ec] bg-white px-2 py-1 text-[10px] font-semibold text-[#4d5c6f] transition-colors hover:border-[#156ddc]/40 hover:text-[#156ddc] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+          className="flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-semibold text-[#4d5c6f] shadow-sm ring-1 ring-[#e0e6ec] backdrop-blur transition-colors hover:text-[#156ddc] hover:ring-[#156ddc]/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
         >
           <ShieldAlert className="h-3 w-3" />
           Disclaimer
@@ -215,48 +219,49 @@ export default function ProfileCard({
       </div>
 
       {/* Header Section: Avatar + Info */}
-      <div className="flex gap-3">
+      <div className="relative flex items-center gap-3.5">
         {/* Avatar with Progress Ring */}
-        <div className="relative h-[50px] w-[50px] shrink-0">
-          <svg className="h-full w-full -rotate-90 transform">
-            <circle cx="25" cy="25" r="22" fill="none" stroke="#e8f2ff" strokeWidth="3" />
+        <div className="relative h-[60px] w-[60px] shrink-0">
+          <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 60 60" aria-hidden="true">
+            <circle cx="30" cy="30" r="27" fill="#ffffff" stroke="#e8f2ff" strokeWidth="3" />
             <circle
-              cx="25"
-              cy="25"
-              r="22"
+              cx="30"
+              cy="30"
+              r="27"
               fill="none"
               stroke="#156ddc"
               strokeWidth="3"
-              strokeDasharray={`${2 * Math.PI * 22 * 0.7} ${2 * Math.PI * 22}`}
+              strokeDasharray={`${2 * Math.PI * 27 * 0.7} ${2 * Math.PI * 27}`}
               strokeLinecap="round"
             />
           </svg>
-          <Avatar className="absolute left-1/2 top-1/2 h-[42px] w-[42px] -translate-x-1/2 -translate-y-1/2">
+          <Avatar className="absolute left-1/2 top-1/2 h-[48px] w-[48px] -translate-x-1/2 -translate-y-1/2">
             <AvatarImage src={avatarSrc || "/placeholder.svg"} alt={name} />
             <AvatarFallback className="bg-[#156ddc] text-sm font-semibold text-white">{initial}</AvatarFallback>
           </Avatar>
-          <div className="absolute -right-1 -top-1 rounded-full bg-[#156ddc] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full border-2 border-white bg-[#156ddc] px-1.5 py-px text-[9px] font-bold leading-tight text-white shadow-sm">
             70%
           </div>
         </div>
 
         {/* User Info */}
-        <div className="my-0 min-w-0 flex-1 pt-0">
+        <div className="min-w-0 flex-1">
           <h2
-            className="line-clamp-2 break-words pr-24 text-base font-bold leading-tight text-[#2e3742]"
+            className="line-clamp-2 break-words pr-24 text-[17px] font-bold leading-tight tracking-tight text-[#2e3742]"
             title={name}
           >
             {name}
           </h2>
-          <div className="mt-1 flex items-center gap-2">
-            <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+          <div className="mt-1.5 flex items-center gap-2">
+            <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#156ddc]">
               {relation || "Self"}
             </span>
-            <span className="text-xs text-[#4d5c6f]">
-              {age > 0 ? `${age}y` : ""} {gender && gender !== "Unknown" ? gender : ""}
+            <span className="text-xs font-medium text-[#4d5c6f]">
+              {[age > 0 ? `${age}y` : "", gender && gender !== "Unknown" ? gender : ""].filter(Boolean).join(" · ")}
             </span>
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[10px] text-[#4d5c6f]">
+          <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#4d5c6f]">
+            <FileText className="h-3 w-3 text-[#9aa7b5]" aria-hidden="true" />
             {countLoading ? (
               <>
                 <span className="inline-block h-3 w-5 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
@@ -274,7 +279,7 @@ export default function ProfileCard({
       </div>
 
       {/* BMI row */}
-      <div className="mt-3 border-t border-[#f0f3f5] pt-2.5">
+      <div className="relative mt-4">
         {bmiLoading ? (
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-10 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
@@ -359,10 +364,18 @@ export default function ProfileCard({
           <button
             type="button"
             onClick={() => setShowBmiForm(true)}
-            className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-[#156ddc]/40 bg-[#f4f9ff] px-3 py-2 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e8f2ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+            className="group flex w-full items-center gap-3 rounded-2xl bg-[#f4f9ff] p-2.5 text-left ring-1 ring-[#156ddc]/10 transition-colors hover:bg-[#e8f2ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
           >
-            <Plus className="h-3.5 w-3.5" />
-            Add height &amp; weight to calculate BMI
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#156ddc] shadow-sm">
+              <Scale className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-xs font-semibold text-[#2e3742]">Calculate your BMI</span>
+              <span className="text-[11px] text-[#4d5c6f]">Add height &amp; weight</span>
+            </span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#156ddc] text-white shadow-sm transition-transform group-hover:scale-105">
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
           </button>
         )}
       </div>
@@ -370,14 +383,16 @@ export default function ProfileCard({
       {/* View latest report — its own row so a long name never squeezes or
           clips it. Only shown once at least one report is available. */}
       {!countLoading && reportCount > 0 && (
-        <div className="mt-3 flex justify-end border-t border-[#f0f3f5] pt-2.5">
+        <div className="relative mt-3 border-t border-[#f0f3f5] pt-3">
           <button
             type="button"
             onClick={handleViewLatestReport}
-            className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-medium text-[#156ddc] transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 rounded"
+            className="group flex w-full items-center justify-between rounded-lg text-xs font-semibold text-[#156ddc] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
           >
             View latest report
-            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e8f2ff] transition-transform group-hover:translate-x-0.5">
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
           </button>
         </div>
       )}
