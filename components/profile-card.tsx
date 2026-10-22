@@ -43,6 +43,19 @@ function bmiCategory(bmi: number): string {
 }
 
 /** WHO BMI reference ranges shown in the info popover. */
+const ECG_POINTS = "0,16 180,16 192,16 198,10 204,16 214,16 222,2 232,30 240,8 246,16 320,16"
+
+// Draw-in on mount, then a bright pulse sweeps along the trace in time with a soft "breath".
+const ECG_STYLES = `
+.ecg-line { animation: ecg-reveal 1.4s cubic-bezier(0.65,0,0.35,1) both; }
+.ecg-base { animation: ecg-breathe 2.6s ease-in-out 1.4s infinite; }
+.ecg-sweep { transform: translateX(0); animation: ecg-sweep 2.6s cubic-bezier(0.45,0,0.55,1) 1.4s infinite; }
+@keyframes ecg-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes ecg-sweep { 0% { transform: translateX(0); } 70%, 100% { transform: translateX(420px); } }
+@keyframes ecg-breathe { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ecg-line, .ecg-base, .ecg-sweep { animation: none; } }
+`
+
 const BMI_RANGES: { range: string; category: string }[] = [
   { range: "< 18.5", category: "Underweight" },
   { range: "18.5 – 24.9", category: "Normal" },
@@ -229,7 +242,13 @@ export default function ProfileCard({
             </div>
           </div>
 
-          <svg aria-hidden="true" viewBox="0 0 320 32" preserveAspectRatio="none" className="mt-3 h-8 w-full overflow-visible">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 320 32"
+            preserveAspectRatio="none"
+            className="ecg-line mt-3 h-8 w-full overflow-visible"
+          >
+            <style>{ECG_STYLES}</style>
             <defs>
               <linearGradient id="pc-ecg" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#7fd1ff" stopOpacity="0" />
@@ -237,6 +256,14 @@ export default function ProfileCard({
                 <stop offset="72%" stopColor="#ffffff" stopOpacity="1" />
                 <stop offset="100%" stopColor="#7fd1ff" stopOpacity="0" />
               </linearGradient>
+              <linearGradient id="pc-ecg-sweep-fill" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#000" />
+                <stop offset="70%" stopColor="#fff" />
+                <stop offset="100%" stopColor="#000" />
+              </linearGradient>
+              <mask id="pc-ecg-sweep" maskUnits="userSpaceOnUse" x="-120" y="-20" width="560" height="72">
+                <rect className="ecg-sweep" x="-90" y="-20" width="90" height="72" fill="url(#pc-ecg-sweep-fill)" />
+              </mask>
               <filter id="pc-glow" x="-10%" y="-50%" width="120%" height="200%">
                 <feGaussianBlur stdDeviation="2" result="b" />
                 <feMerge>
@@ -246,6 +273,7 @@ export default function ProfileCard({
               </filter>
             </defs>
             <polyline
+              className="ecg-base"
               fill="none"
               stroke="url(#pc-ecg)"
               strokeWidth="1.6"
@@ -253,7 +281,18 @@ export default function ProfileCard({
               strokeLinejoin="round"
               filter="url(#pc-glow)"
               vectorEffect="non-scaling-stroke"
-              points="0,16 180,16 192,16 198,10 204,16 214,16 222,2 232,30 240,8 246,16 320,16"
+              points={ECG_POINTS}
+            />
+            <polyline
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              filter="url(#pc-glow)"
+              mask="url(#pc-ecg-sweep)"
+              vectorEffect="non-scaling-stroke"
+              points={ECG_POINTS}
             />
           </svg>
 
