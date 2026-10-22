@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import type { ApiHealthReport } from "@/lib/api"
-import { DEBUG_ACCESS_TOKEN, getAccessTokenFromCookie } from "@/lib/api"
+import { getAccessTokenFromCookie } from "@/lib/api"
 import { fetchRecommendations, type RecParameter } from "@/lib/recommendations-api"
 import { FALLBACK_RECOMMENDATIONS } from "@/lib/fallback-recommendations"
 
@@ -29,7 +29,7 @@ export function paramKey(p: RecParameter) {
 
 export function useRecommendations(patientData: ApiHealthReport | null | undefined) {
   const source = patientData?.recommendationSource
-  const accessToken = useMemo(() => getAccessTokenFromCookie() || DEBUG_ACCESS_TOKEN || "", [])
+  const accessToken = useMemo(() => getAccessTokenFromCookie() || "", [])
 
   const swrKey =
     source && accessToken
