@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import TopNavigation from "@/components/top-navigation"
-import PremiumProfileCard from "@/components/profile-card"
 import ClassicProfileCard from "@/components/profile-card-classic"
 import UploadReportSection from "@/components/upload-report-section"
 import HealthSummarySection from "@/components/health-summary-section"
@@ -124,7 +123,7 @@ export default function HealthDashboard() {
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
   const { design } = useDesign()
   const premium = design === "premium"
-  const ProfileCard = premium ? PremiumProfileCard : ClassicProfileCard
+  const ProfileCard = ClassicProfileCard
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
   const [recommendationsParam, setRecommendationsParam] = useState<string | null | undefined>(undefined)
