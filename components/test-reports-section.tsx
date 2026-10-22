@@ -9,6 +9,7 @@ import { trackEvent } from "@/lib/analytics/posthog"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 import { getParameterBand } from "@/lib/parameter-bands"
 import { isParamAbnormal } from "@/lib/parameter-status"
+import { useDesign } from "@/lib/design-context"
 
 interface TestReportsSectionProps {
   patientData: any
@@ -109,6 +110,7 @@ function normalizeParameters(parameters: any, gender?: string | null): Normalize
 }
 
 export default function TestReportsSection({ patientData, scrollToDate, onScrollHandled }: TestReportsSectionProps) {
+  const { design } = useDesign()
   const [showPdfViewer, setShowPdfViewer] = useState(false)
   const [selectedReportIndex, setSelectedReportIndex] = useState(0)
   const [highlightLatest, setHighlightLatest] = useState(false)
@@ -341,9 +343,11 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
   return (
     <section>
       {/* Disclaimer */}
-      <p className="mb-4 text-muted-foreground text-center italic tracking-wider text-[10px] font-light">
-        This is an AI-generated report and may not be fully accurate. Please consult a qualified doctor for medical or clinical advice.
-      </p>
+      {design !== "premium" && (
+        <p className="mb-4 text-muted-foreground text-center italic tracking-wider text-[10px] font-light">
+          This is an AI-generated report and may not be fully accurate. Please consult a qualified doctor for medical or clinical advice.
+        </p>
+      )}
 
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
