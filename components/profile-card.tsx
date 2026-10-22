@@ -184,7 +184,30 @@ export default function ProfileCard({
   const hasReports = !countLoading && reportCount > 0
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-[#0e3a7e] p-4 text-white shadow-[0_18px_40px_-20px_rgba(14,58,126,0.75)] ring-1 ring-white/10">
+    <div className="relative isolate overflow-hidden rounded-3xl bg-[#0b3a85] p-4 text-white shadow-[0_22px_44px_-22px_rgba(11,58,133,0.9)] ring-1 ring-white/10">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(120%_90%_at_100%_0%,rgba(127,209,255,0.38),transparent_55%)]"
+      />
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 320 60"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-x-0 top-6 -z-10 h-16 w-full text-[#7fd1ff] opacity-25"
+      >
+        <polyline
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points="0,32 200,32 210,32 218,16 228,48 238,4 248,42 256,32 320,32"
+        />
+      </svg>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+      />
       {/* Identity row */}
       <div className="flex items-center gap-3.5">
         <div className="relative h-16 w-16 shrink-0">
@@ -212,8 +235,10 @@ export default function ProfileCard({
         </div>
 
         <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7fd1ff]">{relation || "Self"}</span>
-          <h2 className="truncate text-lg font-bold leading-tight tracking-tight" title={name}>
+          <span className="inline-flex rounded-full bg-[#7fd1ff]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7fd1ff] ring-1 ring-inset ring-[#7fd1ff]/25">
+            {relation || "Self"}
+          </span>
+          <h2 className="mt-1 truncate text-xl font-bold leading-tight tracking-tight" title={name}>
             {name}
           </h2>
           {metaLine && <p className="mt-0.5 text-xs text-white/70">{metaLine}</p>}
@@ -261,12 +286,8 @@ export default function ProfileCard({
       </div>
 
       {/* Stat strip: Records | BMI | Latest report */}
-      <div
-        className={`mt-4 grid divide-x divide-white/10 rounded-2xl bg-white/[0.07] ring-1 ring-white/10 ${
-          hasReports ? "grid-cols-3" : "grid-cols-2"
-        }`}
-      >
-        <div className="flex flex-col gap-1 px-3 py-2.5">
+      <div className="mt-4 flex items-stretch gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-2xl bg-white/[0.08] px-3 py-2.5 ring-1 ring-inset ring-white/10 backdrop-blur-sm">
           <span className="text-[10px] font-medium uppercase tracking-wider text-white/60">Records</span>
           {countLoading ? (
             <>
@@ -278,7 +299,7 @@ export default function ProfileCard({
           )}
         </div>
 
-        <div className="flex flex-col gap-1 px-3 py-2.5">
+        <div className="relative z-20 flex min-w-0 flex-1 flex-col gap-1.5 rounded-2xl bg-white/[0.08] px-3 py-2.5 ring-1 ring-inset ring-white/10 backdrop-blur-sm">
           <span className="relative flex items-center gap-1">
             <span className="text-[10px] font-medium uppercase tracking-wider text-white/60">BMI</span>
             <button
@@ -352,10 +373,10 @@ export default function ProfileCard({
           <button
             type="button"
             onClick={handleViewLatestReport}
-            className="group flex flex-col gap-1 rounded-r-2xl px-3 py-2.5 text-left transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="group flex shrink-0 flex-col justify-between gap-1.5 rounded-2xl bg-white px-3 py-2.5 text-left text-[#0b3a85] shadow-[0_8px_20px_-10px_rgba(0,0,0,0.5)] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7fd1ff]"
           >
-            <span className="text-[10px] font-medium uppercase tracking-wider text-white/60">Latest</span>
-            <span className="flex items-center gap-0.5 text-sm font-semibold leading-none">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#0b3a85]/60">Latest</span>
+            <span className="flex items-center gap-0.5 text-sm font-bold leading-none">
               Report
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </span>
