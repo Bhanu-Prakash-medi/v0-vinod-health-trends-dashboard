@@ -380,7 +380,7 @@
     @apply border-border outline-ring/50;
   }
   html {
-    scroll-behavior: smooth;
+  scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
@@ -666,4 +666,8 @@ body::-webkit-scrollbar,
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+html {
+  font-size: 15px;
 }
