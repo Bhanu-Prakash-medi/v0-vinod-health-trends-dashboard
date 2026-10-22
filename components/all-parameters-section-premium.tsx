@@ -25,10 +25,6 @@ export default function AllParametersSection({
 
   return (
     <section className="flex flex-col gap-4">
-      <p className="text-muted-foreground text-center italic tracking-wider text-[10px] font-light">
-        This is an AI-generated report and may not be fully accurate. Please consult a qualified doctor for medical or clinical advice.
-      </p>
-
       <header className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#156ddc] text-primary-foreground shadow-[0_6px_16px_-6px_rgba(21,109,220,0.6)]">

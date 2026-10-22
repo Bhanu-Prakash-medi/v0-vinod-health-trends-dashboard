@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import TopNavigation from "@/components/top-navigation"
-import ProfileCard from "@/components/profile-card"
+import PremiumProfileCard from "@/components/profile-card"
+import ClassicProfileCard from "@/components/profile-card-classic"
 import UploadReportSection from "@/components/upload-report-section"
 import HealthSummarySection from "@/components/health-summary-section"
 import InsightsSection from "@/components/insights-section"
@@ -25,6 +26,7 @@ import {
 } from "lucide-react"
 import RecommendationsPage from "@/components/recommendations-page"
 import FeedbackSection from "@/components/feedback-section"
+import FaqSection from "@/components/faq-section"
 
 // Temporarily hidden; flip to true to re-enable.
 const SHOW_REPORT_UPLOAD = false
@@ -79,6 +81,26 @@ const MAX_HEALTH_SCORE_REQUEST_IDS = 15
 // and trends deliberately ignore contract type and use every available report.
 const HEALTH_SCORE_CONTRACT_TYPE = "9716"
 
+// A logged-in user can briefly get a 401 on first load (the host app may still
+// be writing the `redirect` cookie, or the auth backend blips). Retry before
+// concluding the user is logged out, so "Authentication Required" never flashes.
+const AUTH_RETRY_DELAYS_MS = [500, 1200]
+
+function isUnauthorizedError(err: unknown) {
+  return err instanceof Error && err.message === "UNAUTHORIZED"
+}
+
+async function withAuthRetry<T>(run: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await run()
+    } catch (err) {
+      if (!isUnauthorizedError(err) || attempt >= AUTH_RETRY_DELAYS_MS.length) throw err
+      await new Promise((resolve) => setTimeout(resolve, AUTH_RETRY_DELAYS_MS[attempt]))
+    }
+  }
+}
+
 export default function HealthDashboard() {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
   const [activeBeneficiaryIndex, setActiveBeneficiaryIndex] = useState(0)
@@ -101,6 +123,7 @@ export default function HealthDashboard() {
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
   const { design } = useDesign()
   const premium = design === "premium"
+  const ProfileCard = premium ? PremiumProfileCard : ClassicProfileCard
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
   const [recommendationsParam, setRecommendationsParam] = useState<string | null | undefined>(undefined)
@@ -184,7 +207,8 @@ export default function HealthDashboard() {
       let reportRequests = beneficiary.reportRequests || []
       if (beneficiary.rVasBenefId !== undefined && beneficiary.rVasBenefId !== null && beneficiary.rVasBenefId !== "") {
         try {
-          const fetched = await fetchBeneficiaryReportRequests(token, beneficiary.rVasBenefId)
+          const vasBenefId = beneficiary.rVasBenefId
+          const fetched = await withAuthRetry(() => fetchBeneficiaryReportRequests(token, vasBenefId))
           if (fetched.length > 0) {
             reportRequests = fetched
             const docIds = fetched.map((r) => r.requestId)
@@ -470,7 +494,7 @@ export default function HealthDashboard() {
         // it picks the latest scored report. So instead of hard-filtering to a
         // single contractType client-side — which silently hides a valid score
         // whenever a beneficiary's scoreable report has a different or missing
-        // contractType — we send a PRIORITIZED candidate list and let the backend
+        // contractType �� we send a PRIORITIZED candidate list and let the backend
         // decide:
         //   1. contractType 9716 reports first (the known AHC type — guarantees
         //      no regression for members who already get a score today), then
@@ -540,8 +564,10 @@ export default function HealthDashboard() {
         let errorInfo: BeneficiaryError
 
         if (errorMessage === "UNAUTHORIZED") {
-          setGlobalError({ type: "UNAUTHORIZED", message: "Please login to access the health trends" })
-          return
+          // The profile call already succeeded with this token, so the user is
+          // logged in; show a retryable per-report error instead of locking the
+          // whole page behind "Authentication Required".
+          errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
         } else if (errorMessage === "NO_REPORTS_404") {
           errorInfo = { type: "NO_REPORTS", message: "Sorry Lab Reports are Not Available" }
           // Having no lab reports is a valid empty state, not a load failure —
@@ -644,15 +670,20 @@ export default function HealthDashboard() {
         }
 
         if (!cookieToken) {
-          throw new Error("UNAUTHORIZED")
+          throw new Error("Authentication required")
         }
 
-        const token = cookieToken
+        let token: string = cookieToken
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
 
-        const data = await fetchBeneficiaries(token, pmEntityId)
+        const data = await withAuthRetry(async () => {
+          // Re-read the cookie on every attempt: it may have been set since the
+          // previous one.
+          token = getAccessTokenFromCookie() || token
+          return await fetchBeneficiaries(token, pmEntityId)
+        })
 
         // Persist the token for subsequent report loads.
         setAccessToken(token)
@@ -1270,6 +1301,9 @@ export default function HealthDashboard() {
                   emailId={pickPrimaryEmail(userEmail)}
                   accessToken={accessToken}
                 />
+              <div id="nav-faq" className="ht-card scroll-mt-20">
+                <FaqSection />
+              </div>
               <div className="mt-4 text-center">
                 <span className="text-muted-foreground text-xs font-light">powered by Medibuddy AI</span>
               </div>

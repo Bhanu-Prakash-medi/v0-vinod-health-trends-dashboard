@@ -206,7 +206,7 @@ export async function fetchBmi(
   try {
     const response = await fetch(`/api/health/bmi/${encodeURIComponent(String(vasBenefId))}`, {
       method: "GET",
-        headers: { accesstoken: accessToken },
+      headers: { accesstoken: accessToken },
     })
     if (!response.ok) return null
     return (await response.json()) as BmiResponse

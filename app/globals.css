@@ -380,7 +380,7 @@
     @apply border-border outline-ring/50;
   }
   html {
-    scroll-behavior: smooth;
+  scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
@@ -486,9 +486,12 @@
     0 1px 2px rgb(11 42 91 / 0.04),
     0 12px 28px -12px rgb(11 42 91 / 0.18);
 }
-[data-design="premium"] #nav-overview.ht-card {
-  padding: 0.5rem;
-}
+  [data-design="premium"] #nav-overview.ht-card {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  }
 [data-design="premium"] .ht-card > .rounded-2xl.border,
 [data-design="premium"] .ht-card > div > .rounded-2xl.border {
   border-color: transparent;
@@ -666,4 +669,8 @@ body::-webkit-scrollbar,
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+html {
+  font-size: 15px;
 }

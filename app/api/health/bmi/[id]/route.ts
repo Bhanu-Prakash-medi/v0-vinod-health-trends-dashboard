@@ -15,13 +15,13 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout = 200
 
 // Proxies the Health Trends backend BMI endpoint (GET /health/bmi/{vasBenefId})
 // so the browser is not subject to CORS / mixed-content restrictions. Forwards
-// the accesstoken header, falling back to the debug token when absent.
+// the accesstoken header.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const accessToken = request.headers.get("accesstoken")
 
   if (!accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Access token required" }, { status: 401 })
   }
 
   if (!id) {

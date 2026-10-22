@@ -15,7 +15,7 @@ export default function SummaryOverview({ inRange, total, flagged, areas }: Summ
   const percent = Math.round(ratio * 100)
 
   return (
-    <div className="mb-4 flex items-center gap-4 rounded-2xl border border-[#edf0f3] bg-card p-4">
+    <div className="mb-4 flex items-center gap-4 rounded-2xl border border-[#e2e8ef] bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.05),0_6px_16px_-10px_rgba(16,24,40,0.14)]">
       {/* span (not div) so the premium-theme `.mb-4 > div > svg` icon-chip rule doesn't paint a tile behind the ring */}
       <span
         className="relative block h-[76px] w-[76px] shrink-0"
@@ -23,14 +23,14 @@ export default function SummaryOverview({ inRange, total, flagged, areas }: Summ
         aria-label={`${percent}% of parameters in normal range`}
       >
         <svg viewBox="0 0 76 76" className="h-full w-full -rotate-90" aria-hidden="true">
-          <circle cx="38" cy="38" r={RADIUS} fill="none" stroke="#fbe3e0" strokeWidth="6" />
+          <circle cx="38" cy="38" r={RADIUS} fill="none" stroke="#f7d4d0" strokeWidth="7" />
           <circle
             cx="38"
             cy="38"
             r={RADIUS}
             fill="none"
-            stroke="#3f9d46"
-            strokeWidth="6"
+            stroke="#2f9e47"
+            strokeWidth="7"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={CIRCUMFERENCE * (1 - ratio)}
@@ -43,14 +43,14 @@ export default function SummaryOverview({ inRange, total, flagged, areas }: Summ
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-[#8a96a3]">Parameters in range</p>
-        <p className="mt-0.5 text-2xl font-semibold leading-tight tabular-nums tracking-tight text-[#16202b]">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#5b6776]">Parameters in range</p>
+        <p className="mt-1 text-2xl font-bold leading-tight tabular-nums tracking-tight text-[#101828]">
           <CountUp value={String(inRange)} />
-          <span className="text-base font-medium text-[#a3adb8]"> / {total}</span>
+          <span className="text-base font-medium text-[#7a8796]"> / {total}</span>
         </p>
         {flagged > 0 ? (
-          <p className="mt-1 text-xs text-[#5f6b78]">
-            <span className="font-semibold text-[#c0392b]">{flagged} flagged</span> across {areas}{" "}
+          <p className="mt-1 text-xs text-[#4a5563]">
+            <span className="font-semibold text-[#b42318]">{flagged} flagged</span> across {areas}{" "}
             {areas === 1 ? "area" : "areas"}
           </p>
         ) : (

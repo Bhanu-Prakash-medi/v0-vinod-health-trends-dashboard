@@ -324,11 +324,11 @@ export default function HealthSummarySection({
               <Activity className="h-5 w-5" strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <h2 className="whitespace-nowrap text-base font-semibold tracking-tight text-[#1f2933]">Health Summary</h2>
-              <p className="text-xs text-[#7a8796]">
+              <h2 className="whitespace-nowrap text-base font-bold tracking-tight text-[#101828]">Health Summary</h2>
+              <p className="text-xs font-medium text-[#5b6776]">
                 {attentionCount > 0 ? (
                   <>
-                    <span className="font-semibold text-[#c8352a]">{attentionCount}</span> of {summaryItems.length}{" "}
+                    <span className="font-semibold text-[#b42318]">{attentionCount}</span> of {summaryItems.length}{" "}
                     areas need attention
                   </>
                 ) : (
@@ -348,7 +348,7 @@ export default function HealthSummarySection({
               <Select value={String(safeDateIndex)} onValueChange={(v) => setSelectedDateIndex(Number(v))}>
                 <SelectTrigger
                   id="health-summary-date"
-                  className="h-9 w-full min-w-0 border-[#e3e8ee] text-sm text-[#2e3742] @lg:w-[210px]"
+                  className="h-9 w-full min-w-0 border-[#d5dde6] bg-card text-sm font-medium text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.05)] @lg:w-[210px]"
                 >
                   {/*
                    * Explicit trigger label. The options render on two lines, and

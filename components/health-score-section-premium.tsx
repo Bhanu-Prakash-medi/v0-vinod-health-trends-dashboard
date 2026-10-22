@@ -29,7 +29,7 @@ const RISK_LIGHT_GREEN = "#22c55e"
 const RISK_YELLOW = "#eab308"
 const RISK_RED = "#dc2626"
 const INK = "#2e3742"
-const MUTED = "#9dabbd"
+const MUTED = "#6b7a8c"
 
 // Continuous visual zones on the 0-10 ring/scale: Low 0-3.33 (light green),
 // Moderate 3.33-6.66 (yellow), High 6.66-10 (red).
@@ -197,7 +197,7 @@ export default function HealthScoreSection({
   const header = <div className="mb-3">{renderHeader()}</div>
 
   const actionLinks = (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-[#eef1f4] bg-white">
+    <div className="mt-4 overflow-hidden rounded-2xl border border-[#e6ebf1] bg-white">
       <button
         type="button"
         onClick={() => {
@@ -205,18 +205,18 @@ export default function HealthScoreSection({
           openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")
         }}
         aria-label="Watch how your Health Risk Score is calculated"
-        className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-[#f7f9fb] active:bg-[#f0f3f5] focus:outline-none focus-visible:bg-[#f7f9fb]"
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-[#f7f9fb] active:bg-[#f0f3f5] focus:outline-none focus-visible:bg-[#f7f9fb]"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fdeef0]">
-          <Youtube className="h-4 w-4 text-[#d1495b]" />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef4fd]">
+          <Youtube className="h-4 w-4 text-[#156ddc]" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-semibold text-[#2e3742]">How it&apos;s calculated</span>
-          <span className="block truncate text-xs text-[#9dabbd]">Watch a short explainer video</span>
+          <span className="block truncate text-xs text-[#6b7a8c]">Watch a short explainer video</span>
         </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-[#b4c0cd]" aria-hidden="true" />
+        <ChevronRight className="h-4 w-4 shrink-0 text-[#8a97a8]" aria-hidden="true" />
       </button>
-      <div className="mx-3 h-px bg-[#eef1f4]" />
+      <div className="mx-3.5 h-px bg-[#eef1f4]" />
       <button
         type="button"
         onClick={() => {
@@ -224,16 +224,16 @@ export default function HealthScoreSection({
           openExternalUrl("https://healthscorelabs.medibuddy.in")
         }}
         aria-label="Learn more on MediBuddy"
-        className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-[#f7f9fb] active:bg-[#f0f3f5] focus:outline-none focus-visible:bg-[#f7f9fb]"
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-[#f7f9fb] active:bg-[#f0f3f5] focus:outline-none focus-visible:bg-[#f7f9fb]"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef4fd]">
           <Globe className="h-4 w-4 text-[#156ddc]" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-semibold text-[#2e3742]">Learn more</span>
-          <span className="block truncate text-xs text-[#9dabbd]">About MediBuddy Health Score Labs</span>
+          <span className="block truncate text-xs text-[#6b7a8c]">About MediBuddy Health Score Labs</span>
         </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-[#b4c0cd]" aria-hidden="true" />
+        <ChevronRight className="h-4 w-4 shrink-0 text-[#8a97a8]" aria-hidden="true" />
       </button>
     </div>
   )
@@ -290,13 +290,13 @@ export default function HealthScoreSection({
     )
 
     return (
-      <section aria-label="Health risk score" className="rounded-2xl border border-[#eef1f4] bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.05)]">
+      <section aria-label="Health risk score" className="rounded-2xl border border-[#e6ebf1] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)]">
         {renderHeader()}
         <div className="mb-5 mt-3 flex items-center justify-between gap-2">
-          <p className="min-w-0 truncate text-xs text-[#9dabbd]">
+          <p className="min-w-0 truncate text-xs text-[#6b7a8c]">
             {reportDate ? (
               <>
-                AHC report · <span className="font-medium text-[#4d5c6f]">{reportDate}</span>
+                AHC report · <span className="font-semibold text-[#2e3742]">{reportDate}</span>
               </>
             ) : (
               "Based on your last AHC report"
@@ -413,13 +413,13 @@ export default function HealthScoreSection({
                 <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums text-[#2e3742] sm:text-[40px]">
                   {formatScore(displayScore, score)}
                 </span>
-                <span className="whitespace-nowrap text-sm font-medium text-[#9dabbd]">/ 10</span>
+                <span className="whitespace-nowrap text-sm font-medium text-[#6b7a8c]">/ 10</span>
               </div>
               <div className="shrink-0 whitespace-nowrap">{labelPill}</div>
             </div>
 
             {/* Track: YOU pinned above, AVG pinned below — labels never collide */}
-            <div className="relative mb-12 mt-14 h-2">
+            <div className="relative mb-12 mt-14 h-2.5">
               <span
                 className="absolute bottom-full mb-3.5 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-[0_2px_6px_rgba(16,24,40,0.15)]"
                 style={{ left: `${clampLabel(youPct)}%`, backgroundColor: INK }}
@@ -440,7 +440,7 @@ export default function HealthScoreSection({
                     style={{
                       width: `${((z.to - z.from) / GAUGE_MAX) * 100}%`,
                       backgroundColor: z.color,
-                      opacity: i === activeZoneIndex ? 1 : 0.2,
+                      opacity: i === activeZoneIndex ? 1 : 0.32,
                     }}
                   />
                 ))}
@@ -474,14 +474,24 @@ export default function HealthScoreSection({
               />
             </div>
 
-            <div className="flex items-center justify-between gap-2 text-[11px] font-medium">
-              {RISK_ZONES.map((z, i) => (
-                <span key={z.name} className="inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: z.color }} aria-hidden="true" />
-                  <span style={{ color: i === activeZoneIndex ? INK : MUTED }}>{z.name}</span>
-                  <span className="text-[10px] font-normal text-[#b4c0cd]">{z.range}</span>
-                </span>
-              ))}
+            <div className="grid grid-cols-3 gap-1.5">
+              {RISK_ZONES.map((z, i) => {
+                const active = i === activeZoneIndex
+                return (
+                  <div
+                    key={z.name}
+                    className={`flex flex-col items-center gap-0.5 rounded-xl px-1 py-2 ${
+                      active ? "bg-[#f4f7fb] ring-1 ring-[#e6ebf1]" : ""
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: active ? INK : MUTED }}>
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: z.color }} aria-hidden="true" />
+                      {z.name}
+                    </span>
+                    <span className="text-[11px] font-medium tabular-nums text-[#8a97a8]">{z.range}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
@@ -540,11 +550,11 @@ export default function HealthScoreSection({
 
         {/* ---- You vs Avg comparison (shared) ---- */}
         {benchmark && diff != null ? (
-          <div className="mt-5 rounded-2xl bg-[#f7f9fc] p-3">
+          <div className="mt-5 rounded-2xl border border-[#e6ebf1] bg-[#f7f9fc] p-3.5">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[11px] font-medium text-[#9dabbd]">Your score</p>
-                <p className="text-lg font-semibold tabular-nums text-[#2e3742]">{formatScore(score)}</p>
+                <p className="whitespace-nowrap text-xs font-medium text-[#6b7a8c]">Your score</p>
+                <p className="text-xl font-semibold tabular-nums text-[#2e3742]">{formatScore(score)}</p>
               </div>
               <span
                 className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums"
@@ -561,14 +571,14 @@ export default function HealthScoreSection({
                 {Math.abs(diff).toFixed(2)} pts
               </span>
               <div className="min-w-0 text-right">
-                <p className="text-[11px] font-medium text-[#9dabbd]">MediBuddy avg</p>
-                <p className="text-lg font-semibold tabular-nums text-[#4d5c6f]">{benchmark.avgScore.toFixed(2)}</p>
+                <p className="whitespace-nowrap text-xs font-medium text-[#6b7a8c]">MediBuddy avg</p>
+                <p className="text-xl font-semibold tabular-nums text-[#4d5c6f]">{benchmark.avgScore.toFixed(2)}</p>
               </div>
             </div>
-            <p className="mt-2 border-t border-[#eef1f4] pt-2 text-xs leading-relaxed text-[#4d5c6f]">
+            <p className="mt-3 border-t border-[#e6ebf1] pt-3 text-xs leading-relaxed text-[#4d5c6f]">
               {diff < 0 ? "Lower risk than the average for " : diff > 0 ? "Higher risk than the average for " : "Right at the average for "}
-              <span className="whitespace-nowrap font-medium text-[#2e3742]">{benchmark.band}</span>.{" "}
-              <span className="text-[#9dabbd]">Lower score = lower risk.</span>
+              <span className="whitespace-nowrap font-semibold text-[#2e3742]">{benchmark.band}</span>.{" "}
+              <span className="text-[#6b7a8c]">Lower score = lower risk.</span>
             </p>
           </div>
         ) : (
