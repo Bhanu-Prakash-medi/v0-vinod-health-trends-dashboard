@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { ChevronRight, FileText, Info, Plus, Scale, ShieldAlert, X } from "lucide-react"
+import { ChevronRight, Info, Plus, ShieldAlert, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
 import { fetchBmi } from "@/lib/api"
@@ -170,34 +170,37 @@ export default function ProfileCard({
   // Locally calculated BMI is measured "now".
   const localBmiDate = formatBmiDate(new Date().toISOString())
 
+  const metaLine = [age > 0 ? `${age} yrs` : "", gender && gender !== "Unknown" ? gender : ""]
+    .filter(Boolean)
+    .join(" · ")
+
+  const shownBmi = backendBmi ?? localBmi
+  const shownCategory = backendBmi !== null ? backendCategory : localBmi !== null ? bmiCategory(localBmi) : null
+  const shownBmiDate = backendBmi !== null ? backendBmiDate : localBmi !== null ? localBmiDate : null
+
   return (
-    <div className="relative rounded-3xl border border-[#eef2f6] bg-white p-4 shadow-[0_10px_30px_-12px_rgba(21,109,220,0.25)]">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-20 rounded-t-3xl bg-gradient-to-b from-[#eef5ff] to-transparent"
-      />
-      {/* Disclaimer: top-right corner of the profile card */}
-      <div className="absolute right-3 top-3 z-30">
+    <div className="relative rounded-3xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-16px_rgba(21,109,220,0.28)] ring-1 ring-[#eef2f6]">
+      {/* Disclaimer: compact icon button in the top-right corner */}
+      <div className="absolute right-4 top-4 z-30">
         <button
           type="button"
           onClick={() => setShowDisclaimer((v) => !v)}
           aria-label="Disclaimer"
           aria-expanded={showDisclaimer}
-          className="flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-semibold text-[#4d5c6f] shadow-sm ring-1 ring-[#e0e6ec] backdrop-blur transition-colors hover:text-[#156ddc] hover:ring-[#156ddc]/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+          title="Disclaimer"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#9aa7b5] ring-1 ring-[#e6ecf2] transition-colors hover:text-[#156ddc] hover:ring-[#156ddc]/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
         >
-          <ShieldAlert className="h-3 w-3" />
-          Disclaimer
+          <ShieldAlert className="h-4 w-4" aria-hidden="true" />
         </button>
         {showDisclaimer && (
           <>
-            {/* Click-away layer to dismiss the popover. */}
             <button
               type="button"
               aria-label="Close disclaimer"
               onClick={() => setShowDisclaimer(false)}
               className="fixed inset-0 z-10 cursor-default"
             />
-            <div className="absolute right-0 top-8 z-20 w-64 rounded-lg border border-[#e0e6ec] bg-white p-3 shadow-lg">
+            <div className="absolute right-0 top-10 z-20 w-64 rounded-xl border border-[#e0e6ec] bg-white p-3 shadow-lg">
               <div className="mb-1.5 flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wide text-[#4d5c6f]">Disclaimer</span>
                 <button
@@ -218,183 +221,146 @@ export default function ProfileCard({
         )}
       </div>
 
-      {/* Header Section: Avatar + Info */}
-      <div className="relative flex items-center gap-3.5">
-        {/* Avatar with Progress Ring */}
-        <div className="relative h-[60px] w-[60px] shrink-0">
-          <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 60 60" aria-hidden="true">
-            <circle cx="30" cy="30" r="27" fill="#ffffff" stroke="#e8f2ff" strokeWidth="3" />
-            <circle
-              cx="30"
-              cy="30"
-              r="27"
-              fill="none"
-              stroke="#156ddc"
-              strokeWidth="3"
-              strokeDasharray={`${2 * Math.PI * 27 * 0.7} ${2 * Math.PI * 27}`}
-              strokeLinecap="round"
-            />
-          </svg>
-          <Avatar className="absolute left-1/2 top-1/2 h-[48px] w-[48px] -translate-x-1/2 -translate-y-1/2">
-            <AvatarImage src={avatarSrc || "/placeholder.svg"} alt={name} />
-            <AvatarFallback className="bg-[#156ddc] text-sm font-semibold text-white">{initial}</AvatarFallback>
-          </Avatar>
-          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full border-2 border-white bg-[#156ddc] px-1.5 py-px text-[9px] font-bold leading-tight text-white shadow-sm">
-            70%
-          </div>
-        </div>
-
-        {/* User Info */}
+      {/* Identity */}
+      <div className="flex items-center gap-4 pr-10">
+        <Avatar className="h-14 w-14 shrink-0 ring-4 ring-[#e8f2ff]">
+          <AvatarImage src={avatarSrc || "/placeholder.svg"} alt={name} />
+          <AvatarFallback className="bg-[#156ddc] text-base font-semibold text-white">{initial}</AvatarFallback>
+        </Avatar>
         <div className="min-w-0 flex-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#156ddc]">{relation || "Self"}</span>
           <h2
-            className="line-clamp-2 break-words pr-24 text-[17px] font-bold leading-tight tracking-tight text-[#2e3742]"
+            className="line-clamp-2 break-words text-lg font-bold leading-tight tracking-tight text-[#2e3742]"
             title={name}
           >
             {name}
           </h2>
-          <div className="mt-1.5 flex items-center gap-2">
-            <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#156ddc]">
-              {relation || "Self"}
-            </span>
-            <span className="text-xs font-medium text-[#4d5c6f]">
-              {[age > 0 ? `${age}y` : "", gender && gender !== "Unknown" ? gender : ""].filter(Boolean).join(" · ")}
-            </span>
-          </div>
-          <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#4d5c6f]">
-            <FileText className="h-3 w-3 text-[#9aa7b5]" aria-hidden="true" />
-            {countLoading ? (
-              <>
-                <span className="inline-block h-3 w-5 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
-                <span>Health Records</span>
-                <span className="sr-only">Loading records</span>
-              </>
-            ) : (
-              <>
-                <span className="font-bold text-[#2e3742]">{reportCount}</span> Health{" "}
-                {reportCount === 1 ? "Record" : "Records"}
-              </>
-            )}
-          </div>
+          {metaLine && <p className="mt-0.5 text-xs text-[#4d5c6f]">{metaLine}</p>}
         </div>
       </div>
 
-      {/* BMI row */}
-      <div className="relative mt-4">
-        {bmiLoading ? (
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-3 w-10 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
-            <span className="text-[10px] text-[#4d5c6f]">Loading BMI</span>
-          </div>
-        ) : backendBmi !== null ? (
-          <div className="flex items-center justify-between">
-            {bmiLabel}
-            <div className="flex flex-col items-end">
-              <span className="flex items-baseline gap-1.5">
-                <span className="text-sm font-bold text-[#2e3742]">{backendBmi.toFixed(1)}</span>
-                {backendCategory && (
-                  <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
-                    {backendCategory}
+      {/* Profile completeness */}
+      <div className="mt-4 flex items-center gap-3">
+        <div
+          className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#eef2f6]"
+          role="progressbar"
+          aria-valuenow={70}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Profile completeness"
+        >
+          <div className="h-full w-[70%] rounded-full bg-[#156ddc]" />
+        </div>
+        <span className="text-[11px] font-medium text-[#4d5c6f]">
+          <span className="font-bold text-[#2e3742]">70%</span> complete
+        </span>
+      </div>
+
+      {/* Stats: Records + BMI */}
+      <div className="mt-4 grid grid-cols-2 rounded-2xl bg-[#f6f9fc]">
+        <div className="flex flex-col gap-1.5 p-3.5">
+          <span className="text-[11px] font-medium text-[#4d5c6f]">Health Records</span>
+          {countLoading ? (
+            <>
+              <span className="inline-block h-5 w-8 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
+              <span className="sr-only">Loading records</span>
+            </>
+          ) : (
+            <span className="text-xl font-bold leading-none text-[#2e3742]">{reportCount}</span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5 border-l border-[#e6ecf2] p-3.5">
+          {bmiLabel}
+          {bmiLoading ? (
+            <>
+              <span className="inline-block h-5 w-10 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
+              <span className="sr-only">Loading BMI</span>
+            </>
+          ) : shownBmi !== null ? (
+            <>
+              <span className="flex items-center gap-1.5">
+                <span className="text-xl font-bold leading-none text-[#2e3742]">{shownBmi.toFixed(1)}</span>
+                {shownCategory && (
+                  <span className="rounded-full bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+                    {shownCategory}
                   </span>
                 )}
               </span>
-              {backendBmiDate && <span className="mt-0.5 text-[9px] text-[#9aa7b5]">as of {backendBmiDate}</span>}
-            </div>
-          </div>
-        ) : localBmi !== null ? (
-          <div className="flex items-center justify-between">
-            {bmiLabel}
-            <div className="flex flex-col items-end">
-              <span className="flex items-baseline gap-1.5">
-                <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
-                <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
-                  {bmiCategory(localBmi)}
-                </span>
-              </span>
-              {localBmiDate && <span className="mt-0.5 text-[9px] text-[#9aa7b5]">as of {localBmiDate}</span>}
-            </div>
-          </div>
-        ) : showBmiForm ? (
-          <form className="space-y-2" onSubmit={handleBmiSubmit}>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium text-[#4d5c6f]">Calculate BMI</span>
-              <button
-                type="button"
-                onClick={resetBmiForm}
-                aria-label="Close BMI calculator"
-                className="flex h-6 w-6 items-center justify-center rounded-full text-[#4d5c6f] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="flex-1">
-                <span className="sr-only">Height in centimetres</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  value={heightCm}
-                  onChange={(e) => setHeightCm(e.target.value)}
-                  placeholder="Height (cm)"
-                  className="w-full rounded-lg border border-[#e0e6ec] bg-white px-2.5 py-1.5 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
-                />
-              </label>
-              <label className="flex-1">
-                <span className="sr-only">Weight in kilograms</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
-                  placeholder="Weight (kg)"
-                  className="w-full rounded-lg border border-[#e0e6ec] bg-white px-2.5 py-1.5 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
-                />
-              </label>
-            </div>
+              {shownBmiDate && <span className="text-[10px] text-[#9aa7b5]">as of {shownBmiDate}</span>}
+            </>
+          ) : (
             <button
-              type="submit"
-              disabled={!canSubmit}
-              className="w-full rounded-lg bg-[#156ddc] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1160c4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 disabled:cursor-not-allowed disabled:bg-[#b6cdec]"
+              type="button"
+              onClick={() => setShowBmiForm((v) => !v)}
+              aria-expanded={showBmiForm}
+              className="flex items-center gap-1 self-start rounded text-sm font-semibold text-[#156ddc] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
             >
-              Submit
-            </button>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowBmiForm(true)}
-            className="group flex w-full items-center gap-3 rounded-2xl bg-[#f4f9ff] p-2.5 text-left ring-1 ring-[#156ddc]/10 transition-colors hover:bg-[#e8f2ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#156ddc] shadow-sm">
-              <Scale className="h-4 w-4" aria-hidden="true" />
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-xs font-semibold text-[#2e3742]">Calculate your BMI</span>
-              <span className="text-[11px] text-[#4d5c6f]">Add height &amp; weight</span>
-            </span>
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#156ddc] text-white shadow-sm transition-transform group-hover:scale-105">
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            </span>
-          </button>
-        )}
+              Add
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* View latest report — its own row so a long name never squeezes or
-          clips it. Only shown once at least one report is available. */}
-      {!countLoading && reportCount > 0 && (
-        <div className="relative mt-3 border-t border-[#f0f3f5] pt-3">
+      {showBmiForm && shownBmi === null && (
+        <form className="mt-3 flex flex-col gap-2" onSubmit={handleBmiSubmit}>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium text-[#4d5c6f]">Enter height &amp; weight</span>
+            <button
+              type="button"
+              onClick={resetBmiForm}
+              aria-label="Close BMI calculator"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[#4d5c6f] transition-colors hover:bg-[#f0f3f5] hover:text-[#2e3742] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex-1">
+              <span className="sr-only">Height in centimetres</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={heightCm}
+                onChange={(e) => setHeightCm(e.target.value)}
+                placeholder="Height (cm)"
+                className="w-full rounded-xl border border-[#e0e6ec] bg-white px-3 py-2 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
+              />
+            </label>
+            <label className="flex-1">
+              <span className="sr-only">Weight in kilograms</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={weightKg}
+                onChange={(e) => setWeightKg(e.target.value)}
+                placeholder="Weight (kg)"
+                className="w-full rounded-xl border border-[#e0e6ec] bg-white px-3 py-2 text-xs text-[#2e3742] outline-none placeholder:text-[#9aa7b5] focus:border-[#156ddc] focus:ring-2 focus:ring-[#156ddc]/20"
+              />
+            </label>
+          </div>
           <button
-            type="button"
-            onClick={handleViewLatestReport}
-            className="group flex w-full items-center justify-between rounded-lg text-xs font-semibold text-[#156ddc] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+            type="submit"
+            disabled={!canSubmit}
+            className="w-full rounded-xl bg-[#156ddc] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1160c4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 disabled:cursor-not-allowed disabled:bg-[#b6cdec]"
           >
-            View latest report
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e8f2ff] transition-transform group-hover:translate-x-0.5">
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </span>
+            Calculate BMI
           </button>
-        </div>
+        </form>
+      )}
+
+      {!countLoading && reportCount > 0 && (
+        <button
+          type="button"
+          onClick={handleViewLatestReport}
+          className="group mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#156ddc] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1160c4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 focus-visible:ring-offset-2"
+        >
+          View latest report
+          <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+        </button>
       )}
     </div>
   )
