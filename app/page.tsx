@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import TopNavigation from "@/components/top-navigation"
+import PremiumProfileCard from "@/components/profile-card"
 import ClassicProfileCard from "@/components/profile-card-classic"
 import UploadReportSection from "@/components/upload-report-section"
 import HealthSummarySection from "@/components/health-summary-section"
@@ -123,7 +124,7 @@ export default function HealthDashboard() {
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
   const { design } = useDesign()
   const premium = design === "premium"
-  const ProfileCard = ClassicProfileCard
+  const ProfileCard = premium ? PremiumProfileCard : ClassicProfileCard
   const [showAllParameters, setShowAllParameters] = useState(false)
   const [showAllTrends, setShowAllTrends] = useState(false)
   const [recommendationsParam, setRecommendationsParam] = useState<string | null | undefined>(undefined)
@@ -494,7 +495,7 @@ export default function HealthDashboard() {
         // it picks the latest scored report. So instead of hard-filtering to a
         // single contractType client-side — which silently hides a valid score
         // whenever a beneficiary's scoreable report has a different or missing
-        // contractType — we send a PRIORITIZED candidate list and let the backend
+        // contractType �� we send a PRIORITIZED candidate list and let the backend
         // decide:
         //   1. contractType 9716 reports first (the known AHC type — guarantees
         //      no regression for members who already get a score today), then
