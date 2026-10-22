@@ -181,7 +181,7 @@ export interface RecommendationSource {
  * available (e.g. the v0 preview where the `redirect` cookie is absent). Lets
  * the profile section still exercise the BMI API during testing.
  */
-export const DEBUG_ACCESS_TOKEN = "d7c845670d60423bb3acf65c194ea604"
+export const DEBUG_ACCESS_TOKEN = "ecb24d4acaf145e3bfdf5753767b93f7"
 
 /**
  * Response shape of GET /health/bmi/{vasBenefId}. `bmi` (and the related fields)
