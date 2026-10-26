@@ -21,7 +21,6 @@ import {
 import type { ApiHealthReport } from "@/lib/api"
 import { DEBUG_ACCESS_TOKEN, getAccessTokenFromCookie } from "@/lib/api"
 import { fetchRecommendations, type RecParameter } from "@/lib/recommendations-api"
-import { FALLBACK_RECOMMENDATIONS } from "@/lib/fallback-recommendations"
 
 export function paramKey(p: RecParameter) {
   return p.id || p.parameter
@@ -38,11 +37,7 @@ export function useRecommendations(patientData: ApiHealthReport | null | undefin
 
   const { data, error, isLoading, mutate } = useSWR(
     swrKey,
-    () =>
-      fetchRecommendations(accessToken, source!).catch((err) => {
-        console.error("Recommendations API failed, showing fallback:", err)
-        return FALLBACK_RECOMMENDATIONS
-      }),
+    () => fetchRecommendations(accessToken, source!),
     {
     revalidateOnFocus: false,
     revalidateIfStale: false,

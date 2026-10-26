@@ -73,14 +73,51 @@ export interface RecommendationsResponse {
   generated_at?: string
 }
 
+const RECOMMENDATIONS_API_URL = "https://healthtrends-backend.medibuddy.in/healthtrends-recommendations"
+const RECOMMENDATIONS_API_AUTH = process.env.NEXT_PUBLIC_RECOMMENDATIONS_API_AUTH
+
+function toIsoDate(raw: string): string {
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+  const d = new Date(raw)
+  return Number.isNaN(d.getTime()) ? raw : d.toISOString().slice(0, 10)
+}
+
+export function buildRecommendationsPayload(source: RecommendationSource) {
+  return {
+    requestId: String(source.id ?? ""),
+    sourceType: "",
+    reportDate: toIsoDate(String(source.report_data?.fullfilmentDate ?? "")),
+    employee: {
+      mbUserId: String(source.report_data?.mbUserId ?? ""),
+      vasBenefId: String(source.report_data?.rVasBenefId ?? ""),
+    },
+    reportDetails: {
+      parameters: (source.parameters || []).map((p) => ({
+        unit: p.unit ?? "",
+        value: p.value,
+        status: String(p.status ?? "").trim().toLowerCase(),
+        metric_name: p.metric_name,
+        normal_range: p.normal_range ?? "",
+      })),
+    },
+  }
+}
+
 export async function fetchRecommendations(
   accessToken: string,
   source: RecommendationSource,
 ): Promise<RecommendationsResponse> {
-  const response = await fetch("/api/health/recommendations", {
+  if (!accessToken || !RECOMMENDATIONS_API_AUTH) {
+    throw new Error("Missing authorization token for recommendations API")
+  }
+  const response = await fetch(RECOMMENDATIONS_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", accesstoken: accessToken },
-    body: JSON.stringify({ reportDetails: source }),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: RECOMMENDATIONS_API_AUTH,
+      accesstoken: accessToken,
+    },
+    body: JSON.stringify(buildRecommendationsPayload(source)),
   })
   if (!response.ok) throw new Error(`Recommendations request failed: ${response.status}`)
   return response.json()
