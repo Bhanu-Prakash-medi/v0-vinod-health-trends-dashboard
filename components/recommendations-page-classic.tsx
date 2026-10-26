@@ -19,7 +19,8 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "next", label: "Next steps" },
 ]
 
-function labsUrl(native: boolean) {
+function labsUrl(native: boolean, packageId?: number) {
+  if (packageId) return `https://www.medibuddy.in/labs/packages/${packageId}`
   return native ? "https://www.medibuddy.in/labsLandingPage" : "https://www.medibuddy.in/consumerLabs"
 }
 function consultUrl(native: boolean) {
@@ -259,9 +260,9 @@ export default function RecommendationsPage({
                         <SectionContent
                           section={activeSection}
                           param={selected}
-                          onBookTest={(name) => {
+                          onBookTest={(name, packageId) => {
                             trackEvent("recommendations_click", { service: "Book Lab Test", test: name })
-                            openExternalUrl(labsUrl(native))
+                            openExternalUrl(labsUrl(native, packageId))
                           }}
                           onConsult={(specialist, url) => {
                             trackEvent("recommendations_click", { service: "Online Consultation", specialist })
@@ -363,7 +364,7 @@ function SectionContent({
 }: {
   section: SectionId
   param: RecParameter
-  onBookTest: (name: string) => void
+  onBookTest: (name: string, packageId?: number) => void
   onConsult: (specialist: string, url?: string) => void
 }) {
   const exp = param.explanation || {}
@@ -452,7 +453,7 @@ function SectionContent({
               label={t.name}
               description={t.purpose}
               action="Book test"
-              onClick={() => onBookTest(t.name)}
+              onClick={() => onBookTest(t.name, t.package_ids?.[0])}
             />
           ))}
         </div>
