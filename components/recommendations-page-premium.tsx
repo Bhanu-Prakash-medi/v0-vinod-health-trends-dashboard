@@ -509,7 +509,14 @@ function SectionContent({
             <CtaRow key={`doc-${s}`} icon={Stethoscope} label={s} action="Consult" onClick={() => onConsult(s)} />
           ))}
           {tests.map((t) => (
-            <CtaRow key={`test-${t.name}`} icon={FlaskConical} label={t.name} action="Book test" onClick={() => onBookTest(t.name)} />
+            <CtaRow
+              key={`test-${t.name}`}
+              icon={FlaskConical}
+              label={t.name}
+              description={t.purpose}
+              action="Book test"
+              onClick={() => onBookTest(t.name)}
+            />
           ))}
         </div>
       )}
@@ -627,24 +634,34 @@ function DietSection({ include, limit }: { include: RecFood[]; limit: RecFood[] 
 function CtaRow({
   icon: Icon,
   label,
+  description,
   action,
   onClick,
-}: {
+  }: {
   icon: LucideIcon
   label: string
+  description?: string
   action: string
   onClick: () => void
-}) {
+  }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex w-full items-center gap-3 py-3 text-left focus:outline-none"
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff]" aria-hidden="true">
-        <Icon className="h-4 w-4 text-[#156ddc]" strokeWidth={2} />
-      </span>
-      <span className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-[#2e3742] line-clamp-2">{label}</span>
+  <button
+  type="button"
+  onClick={onClick}
+  className={`group flex w-full gap-3 py-3 text-left focus:outline-none ${description ? "items-start" : "items-center"}`}
+  >
+  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ff]" aria-hidden="true">
+  <Icon className="h-4 w-4 text-[#156ddc]" strokeWidth={2} />
+  </span>
+  <span className="flex min-w-0 flex-1 flex-col gap-1">
+  <span className="text-[13px] font-semibold leading-snug text-[#2e3742] line-clamp-2">{label}</span>
+  {description && (
+  <span className="text-[12px] leading-relaxed text-[#6b7a8c]">
+  <span className="font-semibold text-[#156ddc]">Why this test: </span>
+  {description}
+  </span>
+  )}
+  </span>
       <span className="inline-flex h-8 shrink-0 items-center gap-0.5 rounded-full bg-[linear-gradient(160deg,#0d3f96,#082a66)] pl-3 pr-2 text-[12px] font-bold text-[#ffffff] shadow-[0_6px_14px_-4px_rgba(8,42,102,0.5)] transition-opacity group-hover:opacity-90">
         {action}
         <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />

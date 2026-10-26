@@ -439,7 +439,14 @@ function SectionContent({
             <CtaRow key={`doc-${s}`} icon={Stethoscope} label={s} action="Consult" onClick={() => onConsult(s)} />
           ))}
           {tests.map((t) => (
-            <CtaRow key={`test-${t.name}`} icon={FlaskConical} label={t.name} action="Book test" onClick={() => onBookTest(t.name)} />
+            <CtaRow
+              key={`test-${t.name}`}
+              icon={FlaskConical}
+              label={t.name}
+              description={t.purpose}
+              action="Book test"
+              onClick={() => onBookTest(t.name)}
+            />
           ))}
         </div>
       )}
@@ -485,11 +492,13 @@ function FoodList({ kind, items }: { kind: "include" | "limit"; items: RecFood[]
 function CtaRow({
   icon: Icon,
   label,
+  description,
   action,
   onClick,
 }: {
   icon: LucideIcon
   label: string
+  description?: string
   action: string
   onClick: () => void
 }) {
@@ -497,10 +506,18 @@ function CtaRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 bg-[#ffffff] px-3 py-3 text-left transition-colors hover:bg-[#f7f9fa] focus:outline-none focus-visible:bg-[#f7f9fa]"
+      className={`flex w-full gap-3 bg-[#ffffff] px-3 py-3 text-left transition-colors hover:bg-[#f7f9fa] focus:outline-none focus-visible:bg-[#f7f9fa] ${description ? "items-start" : "items-center"}`}
     >
-      <Icon className="h-[18px] w-[18px] shrink-0 text-[#156ddc]" aria-hidden="true" />
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#2e3742]">{label}</span>
+      <Icon className={`h-[18px] w-[18px] shrink-0 text-[#156ddc] ${description ? "mt-0.5" : ""}`} aria-hidden="true" />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className={`text-sm font-medium text-[#2e3742] ${description ? "" : "truncate"}`}>{label}</span>
+        {description && (
+          <span className="text-xs leading-relaxed text-[#6b7a8c]">
+            <span className="font-semibold text-[#4d5c6f]">Why: </span>
+            {description}
+          </span>
+        )}
+      </span>
       <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#156ddc]">
         {action}
         <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />

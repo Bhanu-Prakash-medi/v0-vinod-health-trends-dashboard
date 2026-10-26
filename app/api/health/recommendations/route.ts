@@ -9,6 +9,12 @@ function str(v: unknown, max = 200): string {
   return typeof v === "string" || typeof v === "number" ? String(v).slice(0, max) : ""
 }
 
+function toIsoDate(raw: string): string {
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+  const d = new Date(raw)
+  return Number.isNaN(d.getTime()) ? raw : d.toISOString().slice(0, 10)
+}
+
 // Proxies the recommendations API. The client sends the latest report; this
 // route strips it down to the fields the API needs so nothing extra leaks.
 export async function POST(request: NextRequest) {
@@ -43,16 +49,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No parameters to analyze" }, { status: 400 })
   }
 
-  const idNum = Number(src?.id)
-  const reportDetails = {
-    id: Number.isFinite(idNum) ? idNum : str(src?.id, 40),
-    status: str(src?.status, 30),
-    report_data: {
+  const payload = {
+    requestId: str(src?.id, 40),
+    sourceType: "",
+    reportDate: toIsoDate(str(src?.report_data?.fullfilmentDate, 40)),
+    employee: {
       mbUserId: str(src?.report_data?.mbUserId, 40),
-      rVasBenefId: str(src?.report_data?.rVasBenefId, 40),
-      fullfilmentDate: str(src?.report_data?.fullfilmentDate, 40),
+      vasBenefId: str(src?.report_data?.rVasBenefId, 40),
     },
-    parameters,
+    reportDetails: { parameters },
   }
 
   const controller = new AbortController()
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
         ...(apiAuth ? { Authorization: apiAuth } : {}),
       },
-      body: JSON.stringify({ reportDetails }),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     })
     const text = await response.text()

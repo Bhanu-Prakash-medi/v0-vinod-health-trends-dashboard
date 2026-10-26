@@ -21,7 +21,9 @@ export interface RecFood {
 
 export interface RecTest {
   name: string
+  purpose?: string
   type?: string
+  package_ids?: number[]
   test_id?: number | null
   mb_code?: string | null
   includes?: Array<{ name: string; test_id?: number | null; mb_code?: string | null }>
