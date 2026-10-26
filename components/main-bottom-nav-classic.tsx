@@ -1,16 +1,18 @@
 "use client"
 
 import type { LucideIcon } from "lucide-react"
-import { Settings2 } from "lucide-react"
+import { CircleHelp, Settings2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trackEvent } from "@/lib/analytics/posthog"
 import DesignSettingsSheet from "@/components/design-settings-sheet"
+import FaqSheet from "@/components/faq-sheet"
 
 export type BottomNavItem = { id: string; label: string; icon: LucideIcon }
 
 export default function MainBottomNav({ items, showDesign = true }: { items: BottomNavItem[]; showDesign?: boolean }) {
   const [active, setActive] = useState(items[0]?.id)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [faqOpen, setFaqOpen] = useState(false)
   const idsKey = items.map((i) => i.id).join("|")
 
   useEffect(() => {
@@ -77,6 +79,28 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
             </li>
           )
         })}
+        <li className="flex min-w-[68px] flex-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              trackEvent("bottom_nav_click", { section: "faq" })
+              setFaqOpen(true)
+            }}
+            aria-haspopup="dialog"
+            className="flex w-full flex-col items-center gap-1 pt-2 pb-2 focus:outline-none focus-visible:bg-[#f7f9fa]"
+          >
+            <span
+              className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
+                faqOpen ? "bg-[#e8f2ff] text-[#156ddc]" : "text-[#9dabbd]"
+              }`}
+            >
+              <CircleHelp className="h-[18px] w-[18px]" aria-hidden="true" />
+            </span>
+            <span className={`text-[10px] font-semibold leading-none ${faqOpen ? "text-[#156ddc]" : "text-[#6b7a8c]"}`}>
+              FAQ
+            </span>
+          </button>
+        </li>
         {showDesign && (
         <li className="flex min-w-[68px] flex-1 shrink-0">
           <button
@@ -100,6 +124,7 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
         )}
       </ul>
     </nav>
+    <FaqSheet open={faqOpen} onOpenChange={setFaqOpen} />
     {showDesign && <DesignSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />}
     </>
   )
