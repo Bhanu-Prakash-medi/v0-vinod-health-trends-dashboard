@@ -4,7 +4,7 @@ const HEALTHTRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
 
 // Fallback access token used when no `accesstoken` header is present (e.g. the
 // v0 preview / local testing where the real `redirect` cookie is absent).
-const DEBUG_ACCESS_TOKEN = "0816e6846ef84ef5895e70c50cdc45d7"
+const DEBUG_ACCESS_TOKEN = "969477eb43664b34a0b7245befbf3449"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 20000): Promise<Response> {
   const controller = new AbortController()
