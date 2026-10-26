@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const accessToken = request.headers.get("accesstoken")
 
   if (!accessToken) {
-    return NextResponse.json({ error: "Access token required" }, { status: 401 })
+    return NextResponse.json({ error: "accesstoken required" }, { status: 401 })
   }
 
   if (!id) {

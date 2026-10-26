@@ -1,11 +1,12 @@
 "use client"
 
 import type { LucideIcon } from "lucide-react"
-import { Settings2 } from "lucide-react"
+import { CircleHelp, Settings2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { trackEvent } from "@/lib/analytics/posthog"
 import { useDesign } from "@/lib/design-context"
 import DesignSettingsSheet from "@/components/design-settings-sheet"
+import FaqSheet from "@/components/faq-sheet"
 
 export type BottomNavItem = { id: string; label: string; icon: LucideIcon }
 
@@ -14,6 +15,7 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
   const premium = design === "premium"
   const [active, setActive] = useState(items[0]?.id)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [faqOpen, setFaqOpen] = useState(false)
   const listRef = useRef<HTMLUListElement>(null)
   const idsKey = items.map((i) => i.id).join("|")
 
@@ -97,9 +99,23 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
               )
             })}
           </ul>
+          <div className={`my-2 w-px shrink-0 ${premium ? "bg-[#ffffff]/15" : "bg-[#eef1f4]"}`} aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => {
+              trackEvent("bottom_nav_click", { section: "faq" })
+              setFaqOpen(true)
+            }}
+            aria-haspopup="dialog"
+            className="flex min-w-16 shrink-0 flex-col items-center gap-1 px-1 pt-2 pb-2 focus:outline-none focus-visible:opacity-80"
+          >
+            <span className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${itemClass(faqOpen)}`}>
+              <CircleHelp className="h-[18px] w-[18px]" aria-hidden="true" />
+            </span>
+            <span className={`text-[10px] font-medium leading-none ${labelClass(faqOpen)}`}>FAQ</span>
+          </button>
           {showDesign && (
           <>
-          <div className={`my-2 w-px shrink-0 ${premium ? "bg-[#ffffff]/15" : "bg-[#eef1f4]"}`} aria-hidden="true" />
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
@@ -115,6 +131,7 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
           )}
         </div>
       </nav>
+      <FaqSheet open={faqOpen} onOpenChange={setFaqOpen} />
       {showDesign && <DesignSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />}
     </>
   )

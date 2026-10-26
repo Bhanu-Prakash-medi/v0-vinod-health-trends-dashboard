@@ -669,11 +669,7 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
-        if (!cookieToken) {
-          throw new Error("Authentication required")
-        }
-
-        let token: string = cookieToken
+        let token = cookieToken || ""
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
@@ -681,7 +677,7 @@ export default function HealthDashboard() {
         const data = await withAuthRetry(async () => {
           // Re-read the cookie on every attempt: it may have been set since the
           // previous one.
-          token = getAccessTokenFromCookie() || token
+          token = getAccessTokenFromCookie() || cookieToken || ""
           return await fetchBeneficiaries(token, pmEntityId)
         })
 
