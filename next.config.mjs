@@ -26,7 +26,6 @@ function safeReadFile(filePath) {
 const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || "1.0.0",
-    NEXT_PUBLIC_RECOMMENDATIONS_API_AUTH: process.env.RECOMMENDATIONS_API_AUTH || "",
     hotjarJS: safeReadFile(FILE_PATHS.HOTJAR_LOADER)
   },
   typescript: {

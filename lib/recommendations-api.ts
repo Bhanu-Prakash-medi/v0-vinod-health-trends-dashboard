@@ -73,8 +73,7 @@ export interface RecommendationsResponse {
   generated_at?: string
 }
 
-const RECOMMENDATIONS_API_URL = "https://healthtrends-backend.medibuddy.in/healthtrends-recommendations"
-const RECOMMENDATIONS_API_AUTH = process.env.NEXT_PUBLIC_RECOMMENDATIONS_API_AUTH
+const RECOMMENDATIONS_API_URL = "/healthtrends-recommendations"
 
 function toIsoDate(raw: string): string {
   if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
@@ -107,14 +106,13 @@ export async function fetchRecommendations(
   accessToken: string,
   source: RecommendationSource,
 ): Promise<RecommendationsResponse> {
-  if (!accessToken || !RECOMMENDATIONS_API_AUTH) {
-    throw new Error("Missing authorization token for recommendations API")
+  if (!accessToken) {
+    throw new Error("Missing access token for recommendations API")
   }
   const response = await fetch(RECOMMENDATIONS_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: RECOMMENDATIONS_API_AUTH,
       accesstoken: accessToken,
     },
     body: JSON.stringify(buildRecommendationsPayload(source)),
