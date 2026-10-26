@@ -45,7 +45,11 @@ export interface RecParameter {
     self_care_note?: string | null
   }
   next_steps?: {
-    consult_doctor?: { advice?: string; specialists?: string[] }
+    consult_doctor?: {
+      advice?: string
+      specialists?: string[]
+      specialist_links?: { name: string; url: string }[]
+    }
     tests?: RecTest[]
     other_tests?: string[]
   }

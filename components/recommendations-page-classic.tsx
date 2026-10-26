@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Info, RefreshCw, Stethoscope, X, type LucideIcon } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import type { ApiHealthReport } from "@/lib/api"
 import { isNativeAppPlatform } from "@/lib/api"
 import { openExternalUrl } from "@/lib/open-external"
@@ -263,9 +263,9 @@ export default function RecommendationsPage({
                             trackEvent("recommendations_click", { service: "Book Lab Test", test: name })
                             openExternalUrl(labsUrl(native))
                           }}
-                          onConsult={(specialist) => {
+                          onConsult={(specialist, url) => {
                             trackEvent("recommendations_click", { service: "Online Consultation", specialist })
-                            openExternalUrl(consultUrl(native))
+                            openExternalUrl(url || consultUrl(native))
                           }}
                         />
                       </div>
@@ -364,7 +364,7 @@ function SectionContent({
   section: SectionId
   param: RecParameter
   onBookTest: (name: string) => void
-  onConsult: (specialist: string) => void
+  onConsult: (specialist: string, url?: string) => void
 }) {
   const exp = param.explanation || {}
   const rec = param.recommendations || {}
@@ -429,6 +429,7 @@ function SectionContent({
   const next = param.next_steps || {}
   const tests = next.tests || []
   const specialists = next.consult_doctor?.specialists || []
+  const specialistLinks = next.consult_doctor?.specialist_links || []
   const otherTests = next.other_tests || []
   return (
     <div className="flex flex-col gap-3">
@@ -436,7 +437,13 @@ function SectionContent({
       {(specialists.length > 0 || tests.length > 0) && (
         <div className="flex flex-col divide-y divide-[#f0f3f5] overflow-hidden rounded-xl border border-[#eef1f4]">
           {specialists.map((s) => (
-            <CtaRow key={`doc-${s}`} icon={Stethoscope} label={s} action="Consult" onClick={() => onConsult(s)} />
+            <CtaRow
+              key={`doc-${s}`}
+              icon={Stethoscope}
+              label={s}
+              action="Consult"
+              onClick={() => onConsult(s, specialistLinks.find((l) => l.name === s)?.url)}
+            />
           ))}
           {tests.map((t) => (
             <CtaRow
@@ -502,27 +509,45 @@ function CtaRow({
   action: string
   onClick: () => void
 }) {
+  const [whyOpen, setWhyOpen] = useState(false)
+  const whyId = useId()
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full gap-3 bg-[#ffffff] px-3 py-3 text-left transition-colors hover:bg-[#f7f9fa] focus:outline-none focus-visible:bg-[#f7f9fa] ${description ? "items-start" : "items-center"}`}
-    >
-      <Icon className={`h-[18px] w-[18px] shrink-0 text-[#156ddc] ${description ? "mt-0.5" : ""}`} aria-hidden="true" />
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className={`text-sm font-medium text-[#2e3742] ${description ? "" : "truncate"}`}>{label}</span>
-        {description && (
-          <span className="text-xs leading-relaxed text-[#6b7a8c]">
-            <span className="font-semibold text-[#4d5c6f]">Why: </span>
-            {description}
-          </span>
-        )}
-      </span>
-      <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#156ddc]">
-        {action}
-        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-      </span>
-    </button>
+    <div className="flex flex-col gap-2 bg-[#ffffff] px-3 py-3">
+      <div className="flex w-full items-center gap-3">
+        <Icon className="h-[18px] w-[18px] shrink-0 text-[#156ddc]" aria-hidden="true" />
+        <span className="flex min-w-0 flex-1 items-center gap-1">
+          <span className="truncate text-sm font-medium text-[#2e3742]">{label}</span>
+          {description && (
+            <button
+              type="button"
+              onClick={() => setWhyOpen((o) => !o)}
+              aria-expanded={whyOpen}
+              aria-controls={whyId}
+              aria-label={`Why ${label} is suggested`}
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/40 ${
+                whyOpen ? "bg-[#e8f2ff] text-[#156ddc]" : "text-[#9dabbd] hover:text-[#156ddc]"
+              }`}
+            >
+              <Info className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={onClick}
+          className="inline-flex shrink-0 items-center gap-0.5 rounded-md px-1 py-1 text-xs font-semibold text-[#156ddc] transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/40"
+        >
+          {action}
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
+      {description && whyOpen && (
+        <p id={whyId} className="ml-[30px] rounded-lg bg-[#f7f9fa] px-3 py-2 text-xs leading-relaxed text-[#4d5c6f]">
+          <span className="font-semibold text-[#2e3742]">Why this test: </span>
+          {description}
+        </p>
+      )}
+    </div>
   )
 }
 
