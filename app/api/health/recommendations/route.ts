@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const MAX_PARAMETERS = 300
+const RECOMMENDATIONS_API_URL = "https://healthtrends-backend.medibuddy.in/healthtrends-recommendations"
 
 type IncomingParam = { unit?: unknown; value?: unknown; status?: unknown; metric_name?: unknown; normal_range?: unknown }
 
@@ -16,11 +17,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const apiUrl = process.env.RECOMMENDATIONS_API_URL
+  const apiUrl = RECOMMENDATIONS_API_URL
   const apiAuth = process.env.RECOMMENDATIONS_API_AUTH
-  if (!apiUrl) {
-    return NextResponse.json({ error: "Recommendations API is not configured" }, { status: 503 })
-  }
 
   let body: any
   try {
