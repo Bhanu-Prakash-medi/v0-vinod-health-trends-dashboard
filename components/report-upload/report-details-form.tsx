@@ -25,6 +25,7 @@ interface ReportDetailsFormProps {
   isUploading: boolean
   isSaving: boolean
   onSubmit: (details: ReportDetails) => void
+  premium?: boolean
 }
 
 const inputClass =
@@ -52,7 +53,7 @@ function buildDetails(member: FamilyMember, date: Date, name: string, descriptio
   return details
 }
 
-export function ReportDetailsForm({ fileName, canSubmit, isUploading, isSaving, onSubmit }: ReportDetailsFormProps) {
+export function ReportDetailsForm({ fileName, canSubmit, isUploading, isSaving, onSubmit, premium }: ReportDetailsFormProps) {
   const ids = { date: useId(), name: useId(), description: useId(), member: useId(), hint: useId() }
   const [date, setDate] = useState<Date | undefined>()
   const [dateOpen, setDateOpen] = useState(false)
@@ -208,16 +209,43 @@ export function ReportDetailsForm({ fileName, canSubmit, isUploading, isSaving, 
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <button
-          type="submit"
-          disabled={submitDisabled}
-          aria-describedby={hint ? ids.hint : undefined}
-          onClick={() => setTouched(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-[#156ddc] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/40 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isSaving && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-          {isSaving ? "Submitting..." : "Submit"}
-        </button>
+        {premium ? (
+          <button
+            type="submit"
+            disabled={submitDisabled}
+            aria-describedby={hint ? ids.hint : undefined}
+            aria-busy={isSaving}
+            onClick={() => setTouched(true)}
+            className={cn(
+              "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-[#156ddc] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_20px_-10px_rgb(21_109_220/0.8)] transition-all hover:-translate-y-0.5 hover:bg-[#1262c6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/40 focus-visible:ring-offset-2 disabled:translate-y-0 disabled:shadow-none",
+              isSaving ? "ht-sheen cursor-wait" : "disabled:cursor-not-allowed disabled:opacity-50",
+            )}
+          >
+            {isSaving ? (
+              <>
+                <span>Submitting</span>
+                <span className="flex gap-1" aria-hidden="true">
+                  <span className="ht-dot h-1.5 w-1.5 rounded-full bg-white" />
+                  <span className="ht-dot h-1.5 w-1.5 rounded-full bg-white [animation-delay:150ms]" />
+                  <span className="ht-dot h-1.5 w-1.5 rounded-full bg-white [animation-delay:300ms]" />
+                </span>
+              </>
+            ) : (
+              "Submit"
+            )}
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={submitDisabled}
+            aria-describedby={hint ? ids.hint : undefined}
+            onClick={() => setTouched(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#156ddc] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/40 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {isSaving ? "Submitting..." : "Submit"}
+          </button>
+        )}
         {hint && (
           <p id={ids.hint} className="text-center text-xs text-[#4d5c6f]">
             {hint}

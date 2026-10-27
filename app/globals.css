@@ -674,3 +674,42 @@ body::-webkit-scrollbar,
 html {
   font-size: 15px;
 }
+
+/* Premium report upload animations */
+.ht-scan-beam {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 40%;
+  background: linear-gradient(180deg, transparent, rgb(143 184 240 / 0.55), transparent);
+  animation: ht-scan 1.4s ease-in-out infinite;
+}
+.ht-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.45) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: ht-sheen 1.3s ease-in-out infinite;
+}
+.ht-pop { animation: ht-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.ht-rise { animation: ht-rise 420ms ease-out both; }
+.ht-dot { animation: ht-dot 900ms ease-in-out infinite; }
+.ht-ripple { animation: ht-ripple 1.6s ease-out 2 both; }
+.ht-draw-ring { stroke-dasharray: 151; stroke-dashoffset: 151; fill-opacity: 0; animation: ht-draw 500ms ease-out forwards, ht-fill 250ms 450ms ease-out forwards; }
+.ht-draw-check { stroke-dasharray: 40; stroke-dashoffset: 40; animation: ht-draw 350ms 600ms ease-out forwards; }
+
+@keyframes ht-scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(260%); } }
+@keyframes ht-sheen { 100% { transform: translateX(100%); } }
+@keyframes ht-pop { 0% { transform: scale(0.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes ht-rise { 0% { transform: translateY(8px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes ht-dot { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-3px); opacity: 1; } }
+@keyframes ht-ripple { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+@keyframes ht-draw { to { stroke-dashoffset: 0; } }
+@keyframes ht-fill { to { fill-opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ht-scan-beam, .ht-sheen::after, .ht-ripple { animation: none; display: none; }
+  .ht-pop, .ht-rise, .ht-dot { animation: none; }
+  .ht-draw-ring, .ht-draw-check { animation: none; stroke-dashoffset: 0; fill-opacity: 1; }
+}

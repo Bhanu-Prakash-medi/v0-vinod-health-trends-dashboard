@@ -29,9 +29,10 @@ function progressAnnouncement(progress: number, uploaded: boolean) {
 interface UploadReportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  premium?: boolean
 }
 
-export function UploadReportDialog({ open, onOpenChange }: UploadReportDialogProps) {
+export function UploadReportDialog({ open, onOpenChange, premium }: UploadReportDialogProps) {
   const { state, selectFile, submit, retry, reset } = useReportUpload()
   const [mockScenario, setScenario] = useState<MockScenario>("success")
   const { phase, file, fileError, progress, uploaded, error, result } = state
@@ -82,7 +83,7 @@ export function UploadReportDialog({ open, onOpenChange }: UploadReportDialogPro
         </p>
 
         {phase === "success" && result ? (
-          <UploadSuccess result={result} onDone={() => close(false)} />
+          <UploadSuccess result={result} onDone={() => close(false)} premium={premium} />
         ) : !hasFile ? (
           <FileDropZone isValidating={phase === "validating"} error={fileError} onFile={selectFile} />
         ) : (
@@ -94,6 +95,7 @@ export function UploadReportDialog({ open, onOpenChange }: UploadReportDialogPro
               showProgress
               disabled={phase === "saving"}
               onRemove={reset}
+              premium={premium}
             />
             {error && <UploadErrorAlert error={error} onRetry={retry} />}
             <ReportDetailsForm
@@ -103,6 +105,7 @@ export function UploadReportDialog({ open, onOpenChange }: UploadReportDialogPro
               isUploading={!uploaded && phase === "uploading"}
               isSaving={phase === "saving"}
               onSubmit={submit}
+              premium={premium}
             />
           </div>
         )}
