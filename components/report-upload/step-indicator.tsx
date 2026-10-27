@@ -5,13 +5,17 @@ const STEPS = ["Choose file", "Details and upload", "Done"] as const
 
 export function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
   return (
-    <ol className="flex items-center gap-2" aria-label="Upload progress">
+    <ol className="flex min-w-0 items-center gap-2" aria-label="Upload progress">
       {STEPS.map((label, index) => {
         const step = index + 1
         const isDone = step < current || current === 3
         const isCurrent = step === current
         return (
-          <li key={label} className="flex flex-1 items-center gap-2" aria-current={isCurrent ? "step" : undefined}>
+          <li
+            key={label}
+            className={cn("flex min-w-0 items-center gap-2", isCurrent ? "flex-[2_1_0%]" : "flex-1")}
+            aria-current={isCurrent ? "step" : undefined}
+          >
             <span
               className={cn(
                 "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",

@@ -95,7 +95,7 @@ export function ReportDetailsForm({ fileName, canSubmit, isUploading, isSaving, 
   return (
     <form
       noValidate
-      className="flex flex-col gap-4"
+      className="flex min-w-0 flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault()
         setTouched(true)
@@ -190,10 +190,10 @@ export function ReportDetailsForm({ fileName, canSubmit, isUploading, isSaving, 
           </div>
         ) : (
           <Select value={memberId} onValueChange={setMemberId}>
-            <SelectTrigger id={ids.member} className="w-full bg-white text-[#2e3742]" aria-invalid={touched && !!errors.member}>
+            <SelectTrigger id={ids.member} className="w-full min-w-0 bg-white text-[#2e3742] [&>span]:truncate" aria-invalid={touched && !!errors.member}>
               <SelectValue placeholder="Choose a family member" />
             </SelectTrigger>
-            <SelectContent className="bg-white">
+            <SelectContent className="max-w-[calc(100vw-2rem)] bg-white">
               {members?.map((m) => (
                 <SelectItem key={m.vasBenifId} value={String(m.vasBenifId)}>
                   {m.name} ({m.relation})

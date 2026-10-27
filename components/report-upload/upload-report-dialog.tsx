@@ -46,7 +46,7 @@ export function UploadReportDialog({ open, onOpenChange }: UploadReportDialogPro
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-h-[90dvh] gap-5 overflow-y-auto bg-white sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] w-[calc(100%-1.5rem)] grid-cols-[minmax(0,1fr)] gap-5 overflow-x-hidden overflow-y-auto bg-white p-4 sm:w-full sm:max-w-md sm:p-6 [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle className="text-[#2e3742]">Upload report</DialogTitle>
           <DialogDescription className="text-[#4d5c6f]">
@@ -86,7 +86,7 @@ export function UploadReportDialog({ open, onOpenChange }: UploadReportDialogPro
         ) : !hasFile ? (
           <FileDropZone isValidating={phase === "validating"} error={fileError} onFile={selectFile} />
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             <SelectedFileCard
               file={file}
               progress={progress}
