@@ -247,6 +247,7 @@ function ParameterCard({
   const panelId = useId()
   const cardRef = useRef<HTMLElement>(null)
   const sections = SECTIONS.filter((s) => hasSection(param, s.id))
+  const preview = param.explanation?.why_it_happens || param.explanation?.what_it_is
 
   useEffect(() => {
     if (!expanded || !cardRef.current) return
@@ -269,36 +270,109 @@ function ParameterCard({
         onClick={onToggle}
         aria-expanded={expanded}
         aria-controls={panelId}
-        className="relative flex w-full items-center gap-3 px-4 py-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0d3f96]/30"
+        className="relative flex w-full flex-col gap-4 px-4 pb-4 pt-5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0d3f96]/30"
       >
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-500 ${
-            expanded
-              ? "bg-[linear-gradient(160deg,#0d3f96,#082a66)] text-[#ffffff] shadow-[0_8px_18px_-6px_rgba(8,42,102,0.6)]"
-              : "bg-[#eef3fa] text-[#0d3f96]"
-          }`}
-          aria-hidden="true"
-        >
-          <Icon className="h-5 w-5" strokeWidth={2} />
+        <span className="flex w-full items-center gap-3">
+          <span
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-500 ${
+              expanded
+                ? "bg-[linear-gradient(160deg,#0d3f96,#082a66)] text-[#ffffff] shadow-[0_8px_18px_-6px_rgba(8,42,102,0.6)]"
+                : "bg-[#eef3fa] text-[#0d3f96]"
+            }`}
+            aria-hidden="true"
+          >
+            <Icon className="h-5 w-5" strokeWidth={2} />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-[16px] font-semibold leading-snug text-[#1b2431] text-pretty">{param.parameter}</span>
+            {param.organ && <span className="text-[12px] font-medium text-[#6b7a8f]">{param.organ}</span>}
+          </span>
+          {tone.label && (
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${tone.pill}`}>
+              {tone.label}
+            </span>
+          )}
         </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-[15px] font-semibold leading-snug text-[#1b2431] text-pretty">{param.parameter}</span>
-          <span className="flex items-center gap-2">
-            {param.value && <span className="text-[13px] font-bold tabular-nums text-[#0d3f96]">{param.value}</span>}
-            {tone.label && (
-              <span className={`rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider ${tone.pill}`}>
-                {tone.label}
+
+        {(param.value || param.normal_range) && (
+          <span
+            className={`relative flex w-full items-end justify-between gap-3 overflow-hidden rounded-2xl px-4 py-3.5 transition-colors duration-500 ${
+              expanded
+                ? "bg-[linear-gradient(160deg,#0d3f96_0%,#082a66_60%,#061b44_100%)]"
+                : "border border-[#e6edf7] bg-[#f6f9fd]"
+            }`}
+          >
+            {expanded && (
+              <span
+                className="pointer-events-none absolute inset-0 opacity-[0.08] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_9px)]"
+                aria-hidden="true"
+              />
+            )}
+            {param.value && (
+              <span className="relative flex flex-col gap-1.5">
+                <span
+                  className={`text-[10px] font-semibold uppercase tracking-wider ${expanded ? "text-[#e8f2ff]/75" : "text-[#6b7a8f]"}`}
+                >
+                  Your value
+                </span>
+                <span
+                  className={`text-[24px] font-bold leading-none tracking-tight tabular-nums ${
+                    expanded ? "text-[#ffffff]" : "text-[#0d3f96]"
+                  }`}
+                >
+                  {param.value}
+                </span>
+              </span>
+            )}
+            {param.normal_range && (
+              <span
+                className={`relative flex flex-col items-end gap-1 text-right text-[12px] ${
+                  expanded ? "text-[#e8f2ff]/75" : "text-[#6b7a8f]"
+                }`}
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-wider">Normal</span>
+                <span className={`font-semibold tabular-nums ${expanded ? "text-[#ffffff]" : "text-[#1b2431]"}`}>
+                  {param.normal_range}
+                </span>
               </span>
             )}
           </span>
-        </span>
+        )}
+
         <span
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            expanded ? "rotate-180 bg-[#0d3f96] text-[#ffffff]" : "bg-[#eef3fa] text-[#0d3f96]"
+          className={`grid w-full transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            expanded ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
           }`}
-          aria-hidden="true"
+          aria-hidden={expanded}
         >
-          <ChevronDown className="h-4 w-4" strokeWidth={2.25} />
+          <span className="min-h-0 overflow-hidden">
+            {preview && <span className="line-clamp-2 text-[13.5px] leading-relaxed text-[#4d5c6f] text-pretty">{preview}</span>}
+          </span>
+        </span>
+
+        <span className="flex w-full items-center justify-between gap-3">
+          <span className="flex min-w-0 flex-wrap gap-1.5">
+            {sections.map((s) => (
+              <span
+                key={s.id}
+                className="rounded-full border border-[#e1e9f5] bg-[#ffffff] px-2.5 py-1 text-[11px] font-medium text-[#4d5c6f]"
+              >
+                {s.label}
+              </span>
+            ))}
+          </span>
+          <span
+            className={`flex shrink-0 items-center gap-1.5 rounded-full py-1.5 pl-3 pr-2 text-[12px] font-semibold transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              expanded ? "bg-[#0d3f96] text-[#ffffff]" : "bg-[#eef3fa] text-[#0d3f96]"
+            }`}
+            aria-hidden="true"
+          >
+            {expanded ? "Less" : "Details"}
+            <ChevronDown
+              className={`h-4 w-4 transition-transform duration-500 ${expanded ? "rotate-180" : ""}`}
+              strokeWidth={2.25}
+            />
+          </span>
         </span>
       </button>
 
@@ -312,31 +386,6 @@ function ParameterCard({
         <div className="min-h-0 overflow-hidden">
           <div className="flex flex-col gap-5 px-4 pb-5">
             <div className="h-px bg-[linear-gradient(90deg,transparent,#dbe5f3,transparent)]" aria-hidden="true" />
-
-            {(param.value || param.normal_range) && (
-              <div
-                className={`relative flex items-end justify-between gap-3 overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#0d3f96_0%,#082a66_60%,#061b44_100%)] px-4 py-4 ${
-                  expanded ? "animate-[ht-rise_0.45s_cubic-bezier(0.22,1,0.36,1)_both]" : ""
-                }`}
-              >
-                <span
-                  className="pointer-events-none absolute inset-0 opacity-[0.08] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_9px)]"
-                  aria-hidden="true"
-                />
-                {param.value && (
-                  <p className="relative flex flex-col gap-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#e8f2ff]/75">Your value</span>
-                    <span className="text-[26px] font-bold leading-none tracking-tight text-[#ffffff] tabular-nums">{param.value}</span>
-                  </p>
-                )}
-                {param.normal_range && (
-                  <p className="relative text-right text-[11px] leading-relaxed text-[#e8f2ff]/75">
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider">Normal</span>
-                    <span className="font-semibold text-[#ffffff] tabular-nums">{param.normal_range}</span>
-                  </p>
-                )}
-              </div>
-            )}
 
             {sections.map((s, i) => (
               <section
