@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { ChevronRight, Info, Plus, ShieldAlert, X } from "lucide-react"
+import { ChevronRight, Info, Pencil, Plus, ShieldAlert, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
 import { fetchBmi, updateBmi } from "@/lib/api"
@@ -133,6 +133,18 @@ export default function ProfileCard({
     } finally {
       setBmiSaving(false)
     }
+  }
+
+  // Prefill with the last saved height/weight so the user only edits what changed.
+  function openBmiForm() {
+    if (showBmiForm) {
+      resetBmiForm()
+      return
+    }
+    if (typeof bmiData?.height === "number") setHeightCm(String(bmiData.height))
+    if (typeof bmiData?.weight === "number") setWeightKg(String(bmiData.weight))
+    setBmiError(null)
+    setShowBmiForm(true)
   }
 
   function resetBmiForm() {
@@ -386,6 +398,15 @@ export default function ProfileCard({
                   {shownCategory && (
                     <span className="truncate text-[10px] font-semibold text-[#7fd1ff]">{shownCategory}</span>
                   )}
+                  <button
+                    type="button"
+                    onClick={openBmiForm}
+                    aria-label="Update height and weight"
+                    aria-expanded={showBmiForm}
+                    className="flex h-5 w-5 shrink-0 items-center justify-center self-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <Pencil className="h-3 w-3" aria-hidden="true" />
+                  </button>
                 </span>
               ) : (
                 <button
@@ -412,7 +433,7 @@ export default function ProfileCard({
             )}
           </div>
 
-          {showBmiForm && shownBmi === null && (
+          {showBmiForm && (
             <form className="mt-3 flex items-center gap-2" onSubmit={handleBmiSubmit}>
               <label className="min-w-0 flex-1">
                 <span className="sr-only">Height in centimetres</span>
@@ -455,7 +476,7 @@ export default function ProfileCard({
               </button>
             </form>
           )}
-          {showBmiForm && shownBmi === null && bmiError && (
+          {showBmiForm && bmiError && (
             <p role="alert" className="mt-2 text-xs text-[#ffb4b4]">
               {bmiError}
             </p>
