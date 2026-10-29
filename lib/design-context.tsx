@@ -8,12 +8,9 @@ export type DesignVariant = "classic" | "premium"
 const STORAGE_KEY = "ht-design-variant"
 const listeners = new Set<() => void>()
 
+// The classic design is retired: every entity always gets the premium design.
 function readVariant(): DesignVariant {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === "premium" ? "premium" : "classic"
-  } catch {
-    return "classic"
-  }
+  return "premium"
 }
 
 function subscribe(listener: () => void) {
