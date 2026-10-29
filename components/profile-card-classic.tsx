@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { ChevronRight, Info, Plus, ShieldAlert, X } from "lucide-react"
+import { ChevronRight, Info, Pencil, Plus, ShieldAlert, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
-import { fetchBmi } from "@/lib/api"
+import { fetchBmi, updateBmi } from "@/lib/api"
 import { trackClick } from "@/lib/analytics/posthog"
 
 // Ask the page to scroll to (and highlight) the latest report card. The Test
@@ -33,14 +33,6 @@ interface ProfileCardProps {
   vasBenefId?: string | number
   /** Access token forwarded to the BMI proxy (falls back to the debug token). */
   accessToken?: string | null
-}
-
-/** Standard WHO BMI categories used when the user calculates BMI locally. */
-function bmiCategory(bmi: number): string {
-  if (bmi < 18.5) return "Underweight"
-  if (bmi < 25) return "Normal"
-  if (bmi < 30) return "Overweight"
-  return "Obese"
 }
 
 /** WHO BMI reference ranges shown in the info popover. */
@@ -82,18 +74,17 @@ export default function ProfileCard({
 
   // BMI comes from the backend keyed on the beneficiary's vasBenefId. Re-keying
   // on the id + token means switching family members refetches the right BMI.
-  const { data: bmiData, isLoading: bmiLoading } = useSWR(
+  const { data: bmiData, isLoading: bmiLoading, mutate: mutateBmi } = useSWR(
     vasBenefId ? ["bmi", vasBenefId, accessToken] : null,
     () => fetchBmi(vasBenefId as string | number, accessToken),
     { revalidateOnFocus: false },
   )
 
-  // Local calculator shown when the backend has no height/weight (bmi === null).
   const [showBmiForm, setShowBmiForm] = useState(false)
   const [heightCm, setHeightCm] = useState("")
   const [weightKg, setWeightKg] = useState("")
-  // BMI is computed only on Submit, not live as the user types.
-  const [localBmi, setLocalBmi] = useState<number | null>(null)
+  const [bmiSaving, setBmiSaving] = useState(false)
+  const [bmiError, setBmiError] = useState<string | null>(null)
   // Toggles the WHO BMI range reference popover.
   const [showBmiInfo, setShowBmiInfo] = useState(false)
   // Toggles the AI report disclaimer popover.
@@ -150,26 +141,40 @@ export default function ProfileCard({
 
   const heightNum = Number.parseFloat(heightCm)
   const weightNum = Number.parseFloat(weightKg)
-  const canSubmit = heightNum > 0 && weightNum > 0
+  const canSubmit = heightNum > 0 && weightNum > 0 && !bmiSaving && !!vasBenefId
 
-  function handleBmiSubmit(e: React.FormEvent) {
+  async function handleBmiSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSubmit) return
-    // Persist the computed BMI and collapse the form — once added, the profile
-    // shows the BMI value instead of the "add height & weight" prompt again.
-    setLocalBmi(weightNum / Math.pow(heightNum / 100, 2))
-    setShowBmiForm(false)
+    if (!canSubmit || !vasBenefId) return
+    setBmiSaving(true)
+    setBmiError(null)
+    try {
+      const result = await updateBmi({ vasBenefId, height: heightNum, weight: weightNum }, accessToken)
+      await mutateBmi(result, { revalidate: false })
+      setShowBmiForm(false)
+    } catch (err) {
+      setBmiError(err instanceof Error ? err.message : "Could not update BMI. Please try again.")
+    } finally {
+      setBmiSaving(false)
+    }
+  }
+
+  function openBmiForm() {
+    // Prefill with the last saved values so the user only edits what changed.
+    setHeightCm(typeof bmiData?.height === "number" ? String(bmiData.height) : "")
+    setWeightKg(typeof bmiData?.weight === "number" ? String(bmiData.weight) : "")
+    setBmiError(null)
+    setShowBmiForm(true)
   }
 
   function resetBmiForm() {
     setShowBmiForm(false)
+    setBmiError(null)
   }
 
   const backendBmi = typeof bmiData?.bmi === "number" ? bmiData.bmi : null
   const backendCategory = bmiData?.category ?? null
   const backendBmiDate = formatBmiDate(bmiData?.measuredat)
-  // Locally calculated BMI is measured "now".
-  const localBmiDate = formatBmiDate(new Date().toISOString())
 
   return (
     <div className="relative rounded-2xl bg-white p-3 border border-[#f0f3f5] py-3.5">
@@ -284,38 +289,12 @@ export default function ProfileCard({
             <span className="inline-block h-3 w-10 animate-pulse rounded bg-[#e8edf2]" aria-hidden="true" />
             <span className="text-[10px] text-[#4d5c6f]">Loading BMI</span>
           </div>
-        ) : backendBmi !== null ? (
-          <div className="flex items-center justify-between">
-            {bmiLabel}
-            <div className="flex flex-col items-end">
-              <span className="flex items-baseline gap-1.5">
-                <span className="text-sm font-bold text-[#2e3742]">{backendBmi.toFixed(1)}</span>
-                {backendCategory && (
-                  <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
-                    {backendCategory}
-                  </span>
-                )}
-              </span>
-              {backendBmiDate && <span className="mt-0.5 text-[9px] text-[#9aa7b5]">as of {backendBmiDate}</span>}
-            </div>
-          </div>
-        ) : localBmi !== null ? (
-          <div className="flex items-center justify-between">
-            {bmiLabel}
-            <div className="flex flex-col items-end">
-              <span className="flex items-baseline gap-1.5">
-                <span className="text-sm font-bold text-[#2e3742]">{localBmi.toFixed(1)}</span>
-                <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
-                  {bmiCategory(localBmi)}
-                </span>
-              </span>
-              {localBmiDate && <span className="mt-0.5 text-[9px] text-[#9aa7b5]">as of {localBmiDate}</span>}
-            </div>
-          </div>
         ) : showBmiForm ? (
           <form className="space-y-2" onSubmit={handleBmiSubmit}>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium text-[#4d5c6f]">Calculate BMI</span>
+              <span className="text-[11px] font-medium text-[#4d5c6f]">
+                {backendBmi !== null ? "Update height & weight" : "Calculate BMI"}
+              </span>
               <button
                 type="button"
                 onClick={resetBmiForm}
@@ -356,13 +335,43 @@ export default function ProfileCard({
               disabled={!canSubmit}
               className="w-full rounded-lg bg-[#156ddc] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1160c4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30 disabled:cursor-not-allowed disabled:bg-[#b6cdec]"
             >
-              Submit
+              {bmiSaving ? "Saving…" : "Submit"}
             </button>
+            {bmiError && (
+              <p role="alert" className="text-[10px] text-[#d14343]">
+                {bmiError}
+              </p>
+            )}
           </form>
+        ) : backendBmi !== null ? (
+          <div className="flex items-center justify-between">
+            {bmiLabel}
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col items-end">
+                <span className="flex items-baseline gap-1.5">
+                  <span className="text-sm font-bold text-[#2e3742]">{backendBmi.toFixed(1)}</span>
+                  {backendCategory && (
+                    <span className="rounded bg-[#e8f2ff] px-1.5 py-0.5 text-[10px] font-bold text-[#156ddc]">
+                      {backendCategory}
+                    </span>
+                  )}
+                </span>
+                {backendBmiDate && <span className="mt-0.5 text-[9px] text-[#9aa7b5]">as of {backendBmiDate}</span>}
+              </div>
+              <button
+                type="button"
+                onClick={openBmiForm}
+                aria-label="Update height and weight"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#e0e6ec] text-[#4d5c6f] transition-colors hover:border-[#156ddc]/40 hover:bg-[#f4f9ff] hover:text-[#156ddc] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
         ) : (
           <button
             type="button"
-            onClick={() => setShowBmiForm(true)}
+            onClick={openBmiForm}
             className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-[#156ddc]/40 bg-[#f4f9ff] px-3 py-2 text-xs font-medium text-[#156ddc] transition-colors hover:bg-[#e8f2ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
           >
             <Plus className="h-3.5 w-3.5" />
