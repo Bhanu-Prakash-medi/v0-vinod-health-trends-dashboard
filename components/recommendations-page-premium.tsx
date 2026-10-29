@@ -55,6 +55,7 @@ import { trackClick } from "@/lib/analytics/posthog"
 import type { RecFood, RecParameter } from "@/lib/recommendations-api"
 import { formatReportDate, organIcon, paramKey, statusTone, useRecommendations } from "@/lib/use-recommendations"
 
+type View = "priority" | "all"
 type SectionId = "understand" | "lifestyle" | "diet" | "next"
 
 const SECTIONS: { id: SectionId; label: string }[] = [
@@ -106,14 +107,20 @@ export default function RecommendationsPage({
   const { reportDate, data, error, isLoading, retry, priority, allParams } = useRecommendations(patientData)
   const native = useMemo(() => isNativeAppPlatform(), [])
 
+  const [view, setView] = useState<View>(() => {
+    if (!initialParamId) return "priority"
+    return priority.some((p) => paramKey(p) === initialParamId) || priority.length === 0 ? "priority" : "all"
+  })
   const [expandedId, setExpandedId] = useState<string | null>(initialParamId ?? null)
 
-  const items = useMemo(() => {
-    const seen = new Set(priority.map(paramKey))
-    return [...priority, ...allParams.filter((p) => !seen.has(paramKey(p)))]
-  }, [priority, allParams])
-  const priorityKeys = useMemo(() => new Set(priority.map(paramKey)), [priority])
+  const items = view === "priority" ? priority : allParams
   const dateLabel = formatReportDate(reportDate)
+
+  const switchView = (v: View) => {
+    if (v === view) return
+    setView(v)
+    setExpandedId(null)
+  }
 
   const toggleParam = (p: RecParameter) => {
     const key = paramKey(p)
@@ -145,6 +152,16 @@ export default function RecommendationsPage({
             </div>
           </div>
 
+          {data && !isLoading && (
+            <div
+              className="relative mx-4 mt-3 flex rounded-full border border-[#ffffff]/10 bg-[#ffffff]/10 p-1"
+              role="tablist"
+              aria-label="Recommendation type"
+            >
+              <SegTab active={view === "priority"} onClick={() => switchView("priority")} label="Top priorities" count={priority.length} />
+              <SegTab active={view === "all"} onClick={() => switchView("all")} label="All parameters" count={allParams.length} />
+            </div>
+          )}
         </header>
 
         <main className="flex flex-col gap-3 p-4 pb-8">
@@ -171,7 +188,7 @@ export default function RecommendationsPage({
                   No recommendations available for this report.
                 </p>
               ) : (
-                <ul className="flex flex-col gap-3">
+                <ul className="flex flex-col gap-3" key={view}>
                   {items.map((p, i) => (
                     <li
                       key={paramKey(p)}
@@ -180,7 +197,6 @@ export default function RecommendationsPage({
                     >
                       <ParameterCard
                         param={p}
-                        isPriority={priorityKeys.has(paramKey(p))}
                         expanded={expandedId === paramKey(p)}
                         onToggle={() => toggleParam(p)}
                         onBookTest={(name, packageId) => {
@@ -215,14 +231,12 @@ export default function RecommendationsPage({
 
 export function ParameterCard({
   param,
-  isPriority = false,
   expanded,
   onToggle,
   onBookTest,
   onConsult,
 }: {
   param: RecParameter
-  isPriority?: boolean
   expanded: boolean
   onToggle: () => void
   onBookTest: (name: string, packageId?: number) => void
@@ -271,17 +285,7 @@ export function ParameterCard({
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-[16px] font-semibold leading-snug text-[#1b2431] text-pretty">{param.parameter}</span>
-            {(param.organ || isPriority) && (
-              <span className="flex flex-wrap items-center gap-1.5 text-[12px] font-medium text-[#6b7a8f]">
-                {isPriority && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#0d3f96]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#0d3f96]">
-                    <Sparkles className="h-3 w-3" aria-hidden="true" />
-                    Priority
-                  </span>
-                )}
-                {param.organ}
-              </span>
-            )}
+            {param.organ && <span className="text-[12px] font-medium text-[#6b7a8f]">{param.organ}</span>}
           </span>
           {tone.label && (
             <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${tone.pill}`}>
@@ -403,6 +407,66 @@ export function ParameterCard({
         </div>
       </div>
     </article>
+  )
+}
+
+function SegTab({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[12px] transition-colors ${
+        active ? "bg-[#ffffff] font-semibold text-[#0d3f96] shadow-[0_4px_14px_rgba(0,0,0,0.25)]" : "font-medium text-[#ffffff]/85 hover:text-[#ffffff]"
+      }`}
+    >
+      {label}
+      <span
+        className={`rounded-full px-1.5 text-[10px] font-semibold tabular-nums ${active ? "bg-[#0d3f96] text-[#ffffff]" : "bg-[#ffffff]/15 text-[#ffffff]"}`}
+      >
+        {count}
+      </span>
+    </button>
+  )
+}
+
+function ParameterHeader({ param }: { param: RecParameter }) {
+  const Icon = organIcon(param.organ)
+  const tone = statusTone(param.status)
+  return (
+    <div className="flex flex-col gap-4 px-5 pb-4 pt-5">
+      <div className="flex items-center gap-2.5">
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(160deg,#0d3f96,#082a66)] text-[#ffffff] shadow-[0_6px_14px_-4px_rgba(8,42,102,0.5)]"
+          aria-hidden="true"
+        >
+          <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+        </span>
+        <h2 className="min-w-0 flex-1 text-[16px] font-semibold leading-snug text-[#1b2431] text-pretty">{param.parameter}</h2>
+        {tone.label && (
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${tone.pill}`}>
+            {tone.label}
+          </span>
+        )}
+      </div>
+      {(param.value || param.normal_range) && (
+        <div className="flex items-end justify-between gap-3 rounded-2xl border border-[#dbe5f3] bg-[#f5f8fd] px-4 py-3.5">
+          {param.value && (
+            <p className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6b7a8d]">Your value</span>
+              <span className="text-[26px] font-bold leading-none tracking-tight text-[#0d3f96] tabular-nums">{param.value}</span>
+            </p>
+          )}
+          {param.normal_range && (
+            <p className="text-right text-[11px] leading-relaxed text-[#6b7a8d]">
+              <span className="block text-[10px] font-semibold uppercase tracking-wider">Normal</span>
+              <span className="font-semibold text-[#1b2431] tabular-nums">{param.normal_range}</span>
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
