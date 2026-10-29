@@ -135,6 +135,10 @@ export interface ApiHealthReport {
     contractType?: string | number | null
   }>
   health_summary: HealthSummaryItem[]
+  /** `source` from /health/reports (e.g. "uploaded"). */
+  reportSource?: string | null
+  /** `status` from /health/reports (e.g. "Processing"). */
+  reportStatus?: string | null
   /** Per-report-date health summaries, sorted latest date first. Powers the
    *  Health Summary date dropdown so users can view historical summaries. The
    *  first entry corresponds to the same data as `health_summary` (latest). */
@@ -1048,6 +1052,10 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
       },
     ],
     health_summary: healthSummary,
+    reportSource:
+      (getValueCaseInsensitive(data, "source") ?? getValueCaseInsensitive(reportData, "source") ?? null)?.toString() ??
+      null,
+    reportStatus: status || null,
     latestReportDate: fullfilmentDate,
     contractType,
     recommendationSource: buildRecommendationSource(data, reportData, fullfilmentDate, transformedParameters),

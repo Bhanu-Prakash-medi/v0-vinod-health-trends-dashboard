@@ -125,6 +125,9 @@ export default function HealthDashboard() {
   // load finishes, letting us show the empty-report fallback instead of an
   // endless skeleton when the analysis comes back with no usable data.
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
+  // Per beneficiary: requestId -> whether it is a user-uploaded report that is
+  // still processing, built from each /health/reports response.
+  const [uploadedReportStatus, setUploadedReportStatus] = useState<Map<string, Map<string, boolean>>>(new Map())
   const { design } = useDesign()
   const premium = design === "premium"
   const ProfileCard = premium ? PremiumProfileCard : ClassicProfileCard
@@ -411,6 +414,17 @@ export default function HealthDashboard() {
               requestFileById.get(docId),
               requestSourceById.get(docId),
             )
+            const source = (report.reportSource ?? requestSourceById.get(docId) ?? "").toString().toLowerCase()
+            if (source === "uploaded") {
+              const isProcessing = (report.reportStatus ?? "").toString().toLowerCase() === "processing"
+              setUploadedReportStatus((prev) => {
+                const next = new Map(prev)
+                const perBeneficiary = new Map(next.get(beneficiary.uid) ?? [])
+                perBeneficiary.set(docId, isProcessing)
+                next.set(beneficiary.uid, perBeneficiary)
+                return next
+              })
+            }
             // Update UI incrementally as each report comes in
             updateWithPartialData(report, docId)
             return { status: "fulfilled" as const, value: report, docId }
@@ -1143,7 +1157,14 @@ export default function HealthDashboard() {
   />
           </div>
 
-          {SHOW_REPORT_UPLOAD && <UploadReportSection />}
+          {SHOW_REPORT_UPLOAD && (
+            <UploadReportSection
+              uploadedCount={uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.size ?? 0}
+              processingCount={
+                [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(Boolean).length
+              }
+            />
+          )}
 
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an
