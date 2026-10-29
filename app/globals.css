@@ -707,6 +707,23 @@ html {
 @keyframes ht-ripple { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
 @keyframes ht-draw { to { stroke-dashoffset: 0; } }
 @keyframes ht-fill { to { fill-opacity: 1; } }
+@keyframes ht-border-flow { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+@keyframes ht-sweep { 0% { transform: translateX(-120%); } 60%, 100% { transform: translateX(120%); } }
+@keyframes ht-progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+@keyframes ht-glow { 0%, 100% { box-shadow: 0 0 0 0 rgb(240 150 30 / 0.35); } 50% { box-shadow: 0 0 0 6px rgb(240 150 30 / 0); } }
+
+.ht-status-border {
+  background: linear-gradient(90deg, #156ddc33, #156ddc, #5fb3ff, #156ddc33, #156ddc, #5fb3ff, #156ddc33);
+  background-size: 200% 100%;
+  animation: ht-border-flow 6s linear infinite;
+}
+.ht-status-sweep { animation: ht-sweep 4.5s ease-in-out 0.4s infinite; }
+.ht-progress-bar { animation: ht-progress 1.6s ease-in-out infinite; }
+.ht-glow { animation: ht-glow 2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ht-status-border, .ht-status-sweep, .ht-progress-bar, .ht-glow { animation: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ht-scan-beam, .ht-sheen::after, .ht-ripple { animation: none; display: none; }
