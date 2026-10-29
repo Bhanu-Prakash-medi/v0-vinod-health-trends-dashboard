@@ -44,6 +44,7 @@ import {
   HealthSummaryCardsSkeleton,
 } from "@/components/skeletons"
 import { initSnowplow, trackHealthTrendsEvent, setSnowplowUserContext, setSelfVasBenefId } from "@/lib/snowplow"
+import { setRecommendationsMbUserId } from "@/lib/recommendations-api"
 import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
 import {
@@ -702,6 +703,7 @@ export default function HealthDashboard() {
 
         setBeneficiaries(data.beneficiaries)
         setMbUserId(data.mbuserid ? String(data.mbuserid) : "")
+        setRecommendationsMbUserId(data.mbuserid)
         setUserEmail(data.employee_email || "")
         setSnowplowUserContext(data.mbuserid || null, data.employee_email || null)
 
