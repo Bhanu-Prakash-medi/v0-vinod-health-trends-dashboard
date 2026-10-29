@@ -17,32 +17,52 @@ function UploadedReportsStatus({
   uploadedCount,
   processingCount,
   partneredCount,
-}: Required<UploadReportSectionProps>) {
+  onBrand = false,
+}: Required<UploadReportSectionProps> & { onBrand?: boolean }) {
   if (uploadedCount === 0 && partneredCount === 0) return null
+  const countClass = onBrand ? "text-[#ffffff]" : "text-[#2e3742]"
   return (
-    <div className="ht-rise ht-status-border rounded-2xl p-px shadow-[0_14px_32px_-18px_rgba(21,109,220,0.55)]">
+    <div
+      className={
+        onBrand
+          ? "ht-rise rounded-2xl"
+          : "ht-rise ht-status-border rounded-2xl p-px shadow-[0_14px_32px_-18px_rgba(21,109,220,0.55)]"
+      }
+    >
       <div
         role="status"
         aria-live="polite"
-        className="relative isolate flex flex-col gap-3 overflow-hidden rounded-[15px] bg-[#ffffff] px-4 py-3.5 text-sm text-[#4d5c6f]"
+        className={
+          onBrand
+            ? "relative isolate flex flex-col gap-3 overflow-hidden rounded-2xl bg-[#ffffff]/10 px-4 py-3.5 text-sm text-[#ffffff]/85 ring-1 ring-inset ring-[#ffffff]/20 backdrop-blur-sm"
+            : "relative isolate flex flex-col gap-3 overflow-hidden rounded-[15px] bg-[#ffffff] px-4 py-3.5 text-sm text-[#4d5c6f]"
+        }
       >
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10 opacity-[0.05] [background-image:linear-gradient(#156ddc_1px,transparent_1px),linear-gradient(90deg,#156ddc_1px,transparent_1px)] [background-size:14px_14px]"
+          className={`pointer-events-none absolute inset-0 -z-10 [background-size:14px_14px] ${
+            onBrand
+              ? "opacity-[0.08] [background-image:linear-gradient(#ffffff_1px,transparent_1px),linear-gradient(90deg,#ffffff_1px,transparent_1px)]"
+              : "opacity-[0.05] [background-image:linear-gradient(#156ddc_1px,transparent_1px),linear-gradient(90deg,#156ddc_1px,transparent_1px)]"
+          }`}
         />
         <span
           aria-hidden="true"
-          className="ht-status-sweep pointer-events-none absolute inset-y-0 left-0 -z-10 w-full bg-[linear-gradient(100deg,transparent_30%,rgba(21,109,220,0.10)_50%,transparent_70%)]"
+          className={`ht-status-sweep pointer-events-none absolute inset-y-0 left-0 -z-10 w-full ${
+            onBrand
+              ? "bg-[linear-gradient(100deg,transparent_30%,rgba(255,255,255,0.16)_50%,transparent_70%)]"
+              : "bg-[linear-gradient(100deg,transparent_30%,rgba(21,109,220,0.10)_50%,transparent_70%)]"
+          }`}
         />
 
         {partneredCount > 0 && (
           <div className="ht-rise flex items-center gap-3" style={{ animationDelay: "120ms" }}>
             <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-              <span className="absolute inset-0 animate-ping rounded-full bg-[#156ddc]/50" />
-              <span className="relative h-2 w-2 rounded-full bg-[#156ddc]" />
+              <span className={`absolute inset-0 animate-ping rounded-full ${onBrand ? "bg-[#ffffff]/60" : "bg-[#156ddc]/50"}`} />
+              <span className={`relative h-2 w-2 rounded-full ${onBrand ? "bg-[#ffffff]" : "bg-[#156ddc]"}`} />
             </span>
             <span>
-              <span className="ht-pop inline-block font-bold tabular-nums text-[#2e3742]">{partneredCount}</span>{" "}
+              <span className={`ht-pop inline-block font-bold tabular-nums ${countClass}`}>{partneredCount}</span>{" "}
               MediBuddy partnered {partneredCount === 1 ? "report" : "reports"}
             </span>
           </div>
@@ -52,10 +72,10 @@ function UploadedReportsStatus({
           <div className="ht-rise flex items-center justify-between gap-3" style={{ animationDelay: "240ms" }}>
             <div className="flex items-center gap-3">
               <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-                <span className="relative h-2 w-2 rounded-full bg-[#5fb3ff]" />
+                <span className={`relative h-2 w-2 rounded-full ${onBrand ? "bg-[#ffffff]/60" : "bg-[#5fb3ff]"}`} />
               </span>
               <span>
-                <span className="ht-pop inline-block font-bold tabular-nums text-[#2e3742]">{uploadedCount}</span>{" "}
+                <span className={`ht-pop inline-block font-bold tabular-nums ${countClass}`}>{uploadedCount}</span>{" "}
                 {uploadedCount === 1 ? "report" : "reports"} uploaded
               </span>
             </div>
@@ -98,10 +118,17 @@ export default function UploadReportSection({
   return (
     <>
       {premium ? (
-        <div className="flex flex-col gap-3">
-          <PremiumUploadCard onUpload={openUpload} />
-          {status}
-        </div>
+        <PremiumUploadCard
+          onUpload={openUpload}
+          footer={
+            <UploadedReportsStatus
+              uploadedCount={uploadedCount}
+              processingCount={processingCount}
+              partneredCount={partneredCount}
+              onBrand
+            />
+          }
+        />
       ) : (
         <div className="flex flex-col gap-4 rounded-2xl border border-[#f0f3f5] bg-white p-4">
           <div className="flex items-start gap-3">

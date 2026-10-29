@@ -6,7 +6,7 @@ const FLOW = [
   { icon: LineChart, label: "See trends" },
 ] as const
 
-export function PremiumUploadCard({ onUpload }: { onUpload: () => void }) {
+export function PremiumUploadCard({ onUpload, footer }: { onUpload: () => void; footer?: React.ReactNode }) {
   return (
     <section
       aria-labelledby="premium-upload-title"
@@ -62,6 +62,8 @@ export function PremiumUploadCard({ onUpload }: { onUpload: () => void }) {
         <Upload className="h-4 w-4" aria-hidden="true" />
         Upload report
       </button>
+
+      {footer}
     </section>
   )
 }
