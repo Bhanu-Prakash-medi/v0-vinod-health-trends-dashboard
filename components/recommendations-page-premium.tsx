@@ -51,7 +51,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react"
 import type { ApiHealthReport } from "@/lib/api"
 import { isNativeAppPlatform } from "@/lib/api"
 import { openExternalUrl } from "@/lib/open-external"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick } from "@/lib/analytics/posthog"
 import type { RecFood, RecParameter } from "@/lib/recommendations-api"
 import { formatReportDate, organIcon, paramKey, statusTone, useRecommendations } from "@/lib/use-recommendations"
 
@@ -75,7 +75,7 @@ const RECOMMENDATIONS_DISCLAIMER = [
   "These insights are based on general clinical patterns, not a diagnosis. Please consult a licensed doctor before making any changes to medication or treatment.",
 ]
 function openProgramsForm() {
-  trackEvent("recommendations_explore_programs_clicked")
+  trackClick("explore_more_programs_click")
   openExternalUrl(PROGRAMS_FORM_URL)
 }
 function consultUrl(native: boolean) {
@@ -126,13 +126,11 @@ export default function RecommendationsPage({
     setView(v)
     setSelectedId(null)
     setSection("understand")
-    trackEvent("recommendations_click", { service: v === "priority" ? "Top Focus Areas" : "All Parameters" })
   }
 
   const selectParam = (p: RecParameter) => {
     setSelectedId(paramKey(p))
     setSection("understand")
-    trackEvent("recommendations_click", { service: "parameter_select", parameter: p.parameter })
   }
 
   const selectedIndex = selected ? items.findIndex((p) => paramKey(p) === paramKey(selected)) : -1
@@ -168,7 +166,6 @@ export default function RecommendationsPage({
 
   const selectSection = (id: SectionId) => {
     setSection(id)
-    trackEvent("recommendations_click", { service: "section_select", section: id, parameter: selected?.parameter })
   }
 
   return (
@@ -325,11 +322,11 @@ export default function RecommendationsPage({
                           section={activeSection}
                           param={selected}
                           onBookTest={(name, packageId) => {
-                            trackEvent("recommendations_click", { service: "Book Lab Test", test: name })
+                            trackClick("health_recommendation_test_click", { test_name: name })
                             openExternalUrl(labsUrl(native, packageId))
                           }}
                           onConsult={(specialist, url) => {
-                            trackEvent("recommendations_click", { service: "Online Consultation", specialist })
+                            trackClick("health_recommendation_consult_click", { consult_type: specialist })
                             openExternalUrl(url || consultUrl(native))
                           }}
                         />

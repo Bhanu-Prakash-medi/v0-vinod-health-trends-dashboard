@@ -46,7 +46,12 @@ import {
 import { initSnowplow, trackHealthTrendsEvent, setSnowplowUserContext, setSelfVasBenefId } from "@/lib/snowplow"
 import { sendHotjarEvent } from "@/lib/analytics/analytics"
 import { HOTJAR_EVENTS_NAME } from "@/lib/analytics/constants"
-import { identifyUser, trackEvent, trackEventOnce } from "@/lib/analytics/posthog"
+import {
+  identifyUser,
+  setAnalyticsBeneficiary,
+  setAnalyticsUserContext,
+  trackLanding,
+} from "@/lib/analytics/posthog"
 import SectionViewTracker from "@/components/section-view-tracker"
 import { useDesign } from "@/lib/design-context"
 import {
@@ -188,12 +193,6 @@ export default function HealthDashboard() {
 
   const loadBeneficiaryReport = useCallback(
     async (beneficiary: Beneficiary, token: string) => {
-      // Low-sensitivity categorical source for analytics — never the actual
-      // beneficiary name/identity.
-      const analyticsSource: "self" | "family_member" =
-        beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member"
-      const loadStartedAt = Date.now()
-
       setBeneficiaryErrors((prev) => {
         const newMap = new Map(prev)
         newMap.delete(beneficiary.uid)
@@ -570,11 +569,6 @@ export default function HealthDashboard() {
           errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
         } else if (errorMessage === "NO_REPORTS_404") {
           errorInfo = { type: "NO_REPORTS", message: "Sorry Lab Reports are Not Available" }
-          // Having no lab reports is a valid empty state, not a load failure —
-          // track it distinctly from health_trends_load_failed so failure
-          // diagnostics aren't polluted by beneficiaries who simply have no
-          // reports yet.
-          trackEvent("no_reports", { source: analyticsSource })
         } else {
           if (
             errorMessage.includes("504") ||
@@ -586,12 +580,6 @@ export default function HealthDashboard() {
           } else {
             errorInfo = { type: "GENERAL", message: "Failed to load health reports. Please try again." }
           }
-
-          trackEvent("health_trends_load_failed", {
-            source: analyticsSource,
-            success: false,
-            duration_ms: Date.now() - loadStartedAt,
-          })
         }
 
         setBeneficiaryErrors((prev) => {
@@ -626,9 +614,6 @@ export default function HealthDashboard() {
     (beneficiaryUid: string) => {
       const beneficiary = beneficiaries.find((b) => b.uid === beneficiaryUid)
       if (beneficiary && accessToken) {
-        trackEvent("health_trends_retry_click", {
-          source: beneficiary.relation?.toLowerCase() === "self" ? "self" : "family_member",
-        })
         setBeneficiaryReports((prev) => {
           const newMap = new Map(prev)
           newMap.set(beneficiary.uid, createInitialProfileFromBeneficiary(beneficiary))
@@ -695,10 +680,8 @@ export default function HealthDashboard() {
         setUserEmail(data.employee_email || "")
         setSnowplowUserContext(data.mbuserid || null, data.employee_email || null)
 
-        // Identify in PostHog with the same ids Snowplow uses, then record the
-        // "used Health Trends" event. Firing it here (rather than on mount)
-        // means every DAU event carries mb_user_id / pm_entity_id, so unique
-        // people can be counted and broken down.
+        // Identify in PostHog and set the ids every Health Trends event carries
+        // before recording the main-page landing, so it isn't sent without them.
         const selfProfileForAnalytics = data.beneficiaries.find((b) => b.relation?.toLowerCase() === "self")
         identifyUser({
           mbUserId: data.mbuserid || null,
@@ -706,9 +689,14 @@ export default function HealthDashboard() {
           email: data.employee_email || null,
           name: selfProfileForAnalytics?.patientName || null,
         })
-        // trackEventOnce is module-scoped, so a remount can't double-count
-        // this user in the DAU metric.
-        trackEventOnce("health_trends_view")
+        setAnalyticsUserContext({
+          email: data.employee_email || null,
+          mbUserId: data.mbuserid || null,
+          employeeId: data.employee_id || null,
+          pmEntityId,
+        })
+        setAnalyticsBeneficiary(data.beneficiaries[0]?.rVasBenefId)
+        trackLanding("main_page")
 
         // Consent gate: mbUserId comes from the profile response, pmEntityId
         // from the cookie, email from the profile. Check existing consent; if
@@ -857,13 +845,22 @@ export default function HealthDashboard() {
   // Full-page trends/all-parameters views are dedicated screens, so their
   // "viewed" moment is simply the state flip that renders them (unlike the
   // in-page sections below, which use scroll-into-view via SectionViewTracker).
+  const activeVasBenefId = beneficiaries[activeBeneficiaryIndex]?.rVasBenefId
   useEffect(() => {
-    if (showAllTrends) trackEvent("trends_view")
+    setAnalyticsBeneficiary(activeVasBenefId)
+  }, [activeVasBenefId])
+
+  useEffect(() => {
+    if (showAllTrends) trackLanding("healthtrends_lines_all_view")
   }, [showAllTrends])
 
   useEffect(() => {
-    if (showAllParameters) trackEvent("all_parameters_view")
+    if (showAllParameters) trackLanding("all_parameters_overall_view")
   }, [showAllParameters])
+
+  useEffect(() => {
+    if (recommendationsParam !== undefined) trackLanding("health_recommendations_overall_view")
+  }, [recommendationsParam])
 
   if (isBeneficiariesLoading) {
     return (
@@ -1213,7 +1210,7 @@ export default function HealthDashboard() {
                   reportsLoading={!isLoadComplete}
                 />
               <div id="nav-summary" className={premium ? "ht-card scroll-mt-20" : "scroll-mt-20 space-y-6"}>
-              <SectionViewTracker section="summary">
+              <SectionViewTracker section="health_summary_section">
                       <HealthSummarySection
                         patientData={currentProfileData}
                         vasbenefId={activeBeneficiary?.rVasBenefId}
@@ -1223,7 +1220,7 @@ export default function HealthDashboard() {
                     </SectionViewTracker>
               {!premium && (
                 <div id="nav-twin" className="scroll-mt-20">
-                    <SectionViewTracker section="digital_twin">
+                    <SectionViewTracker section="digital_twin_section">
                       <InsightsSection
                         patientData={currentProfileData}
                         vasbenefId={activeBeneficiary?.rVasBenefId}
@@ -1235,7 +1232,7 @@ export default function HealthDashboard() {
               </div>
               {premium && (
               <div id="nav-twin" className="ht-card scroll-mt-20">
-                    <SectionViewTracker section="digital_twin">
+                    <SectionViewTracker section="digital_twin_section">
                       <InsightsSection
                         patientData={currentProfileData}
                         vasbenefId={activeBeneficiary?.rVasBenefId}
@@ -1247,12 +1244,9 @@ export default function HealthDashboard() {
               {/* WhatNextSection (Recommended For You) hidden per requirement */}
               {hasTrends && (
                 <div id="nav-trends" className="ht-card scroll-mt-20">
-                <SectionViewTracker section="trends">
+                <SectionViewTracker section="healthtrends_lines_main_page">
                   <TrendsSection
-                    onViewAll={() => {
-                      trackEvent("trends_view_all_click")
-                      setShowAllTrends(true)
-                    }}
+                    onViewAll={() => setShowAllTrends(true)}
                     patientData={currentProfileData}
                     vasbenefId={activeBeneficiary?.rVasBenefId}
                   />
@@ -1260,27 +1254,27 @@ export default function HealthDashboard() {
                 </div>
               )}
               <div id="nav-parameters" className="ht-card scroll-mt-20">
-              <AllParametersSection
-                patientData={currentProfileData}
-                onViewAll={() => {
-                  trackEvent("all_parameters_view_all_click")
-                  setShowAllParameters(true)
-                }}
-                vasbenefId={activeBeneficiary?.rVasBenefId}
-              />
+              <SectionViewTracker section="all_parameters_main_page">
+                <AllParametersSection
+                  patientData={currentProfileData}
+                  onViewAll={() => setShowAllParameters(true)}
+                  vasbenefId={activeBeneficiary?.rVasBenefId}
+                />
+              </SectionViewTracker>
               </div>
               <div id="nav-plan" className="scroll-mt-20">
-              <HealthRecommendationsSection
-                patientData={currentProfileData}
-                onSeeAll={(paramId) => {
-                  trackEvent("recommendations_click", { service: paramId ? "top_focus_item" : "see_all" })
-                  setRecommendationsParam(paramId ?? null)
-                  window.scrollTo({ top: 0 })
-                }}
-              />
+              <SectionViewTracker section="health_recommendations_main_view">
+                <HealthRecommendationsSection
+                  patientData={currentProfileData}
+                  onSeeAll={(paramId) => {
+                    setRecommendationsParam(paramId ?? null)
+                    window.scrollTo({ top: 0 })
+                  }}
+                />
+              </SectionViewTracker>
               </div>
               <div id="nav-reports" className="ht-card scroll-mt-20">
-              <SectionViewTracker section="reports">
+              <SectionViewTracker section="report_download_page_view">
                 <TestReportsSection
                   patientData={currentProfileData}
                   scrollToDate={pendingReportDate}

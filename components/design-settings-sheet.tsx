@@ -3,7 +3,6 @@
 import { Check } from "lucide-react"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { type DesignVariant, useDesign } from "@/lib/design-context"
-import { trackEvent } from "@/lib/analytics/posthog"
 
 const OPTIONS: { id: DesignVariant; name: string; description: string }[] = [
   { id: "classic", name: "Classic", description: "Clean and light, the original layout" },
@@ -48,7 +47,6 @@ export default function DesignSettingsSheet({ open, onOpenChange }: { open: bool
   const { design, setDesign } = useDesign()
 
   const choose = (id: DesignVariant) => {
-    if (id !== design) trackEvent("design_variant_change", { variant: id })
     setDesign(id)
     onOpenChange(false)
   }

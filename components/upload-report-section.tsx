@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { FilePlus2 } from "lucide-react"
 import { useDesign } from "@/lib/design-context"
+import { trackClick } from "@/lib/analytics/posthog"
 import { PremiumUploadCard } from "@/components/report-upload/premium-upload-card"
 import { UploadReportDialog } from "@/components/report-upload/upload-report-dialog"
 
@@ -10,11 +11,15 @@ export default function UploadReportSection() {
   const [open, setOpen] = useState(false)
   const { design } = useDesign()
   const premium = design === "premium"
+  const openUpload = () => {
+    trackClick("upload_report_button")
+    setOpen(true)
+  }
 
   return (
     <>
       {premium ? (
-        <PremiumUploadCard onUpload={() => setOpen(true)} />
+        <PremiumUploadCard onUpload={openUpload} />
       ) : (
         <div className="flex flex-col gap-4 rounded-2xl border border-[#f0f3f5] bg-white p-4">
           <div className="flex items-start gap-3">
@@ -30,7 +35,7 @@ export default function UploadReportSection() {
           </div>
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={openUpload}
             className="w-full rounded-full bg-[#156ddc] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
           >
             Upload report

@@ -6,6 +6,7 @@ import { ChevronRight, Info, Plus, ShieldAlert, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
 import { fetchBmi } from "@/lib/api"
+import { trackClick } from "@/lib/analytics/posthog"
 
 // Ask the page to scroll to (and highlight) the latest report card. The Test
 // Reports section listens for this event.
@@ -205,7 +206,10 @@ export default function ProfileCard({
             <div className="relative z-30 self-start">
               <button
                 type="button"
-                onClick={() => setShowDisclaimer((v) => !v)}
+                onClick={() => {
+                  trackClick("mainpage_disclaimer")
+                  setShowDisclaimer((v) => !v)
+                }}
                 aria-label="Disclaimer"
                 aria-expanded={showDisclaimer}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-inset ring-white/15 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"

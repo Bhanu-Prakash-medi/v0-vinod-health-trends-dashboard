@@ -35,6 +35,7 @@ import { paramHasRange } from "@/lib/health-utils"
 import { getParameterBand, getParameterNormalRange } from "@/lib/parameter-bands"
 import { resolveParameterStatus } from "@/lib/parameter-status"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
+import { trackClick } from "@/lib/analytics/posthog"
 
 // Format the latest report date into a readable "12 Dec 2025" label.
 // Handles ISO strings, dd/mm/yyyy, and already-formatted values gracefully.
@@ -381,7 +382,10 @@ export default function HealthSummarySection({
                 key={`${categoryName}-${index}`}
                 role="button"
                 tabIndex={0}
-                onClick={() => setSelectedCategory({ name: categoryName, parameters: displayParams })}
+                onClick={() => {
+                  trackClick("healthsummary_card_click", { organ: categoryName })
+                  setSelectedCategory({ name: categoryName, parameters: displayParams })
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault()

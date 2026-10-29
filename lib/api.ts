@@ -57,6 +57,7 @@ export interface BeneficiariesResponse {
   beneficiaries: Beneficiary[]
   mbuserid?: string
   employee_email?: string
+  employee_id?: string
 }
 
 export interface HealthSummaryItem {
@@ -621,6 +622,9 @@ async function fetchBeneficiariesUncached(accessToken: string, _pmEntityId = "0"
     }),
     mbuserid,
     employee_email,
+    employee_id: String(
+      getValueCaseInsensitive(root, "employeeId") ?? getValueCaseInsensitive(root, "employee_id") ?? "",
+    ),
   }
 }
 

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 import { hasValidRange } from "@/lib/health-utils"
 import { openExternalUrl } from "@/lib/open-external"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick } from "@/lib/analytics/posthog"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
 import { getParameterBand } from "@/lib/parameter-bands"
 import { isParamAbnormal } from "@/lib/parameter-status"
@@ -261,6 +261,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
   }
 
   const handleReportClick = (index: number) => {
+    if (index === 0) trackClick("latest_report_click")
     setSelectedReportIndex(index)
     setShowPdfViewer(true)
   }
@@ -275,7 +276,7 @@ export default function TestReportsSection({ patientData, scrollToDate, onScroll
     if (!fileUrl) return
     // Counts people who downloaded a report. The file URL is deliberately not
     // sent — it is a pre-signed link to patient report contents.
-    trackEvent("reports_download_click")
+    trackClick("report_download_click")
     openExternalUrl(fileUrl)
     // The file downloads in the external browser tab, so the OS "download
     // complete" event isn't observable here. Confirm to the user that the
