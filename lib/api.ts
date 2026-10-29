@@ -236,7 +236,7 @@ export async function updateBmi(
 ): Promise<BmiResponse> {
   const response = await fetch("/api/health/update-bmi", {
     method: "POST",
-    headers: { "Content-Type": "application/json", accesstoken: accessToken || DEBUG_ACCESS_TOKEN },
+    headers: { "Content-Type": "application/json", accesstoken: accessToken ?? "" },
     body: JSON.stringify({
       vasBenefId: Number(params.vasBenefId),
       dob: params.dob || DEFAULT_BMI_DOB,
@@ -251,10 +251,6 @@ export async function updateBmi(
   return data as BmiResponse
 }
 
-// Fallback token used when no `redirect` cookie is present (e.g. the v0
-// preview) so the dashboard still loads for testing.
-export const DEBUG_ACCESS_TOKEN = "272d74fcdbb447788382dbed8ab7f7ee"
-
 export function getAccessTokenFromCookie(): string | null {
   if (typeof document === "undefined") {
     return null
@@ -268,28 +264,23 @@ export function getAccessTokenFromCookie(): string | null {
     }
   }
 
-  return DEBUG_ACCESS_TOKEN
+  return null
 }
-
-// Fallback pmEntityId used when no `pmEntityId` cookie is present (e.g. the
-// v0 preview), paired with DEBUG_ACCESS_TOKEN.
-export const DEBUG_PM_ENTITY_ID = "11172035"
 
 export function getPmEntityIdFromCookie(): string {
   if (typeof document === "undefined") {
-    return DEBUG_PM_ENTITY_ID
+    return ""
   }
 
   const cookies = document.cookie.split(";")
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split("=")
     if (name === "pmEntityId") {
-      const decoded = decodeURIComponent(value ?? "")
-      return decoded || DEBUG_PM_ENTITY_ID
+      return decodeURIComponent(value ?? "")
     }
   }
 
-  return DEBUG_PM_ENTITY_ID
+  return ""
 }
 
 /**
