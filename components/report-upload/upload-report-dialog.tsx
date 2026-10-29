@@ -11,6 +11,7 @@ import { StepIndicator } from "./step-indicator"
 import { UploadErrorAlert } from "./upload-error-alert"
 import { UploadSuccess } from "./upload-success"
 import { useReportUpload } from "./use-report-upload"
+import { trackClick } from "@/lib/analytics/posthog"
 
 const MOCK_SCENARIOS: { value: MockScenario; label: string }[] = [
   { value: "success", label: "Success" },
@@ -104,7 +105,10 @@ export function UploadReportDialog({ open, onOpenChange, premium }: UploadReport
               canSubmit={uploaded}
               isUploading={!uploaded && phase === "uploading"}
               isSaving={phase === "saving"}
-              onSubmit={submit}
+              onSubmit={(...args: Parameters<typeof submit>) => {
+                trackClick("report_submit")
+                return submit(...args)
+              }}
               premium={premium}
             />
           </div>

@@ -2,7 +2,7 @@
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick } from "@/lib/analytics/posthog"
 
 const FAQS: { q: string; a: string }[] = [
   {
@@ -55,7 +55,7 @@ export default function FaqSheet({ open, onOpenChange }: { open: boolean; onOpen
           <Accordion
             type="single"
             collapsible
-            onValueChange={(v) => v && trackEvent("faq_open", { question: v })}
+            onValueChange={(v) => v && trackClick("faqs_click")}
           >
             {FAQS.map((f) => (
               <AccordionItem key={f.q} value={f.q} className="border-[#eef1f4]">

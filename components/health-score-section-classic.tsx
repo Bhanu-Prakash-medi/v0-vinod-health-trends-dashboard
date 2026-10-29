@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
 import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus, Youtube, Globe } from "lucide-react"
 import { openExternalUrl } from "@/lib/open-external"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick, trackLanding } from "@/lib/analytics/posthog"
 
 interface HealthScoreSectionProps {
   patientData: any
@@ -171,6 +171,15 @@ export default function HealthScoreSection({
     }
   }, [activeScore, view])
 
+  useEffect(() => {
+    if (hasRisk) trackLanding("healthscore_section")
+  }, [hasRisk])
+
+  const selectView = (id: ViewStyle) => {
+    if (id !== view) trackClick("health_score_style_click", { style: id })
+    setView(id)
+  }
+
   const header = (
     <div className="mb-3 flex items-center gap-2">
       <Activity className="h-5 w-5 shrink-0 text-[#156ddc]" />
@@ -185,7 +194,7 @@ export default function HealthScoreSection({
       <button
         type="button"
         onClick={() => {
-          trackEvent("youtube_video_click")
+          trackClick("healthscore_video_click")
           openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")
         }}
         aria-label="Watch how your Health Risk Score is calculated"
@@ -197,7 +206,7 @@ export default function HealthScoreSection({
       <button
         type="button"
         onClick={() => {
-          trackEvent("website_click")
+          trackClick("healthscore_website_click")
           openExternalUrl("https://healthscorelabs.medibuddy.in")
         }}
         aria-label="Learn more on MediBuddy"
@@ -276,7 +285,7 @@ export default function HealthScoreSection({
                   role="tab"
                   aria-selected={active}
                   aria-label={`${vLabel} view`}
-                  onClick={() => setView(id)}
+                  onClick={() => selectView(id)}
                   className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                     active ? "bg-white text-[#156ddc] shadow-sm" : "text-[#9dabbd] hover:text-[#4d5c6f]"
                   }`}

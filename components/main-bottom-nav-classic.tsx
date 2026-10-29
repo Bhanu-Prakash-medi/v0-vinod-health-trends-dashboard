@@ -3,7 +3,7 @@
 import type { LucideIcon } from "lucide-react"
 import { CircleHelp, Settings2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick } from "@/lib/analytics/posthog"
 import DesignSettingsSheet from "@/components/design-settings-sheet"
 import FaqSheet from "@/components/faq-sheet"
 
@@ -42,7 +42,6 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
 
   const go = (id: string) => {
     setActive(id)
-    trackEvent("bottom_nav_click", { section: id })
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
@@ -83,7 +82,7 @@ export default function MainBottomNav({ items, showDesign = true }: { items: Bot
           <button
             type="button"
             onClick={() => {
-              trackEvent("bottom_nav_click", { section: "faq" })
+              trackClick("faqs_click")
               setFaqOpen(true)
             }}
             aria-haspopup="dialog"

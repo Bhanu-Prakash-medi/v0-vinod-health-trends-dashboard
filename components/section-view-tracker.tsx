@@ -2,38 +2,29 @@
 
 import type React from "react"
 import { useEffect, useRef } from "react"
-import { trackEvent, SECTION_VIEW_EVENTS, type TrendsSection } from "@/lib/analytics/posthog"
+import { trackLanding, type LandingSection } from "@/lib/analytics/posthog"
 
-// Fires the section's `{section}_view` event (e.g. summary_view, trends_view)
-// at most once per section per page session, the first time that section
-// scrolls into view. Module-level (not component-level) so remounts
-// (beneficiary switch, Strict Mode) don't re-fire for a section already
-// recorded as viewed.
-const viewedSections = new Set<TrendsSection>()
-
+// Fires `healthtrends_landing` for the section the first time it scrolls into
+// view. trackLanding itself dedupes per session, so remounts and Strict Mode
+// can't record a section twice.
 export function SectionViewTracker({
   section,
   children,
 }: {
-  section: TrendsSection
+  section: LandingSection
   children: React.ReactNode
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (viewedSections.has(section)) return
     const el = containerRef.current
     if (!el || typeof IntersectionObserver === "undefined") return
 
     const observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting && !viewedSections.has(section)) {
-            viewedSections.add(section)
-            trackEvent(SECTION_VIEW_EVENTS[section])
-            observer.disconnect()
-            break
-          }
+        if (entries.some((entry) => entry.isIntersecting)) {
+          trackLanding(section)
+          observer.disconnect()
         }
       },
       { threshold: 0.3 },

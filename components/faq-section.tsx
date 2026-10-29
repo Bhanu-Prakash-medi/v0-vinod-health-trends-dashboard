@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { ArrowRight, CircleHelp, Search, X } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick } from "@/lib/analytics/posthog"
 import { ALL_FAQS, FAQ_GROUPS, type FaqItem } from "@/lib/faq-data"
 
 const PREVIEW_COUNT = 4
@@ -48,10 +48,10 @@ export default function FaqSection() {
     })).filter((g) => g.items.length > 0)
   }, [query])
 
-  const handleQuestionOpen = (id: string) => trackEvent("faq_question_open", { question_id: id })
+  const handleQuestionOpen = (id: string) => trackClick("faqs_click")
 
   const openAll = () => {
-    trackEvent("faq_view_all_click", {})
+    trackClick("faqs_click")
     setOpen(true)
   }
 

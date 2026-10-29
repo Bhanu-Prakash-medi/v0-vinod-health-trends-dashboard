@@ -180,132 +180,130 @@ export function identifyUser(user: {
   }
 }
 
-/** Controlled set of dashboard "section" values, used to pick a section_view event name. */
-export type TrendsSection = "summary" | "trends" | "all_parameters" | "reports" | "digital_twin"
-
 /**
- * Allow-listed event names — the metrics this dashboard reports on, plus two
- * failure diagnostics. Naming convention: `{section}_{view|click}` — the
- * event name itself tells you what section it belongs to and whether it's an
- * impression or an interaction. Keep this list in sync with what's
- * instrumented.
- *
- *  health_trends_view                -> unique people using Health Trends (DAU)
- *  summary_view                      -> Summary section impression
- *  digital_twin_view                 -> Digital Twin section impression
- *  trends_view                       -> Trends section impression
- *  reports_view                      -> Reports section impression
- *  all_parameters_view               -> All Parameters section impression
- *  trends_view_all_click             -> "See all" clicked on Trends
- *  all_parameters_view_all_click     -> "See all" clicked on All Parameters
- *  trend_point_click                 -> a data point on a trend chart clicked
- *  reports_download_click            -> report downloaded
- *  no_reports                        -> a beneficiary has no lab reports available
- *  recommendations_click             -> recommendation CTA clicked
- *  feedback_submit_click             -> feedback submitted
- *  digital_twin_click                -> digital twin organ clicked
- *  youtube_video_click               -> "How it's calculated" YouTube link clicked
- *  website_click                     -> "Learn more" external website link clicked
- *  health_trends_time_spent          -> total active time in Health Trends for
- *                                        the whole session (covers every
- *                                        in-page view — summary, See All
- *                                        Trends/Parameters, reports, etc. —
- *                                        not just the initial dashboard view)
- *  health_trends_load_failed         -> diagnostics: Health Trends broken for a user
- *  health_trends_retry_click         -> diagnostics: user retried after a failure
+ * Health Trends sends exactly two custom PostHog events. Never add new event
+ * names — put the specifics in `section` / `element` and their properties.
  */
-export type AnalyticsEventName =
-  | "health_trends_view"
-  | "summary_view"
-  | "digital_twin_view"
-  | "trends_view"
-  | "reports_view"
-  | "all_parameters_view"
-  | "trends_view_all_click"
-  | "all_parameters_view_all_click"
-  | "trend_point_click"
-  | "reports_download_click"
-  | "no_reports"
-  | "recommendations_click"
+const LANDING_EVENT = "healthtrends_landing"
+const CLICK_EVENT = "healthtrends_click"
+
+export type LandingSection =
+  | "main_page"
+  | "healthscore_section"
+  | "health_summary_section"
+  | "digital_twin_section"
+  | "healthtrends_lines_main_page"
+  | "healthtrends_lines_all_view"
+  | "all_parameters_main_page"
+  | "all_parameters_overall_view"
+  | "health_recommendations_main_view"
+  | "health_recommendations_overall_view"
+  | "report_download_page_view"
+
+export type ClickElement =
+  | "mainpage_disclaimer"
+  | "upload_report_button"
+  | "report_submit"
+  | "health_score_style_click"
+  | "healthscore_video_click"
+  | "healthscore_website_click"
+  | "healthsummary_card_click"
+  | "digital_twin_pointer_click"
+  | "healthtrend_line_pointer_click"
+  | "health_recommendation_test_click"
+  | "health_recommendation_consult_click"
+  | "explore_more_programs_click"
+  | "report_download_click"
+  | "latest_report_click"
+  | "feedback_click"
   | "feedback_submit_click"
-  | "digital_twin_click"
-  | "youtube_video_click"
-  | "website_click"
-  | "health_trends_time_spent"
-  | "health_trends_load_failed"
-  | "health_trends_retry_click"
+  | "report_an_issue_click"
+  | "faqs_click"
 
-/** Maps a TrendsSection to its `{section}_view` event name. */
-export const SECTION_VIEW_EVENTS: Record<TrendsSection, AnalyticsEventName> = {
-  summary: "summary_view",
-  digital_twin: "digital_twin_view",
-  trends: "trends_view",
-  reports: "reports_view",
-  all_parameters: "all_parameters_view",
-}
-
-/**
- * Only low-sensitivity, categorical properties are allowed on events. Never
- * add raw API responses, report contents, test names/results, or any
- * patient/beneficiary-identifying fields (names, emails, phone numbers,
- * access tokens, JWTs, cookies, or URLs containing identifiers) here.
- *
- * The user/entity ids are attached automatically as super properties by
- * identifyUser(), so individual call sites don't pass them.
- */
-export interface AnalyticsEventProperties {
-  source?: "self" | "family_member"
-  success?: boolean
-  duration_ms?: number
-  /** Which recommendation CTA was clicked (e.g. "Book Lab Test"). */
-  service?: string
-  /** Feedback rating, and whether it persisted server-side. */
-  rating?: number
-  saved?: boolean
-  /** Digital twin organ identifier (anatomical, not patient data). */
+export interface ClickProperties {
+  style?: string
   organ?: string
-  /** Active seconds spent in Health Trends, for health_trends_time_spent. */
-  active_seconds?: number
+  pointer?: string
+  parameter?: string
+  test_name?: string
+  consult_type?: string
 }
 
-/**
- * Fire a single allow-listed analytics event with safe properties. No-ops
- * on the server and whenever PostHog hasn't been initialized (e.g. the
- * project token isn't configured), so instrumentation never breaks SSR/build
- * or blocks the UI.
- *
- * `useBeacon` switches to sendBeacon for events fired while the page is being
- * unloaded, which a normal XHR would lose.
- */
-export function trackEvent(
-  name: AnalyticsEventName,
-  properties?: AnalyticsEventProperties,
-  options?: { useBeacon?: boolean },
-) {
+interface AnalyticsContext {
+  email_id: string
+  mbuserid: string
+  rvasbenifId: string
+  employee_id: string
+  pmentityId: string
+}
+
+const analyticsContext: AnalyticsContext = {
+  email_id: "",
+  mbuserid: "",
+  rvasbenifId: "",
+  employee_id: "",
+  pmentityId: "",
+}
+
+const toId = (value: string | number | null | undefined) => (value == null ? "" : String(value).trim())
+
+/** Set the user-level ids attached to every Health Trends event. */
+export function setAnalyticsUserContext(user: {
+  email?: string | null
+  mbUserId?: string | number | null
+  employeeId?: string | number | null
+  pmEntityId?: string | number | null
+}) {
+  analyticsContext.email_id = toId(user.email)
+  analyticsContext.mbuserid = toId(user.mbUserId)
+  analyticsContext.employee_id = toId(user.employeeId)
+  analyticsContext.pmentityId = toId(user.pmEntityId)
+}
+
+/** Set the beneficiary currently being viewed (changes when switching family members). */
+export function setAnalyticsBeneficiary(rVasBenefId: string | number | null | undefined) {
+  analyticsContext.rvasbenifId = toId(rVasBenefId)
+}
+
+function capture(name: string, properties: Record<string, string>) {
   if (typeof window === "undefined" || !initialized) return
   try {
-    posthog.capture(name, properties, options?.useBeacon ? { transport: "sendBeacon" } : undefined)
+    posthog.capture(name, { ...analyticsContext, timestamp: new Date().toISOString(), ...properties })
   } catch (error) {
     console.log("[v0] PostHog capture failed (non-blocking):", error)
   }
 }
 
-/**
- * Module-scoped guard for events that must fire at most once per page session.
- * A component ref is not enough: a remount (beneficiary switch, Strict Mode's
- * double-invoke, or a re-render of the dashboard root) creates fresh refs and
- * would double-count — which would inflate the DAU event volume.
- */
-const firedOnceEvents = new Set<AnalyticsEventName>()
+const LANDING_STORAGE_PREFIX = "healthtrends_landing:"
+const landedSections = new Set<LandingSection>()
 
 /**
- * Fire an event at most once per page session. Returns true when the event was
- * actually sent, false when it had already been recorded.
+ * Record that the user landed on a section — at most once per browser session
+ * per section. The module-level set covers re-renders, remounts and Strict
+ * Mode; sessionStorage covers full reloads within the same session.
  */
-export function trackEventOnce(name: AnalyticsEventName, properties?: AnalyticsEventProperties): boolean {
-  if (typeof window === "undefined") return false
-  if (firedOnceEvents.has(name)) return false
-  firedOnceEvents.add(name)
-  trackEvent(name, properties)
-  return true
+export function trackLanding(section: LandingSection) {
+  if (typeof window === "undefined" || !initialized) return
+  if (landedSections.has(section)) return
+  const storageKey = `${LANDING_STORAGE_PREFIX}${section}`
+  try {
+    if (window.sessionStorage.getItem(storageKey)) {
+      landedSections.add(section)
+      return
+    }
+    window.sessionStorage.setItem(storageKey, "1")
+  } catch {
+    // sessionStorage can be unavailable in some WebViews; the in-memory set still dedupes.
+  }
+  landedSections.add(section)
+  capture(LANDING_EVENT, { section })
+}
+
+/** Record a user interaction. Fires on every call. */
+export function trackClick(element: ClickElement, properties?: ClickProperties) {
+  const extra: Record<string, string> = {}
+  for (const [key, value] of Object.entries(properties ?? {})) {
+    if (value != null && value !== "") extra[key] = String(value)
+  }
+  capture(CLICK_EVENT, { element, ...extra })
 }

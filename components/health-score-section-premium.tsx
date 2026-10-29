@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
 import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus, Youtube, Globe, ChevronRight } from "lucide-react"
 import { openExternalUrl } from "@/lib/open-external"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick, trackLanding } from "@/lib/analytics/posthog"
 
 interface HealthScoreSectionProps {
   patientData: any
@@ -186,6 +186,15 @@ export default function HealthScoreSection({
     }
   }, [activeScore, view])
 
+  useEffect(() => {
+    if (hasRisk) trackLanding("healthscore_section")
+  }, [hasRisk])
+
+  const selectView = (id: ViewStyle) => {
+    if (id !== view) trackClick("health_score_style_click", { style: id })
+    setView(id)
+  }
+
   const renderHeader = () => (
     <div className="flex min-w-0 items-center gap-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef4fd]">
@@ -201,7 +210,7 @@ export default function HealthScoreSection({
       <button
         type="button"
         onClick={() => {
-          trackEvent("youtube_video_click")
+          trackClick("healthscore_video_click")
           openExternalUrl("https://www.youtube.com/watch?v=3ym3AjnVF9I")
         }}
         aria-label="Watch how your Health Risk Score is calculated"
@@ -220,7 +229,7 @@ export default function HealthScoreSection({
       <button
         type="button"
         onClick={() => {
-          trackEvent("website_click")
+          trackClick("healthscore_website_click")
           openExternalUrl("https://healthscorelabs.medibuddy.in")
         }}
         aria-label="Learn more on MediBuddy"
@@ -311,7 +320,7 @@ export default function HealthScoreSection({
                   role="tab"
                   aria-selected={active}
                   aria-label={`${vLabel} view`}
-                  onClick={() => setView(id)}
+                  onClick={() => selectView(id)}
                   className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
                     active ? "bg-white text-[#156ddc] shadow-sm" : "text-[#9dabbd] hover:text-[#4d5c6f]"
                   }`}

@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { getTrendData, hasValidRange } from "@/lib/health-utils"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick } from "@/lib/analytics/posthog"
 import type { ApiHealthReport } from "@/lib/api"
 import { getParameterPriority } from "@/lib/parameterPriority"
 import BiomarkerInfoButton from "@/components/biomarker-info-button"
@@ -292,7 +292,7 @@ export default function AllTrendsPage({
           const handleChartClick = (state: any) => {
             const point = state?.activePayload?.[0]?.payload
             if (!point || point.value == null) return
-            trackEvent("trend_point_click")
+            trackClick("healthtrend_line_pointer_click", { parameter: String(trend.name) })
             const dateStr = point.dateStr || formatDate(point.timestamp)
             const matchedReport = findReportForDate(dateStr)
             setSelectedPoint({

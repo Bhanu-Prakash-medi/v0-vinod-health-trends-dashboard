@@ -16,6 +16,8 @@ export interface ReportRequest {
   file?: string
   /** Contract type for this report (from the reports listing endpoint). */
   contractType?: string | null
+  /** Report source (profile `requestIds[].sourceType`), sent as `reportsource` to /health/reports. */
+  sourceType?: string | null
   }
 
 export interface Beneficiary {
@@ -57,6 +59,7 @@ export interface BeneficiariesResponse {
   beneficiaries: Beneficiary[]
   mbuserid?: string
   employee_email?: string
+  employee_id?: string
 }
 
 export interface HealthSummaryItem {
@@ -484,22 +487,22 @@ export function extractDmsDocIdFromFileUrl(fileUrl?: string): string | null {
  * the Self beneficiary; each beneficiary's authoritative report list is fetched
  * on demand via `fetchBeneficiaryReportDocIds`.
  *
- * NOTE: `pmEntityId` is retained for call-site compatibility but is unused by
- * the new profile endpoint.
+ * `pmEntityId` is sent to the profile endpoint as the `pmentityid` header.
  */
-export async function fetchBeneficiaries(accessToken: string, _pmEntityId = "0"): Promise<BeneficiariesResponse> {
+export async function fetchBeneficiaries(accessToken: string, pmEntityId = "0"): Promise<BeneficiariesResponse> {
   // Cached + de-duplicated so returning to the dashboard doesn't re-hit the
   // profile API, and concurrent mounts share one request.
-  return cachedRequest(`beneficiaries:${accessToken}:${_pmEntityId}`, () =>
-    fetchBeneficiariesUncached(accessToken, _pmEntityId),
+  return cachedRequest(`beneficiaries:${accessToken}:${pmEntityId}`, () =>
+    fetchBeneficiariesUncached(accessToken, pmEntityId),
   )
 }
 
-async function fetchBeneficiariesUncached(accessToken: string, _pmEntityId = "0"): Promise<BeneficiariesResponse> {
+async function fetchBeneficiariesUncached(accessToken: string, pmEntityId = "0"): Promise<BeneficiariesResponse> {
   const response = await fetch("/api/health/profile", {
     method: "GET",
     headers: {
       accesstoken: accessToken,
+      pmentityid: pmEntityId,
     },
   })
 
@@ -617,6 +620,9 @@ async function fetchBeneficiariesUncached(accessToken: string, _pmEntityId = "0"
     }),
     mbuserid,
     employee_email,
+    employee_id: String(
+      getValueCaseInsensitive(root, "employeeId") ?? getValueCaseInsensitive(root, "employee_id") ?? "",
+    ),
   }
 }
 
@@ -651,6 +657,8 @@ function parseReportRequests(raw: any): ReportRequest[] {
       ""
     const contractTypeRaw =
       getValueCaseInsensitive(r, "contractType") ?? getValueCaseInsensitive(r, "contract_type")
+    const sourceTypeRaw =
+      getValueCaseInsensitive(r, "sourceType") ?? getValueCaseInsensitive(r, "source_type")
     out.push({
       requestId,
       date,
@@ -659,6 +667,10 @@ function parseReportRequests(raw: any): ReportRequest[] {
         contractTypeRaw === undefined || contractTypeRaw === null || contractTypeRaw === ""
           ? null
           : String(contractTypeRaw),
+      sourceType:
+        sourceTypeRaw === undefined || sourceTypeRaw === null || sourceTypeRaw === ""
+          ? null
+          : String(sourceTypeRaw),
     })
   }
   return out
@@ -1087,13 +1099,14 @@ export async function fetchReportDetailsAsHealthReport(
   requestId: string | number,
   reportDate?: string,
   fileUrl?: string,
+  reportSource?: string | null,
 ): Promise<ApiHealthReport> {
   // A report's analyzed details are immutable within a session, so cache them
   // per (beneficiary, report). This is the highest-volume call — one per report
   // per beneficiary — so caching it is what stops the burst of repeat requests
   // when the user returns to the dashboard.
   return cachedRequest(`reportDetails:${vasBenefId}:${requestId}`, () =>
-    fetchReportDetailsAsHealthReportUncached(accessToken, vasBenefId, requestId, reportDate, fileUrl),
+    fetchReportDetailsAsHealthReportUncached(accessToken, vasBenefId, requestId, reportDate, fileUrl, reportSource),
   )
 }
 
@@ -1103,6 +1116,7 @@ async function fetchReportDetailsAsHealthReportUncached(
   requestId: string | number,
   reportDate?: string,
   fileUrl?: string,
+  reportSource?: string | null,
 ): Promise<ApiHealthReport> {
   await fetchReportsThrottle.acquire()
   try {
@@ -1113,7 +1127,7 @@ async function fetchReportDetailsAsHealthReportUncached(
           "Content-Type": "application/json",
           ...(accessToken ? { accesstoken: accessToken } : {}),
         },
-        body: JSON.stringify({ vasBenefId, requestId }),
+        body: JSON.stringify({ vasBenefId, requestId, ...(reportSource ? { reportsource: reportSource } : {}) }),
       })
 
       if (response.status === 401) {
@@ -1888,7 +1902,11 @@ async function requestJson<T>(path: string, init: RequestInit, signal?: AbortSig
   try {
     response = await fetch(path, {
       ...init,
-      headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), accesstoken: token },
+      headers: {
+        ...(init.headers as Record<string, string> | undefined),
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        accesstoken: token,
+      },
       signal: timeout.signal,
     })
   } catch (error) {
@@ -2051,7 +2069,10 @@ export async function fetchFamilyMembers(): Promise<FamilyMember[]> {
     await mockDelay(700)
     return MOCK_FAMILY
   }
-  const data = await requestJson<unknown>("/api/beneficiary-profile", { method: "GET" })
+  const data = await requestJson<unknown>("/api/beneficiary-profile", {
+    method: "GET",
+    headers: { pmentityid: getPmEntityIdFromCookie() },
+  })
   const root = (Array.isArray(data) ? data[0] : data) as { beneficiaries?: unknown[] } | undefined
   const list = Array.isArray(root?.beneficiaries) ? root.beneficiaries : []
   return list

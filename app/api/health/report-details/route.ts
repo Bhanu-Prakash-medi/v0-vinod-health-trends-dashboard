@@ -24,14 +24,19 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout = 300
 export async function POST(request: NextRequest) {
   const accessToken = request.headers.get("accesstoken")
 
-  let body: { vasBenefId?: string | number; mbUserId?: string | number; requestId?: string | number }
+  let body: {
+    vasBenefId?: string | number
+    mbUserId?: string | number
+    requestId?: string | number
+    reportsource?: string
+  }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
   }
 
-  const { vasBenefId, mbUserId, requestId } = body || {}
+  const { vasBenefId, mbUserId, requestId, reportsource } = body || {}
   const resolvedVasBenefId = vasBenefId ?? mbUserId
   if (
     resolvedVasBenefId === undefined ||
@@ -51,7 +56,11 @@ export async function POST(request: NextRequest) {
         // Forward the token when present; the endpoint is scoped by vasBenefId.
         ...(accessToken ? { accesstoken: accessToken } : {}),
       },
-      body: JSON.stringify({ vasBenefId: Number(resolvedVasBenefId), requestId: Number(requestId) }),
+      body: JSON.stringify({
+        vasBenefId: Number(resolvedVasBenefId),
+        requestId: Number(requestId),
+        ...(typeof reportsource === "string" && reportsource ? { reportsource } : {}),
+      }),
     })
 
     const text = await response.text()

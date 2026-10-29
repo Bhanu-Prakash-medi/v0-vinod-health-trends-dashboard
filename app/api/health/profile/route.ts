@@ -22,9 +22,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const headers: Record<string, string> = { accesstoken: accessToken }
+    const pmEntityId = request.headers.get("pmentityid")
+    if (pmEntityId) headers.pmentityid = pmEntityId
+
     const response = await fetchWithTimeout(`${HEALTHTRENDS_BACKEND_URL}/beneficiary/profile`, {
       method: "GET",
-      headers: { accesstoken: accessToken },
+      headers,
     })
 
     const text = await response.text()

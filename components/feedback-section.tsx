@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { trackHealthTrendsEvent } from "@/lib/snowplow"
-import { trackEvent } from "@/lib/analytics/posthog"
+import { trackClick } from "@/lib/analytics/posthog"
 import { submitHealthFeedback } from "@/lib/api"
 
 const AUTO_OPEN_DELAY_MS = 30_000
@@ -151,7 +151,7 @@ export default function FeedbackSection({
     // Counts feedback submissions. Only the numeric rating and whether it
     // persisted are sent — the free-text comment and selected reasons stay out
     // of PostHog because users can type anything, including health details.
-    trackEvent("feedback_submit_click", { rating, saved: feedbackSaved })
+    trackClick("feedback_submit_click")
 
     setIsSubmitting(false)
     setSubmitted(true)
@@ -327,7 +327,10 @@ export default function FeedbackSection({
         <div className="flex justify-center">
           <Button
             type="button"
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => {
+              trackClick("feedback_click")
+              setIsFormOpen(true)
+            }}
             className="gap-2 bg-[#156ddc] text-white hover:bg-[#1160c4]"
           >
             <MessageSquarePlus className="h-4 w-4" />

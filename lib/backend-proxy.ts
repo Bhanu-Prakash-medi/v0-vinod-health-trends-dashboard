@@ -18,6 +18,8 @@ export async function forwardToBackend(request: NextRequest, path: string, metho
   }
 
   const headers: Record<string, string> = { accesstoken: accessToken }
+  const pmEntityId = request.headers.get("pmentityid")
+  if (pmEntityId) headers.pmentityid = pmEntityId
   let body: string | undefined
   if (method === "POST") {
     headers["Content-Type"] = "application/json"
