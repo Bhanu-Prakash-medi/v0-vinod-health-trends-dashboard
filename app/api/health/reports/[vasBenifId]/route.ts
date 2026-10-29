@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-const HEALTHTRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
+import { HEALTHTRENDS_BACKEND_URL } from "@/lib/config/api-environment"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 20000): Promise<Response> {
   const controller = new AbortController()
@@ -28,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
-    const response = await fetchWithTimeout(`${HEALTHTRENDS_BACKEND}/beneficiary/${vasBenifId}/reports`, {
+    const response = await fetchWithTimeout(`${HEALTHTRENDS_BACKEND_URL}/beneficiary/${vasBenifId}/reports`, {
       method: "GET",
       headers: { accesstoken: accessToken },
     })

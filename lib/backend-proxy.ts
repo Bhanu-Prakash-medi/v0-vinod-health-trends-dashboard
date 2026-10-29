@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { HEALTHTRENDS_API_BASE_URL } from "@/lib/constants"
+import { HEALTHTRENDS_BACKEND_URL } from "@/lib/config/api-environment"
 
 const PROXY_TIMEOUT_MS = 30000
 
@@ -25,7 +25,7 @@ export async function forwardToBackend(request: NextRequest, path: string, metho
   }
 
   try {
-    const upstream = await fetch(`${HEALTHTRENDS_API_BASE_URL}${path}`, {
+    const upstream = await fetch(`${HEALTHTRENDS_BACKEND_URL}${path}`, {
       method,
       headers,
       body,

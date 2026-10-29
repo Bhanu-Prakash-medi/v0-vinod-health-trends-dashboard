@@ -1,8 +1,5 @@
 export const DEFAULT_CONTRACT_TYPE = 10390
 
-export const HEALTHTRENDS_API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://healthtrends-backend.medibuddy.in"
-
 export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true"
 
 export const MAX_REPORT_BYTES = 10 * 1024 * 1024
