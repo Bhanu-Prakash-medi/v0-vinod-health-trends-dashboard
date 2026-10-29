@@ -5,7 +5,7 @@ import useSWR from "swr"
 import { ChevronRight, Info, Plus, ShieldAlert, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { genderAvatar } from "@/lib/health-utils"
-import { fetchBmi } from "@/lib/api"
+import { fetchBmi, updateBmi } from "@/lib/api"
 import { trackClick } from "@/lib/analytics/posthog"
 
 // Ask the page to scroll to (and highlight) the latest report card. The Test
@@ -95,7 +95,7 @@ export default function ProfileCard({
 
   // BMI comes from the backend keyed on the beneficiary's vasBenefId. Re-keying
   // on the id + token means switching family members refetches the right BMI.
-  const { data: bmiData, isLoading: bmiLoading } = useSWR(
+  const { data: bmiData, isLoading: bmiLoading, mutate: mutateBmi } = useSWR(
     vasBenefId ? ["bmi", vasBenefId, accessToken] : null,
     () => fetchBmi(vasBenefId as string | number, accessToken),
     { revalidateOnFocus: false },
@@ -114,19 +114,30 @@ export default function ProfileCard({
 
   const heightNum = Number.parseFloat(heightCm)
   const weightNum = Number.parseFloat(weightKg)
-  const canSubmit = heightNum > 0 && weightNum > 0
+  const [bmiSaving, setBmiSaving] = useState(false)
+  const [bmiError, setBmiError] = useState<string | null>(null)
+  const canSubmit = heightNum > 0 && weightNum > 0 && !bmiSaving && !!vasBenefId
 
-  function handleBmiSubmit(e: React.FormEvent) {
+  async function handleBmiSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSubmit) return
-    // Persist the computed BMI and collapse the form — once added, the profile
-    // shows the BMI value instead of the "add height & weight" prompt again.
-    setLocalBmi(weightNum / Math.pow(heightNum / 100, 2))
-    setShowBmiForm(false)
+    if (!canSubmit || !vasBenefId) return
+    setBmiSaving(true)
+    setBmiError(null)
+    try {
+      const result = await updateBmi({ vasBenefId, height: heightNum, weight: weightNum }, accessToken)
+      await mutateBmi(result, { revalidate: false })
+      setLocalBmi(typeof result.bmi === "number" ? result.bmi : weightNum / Math.pow(heightNum / 100, 2))
+      setShowBmiForm(false)
+    } catch (err) {
+      setBmiError(err instanceof Error ? err.message : "Could not update BMI. Please try again.")
+    } finally {
+      setBmiSaving(false)
+    }
   }
 
   function resetBmiForm() {
     setShowBmiForm(false)
+    setBmiError(null)
   }
 
   const backendBmi = typeof bmiData?.bmi === "number" ? bmiData.bmi : null
@@ -432,7 +443,7 @@ export default function ProfileCard({
                 disabled={!canSubmit}
                 className="shrink-0 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-[#0b3a85] transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7fd1ff] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Save
+                {bmiSaving ? "Saving…" : "Save"}
               </button>
               <button
                 type="button"
@@ -443,6 +454,11 @@ export default function ProfileCard({
                 <X className="h-3.5 w-3.5" />
               </button>
             </form>
+          )}
+          {showBmiForm && shownBmi === null && bmiError && (
+            <p role="alert" className="mt-2 text-xs text-[#ffb4b4]">
+              {bmiError}
+            </p>
           )}
         </div>
       </div>

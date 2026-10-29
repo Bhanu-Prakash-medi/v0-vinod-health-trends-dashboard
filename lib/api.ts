@@ -224,6 +224,33 @@ export async function fetchBmi(
   }
 }
 
+export const DEFAULT_BMI_DOB = "1900-01-01"
+
+/**
+ * Save height/weight via POST /health/update-bmi (through the proxy route) and
+ * return the backend-calculated BMI. Throws with the backend message on failure.
+ */
+export async function updateBmi(
+  params: { vasBenefId: string | number; height: number; weight: number; dob?: string },
+  accessToken?: string | null,
+): Promise<BmiResponse> {
+  const response = await fetch("/api/health/update-bmi", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", accesstoken: accessToken || DEBUG_ACCESS_TOKEN },
+    body: JSON.stringify({
+      vasBenefId: Number(params.vasBenefId),
+      dob: params.dob || DEFAULT_BMI_DOB,
+      height: params.height,
+      weight: params.weight,
+    }),
+  })
+  const data = await response.json().catch(() => null)
+  if (!response.ok || !data || data.isSuccess === false) {
+    throw new Error(data?.message || data?.error || "Could not update BMI. Please try again.")
+  }
+  return data as BmiResponse
+}
+
 // Fallback token used when no `redirect` cookie is present (e.g. the v0
 // preview) so the dashboard still loads for testing.
 export const DEBUG_ACCESS_TOKEN = "98c6d566ef724f2e8037a0714a32cb83"
