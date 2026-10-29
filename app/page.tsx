@@ -63,7 +63,6 @@ import {
   createInitialProfileFromBeneficiary,
   mergeReportsKeepLatest,
   getAccessTokenFromCookie,
-  DEBUG_ACCESS_TOKEN,
   getPmEntityIdFromCookie,
   getHealthConsent,
   submitHealthConsent,
@@ -665,7 +664,7 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
-        let token = cookieToken || DEBUG_ACCESS_TOKEN
+        let token = cookieToken || ""
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
@@ -673,7 +672,7 @@ export default function HealthDashboard() {
         const data = await withAuthRetry(async () => {
           // Re-read the cookie on every attempt: it may have been set since the
           // previous one.
-          token = getAccessTokenFromCookie() || cookieToken || DEBUG_ACCESS_TOKEN
+          token = getAccessTokenFromCookie() || cookieToken || ""
           return await fetchBeneficiaries(token, pmEntityId)
         })
 
