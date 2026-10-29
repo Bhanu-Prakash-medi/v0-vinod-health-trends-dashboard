@@ -1200,20 +1200,18 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-                {/* Health Risk Score is shown only for the Self profile, not for
-                    other family beneficiaries. App-wide access (including this
-                    section) is gated earlier for restricted orgs. */}
-                {activeBeneficiary?.relation?.toLowerCase() === "self" && (
-                  <HealthScoreSection
-                    patientData={currentProfileData}
-                    vasbenefId={activeBeneficiary?.rVasBenefId}
-                    requestIds={activeBeneficiary ? scoreRequestIds.get(activeBeneficiary.uid) : undefined}
-                    accessToken={accessToken}
-                    gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
-                    age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
-                    reportsLoading={!isLoadComplete}
-                  />
-                )}
+                {/* Health Risk Score shows for every beneficiary, but the section
+                    renders only when the health-score API returns a score. */}
+                <HealthScoreSection
+                  key={activeBeneficiary?.uid}
+                  patientData={currentProfileData}
+                  vasbenefId={activeBeneficiary?.rVasBenefId}
+                  requestIds={activeBeneficiary ? scoreRequestIds.get(activeBeneficiary.uid) : undefined}
+                  accessToken={accessToken}
+                  gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
+                  age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
+                  reportsLoading={!isLoadComplete}
+                />
               <div id="nav-summary" className={premium ? "ht-card scroll-mt-20" : "scroll-mt-20 space-y-6"}>
               <SectionViewTracker section="summary">
                       <HealthSummarySection
