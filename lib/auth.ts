@@ -1,9 +1,8 @@
-import { DEBUG_ACCESS_TOKEN, getAccessTokenFromCookie } from "@/lib/api"
+import { getAccessTokenFromCookie } from "@/lib/api"
 
 /**
  * Access token for the Health Trends backend. Reads `localStorage.accesstoken`
- * first; until that is wired up, falls back to the dashboard's existing
- * `redirect` cookie and debug token so uploads work in the preview.
+ * first, then falls back to the dashboard's `redirect` cookie.
  */
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null
@@ -13,7 +12,7 @@ export function getAccessToken(): string | null {
   } catch {
     // localStorage can throw in privacy modes / sandboxed iframes.
   }
-  return getAccessTokenFromCookie() || DEBUG_ACCESS_TOKEN
+  return getAccessTokenFromCookie()
 }
 
 export const UNAUTHORIZED_EVENT = "healthtrends:unauthorized"
