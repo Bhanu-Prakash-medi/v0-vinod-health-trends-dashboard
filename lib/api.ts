@@ -220,6 +220,10 @@ export async function fetchBmi(
   }
 }
 
+// Fallback token used when no `redirect` cookie is present (e.g. the v0
+// preview) so the dashboard still loads for testing.
+export const DEBUG_ACCESS_TOKEN = "272d74fcdbb447788382dbed8ab7f7ee"
+
 export function getAccessTokenFromCookie(): string | null {
   if (typeof document === "undefined") {
     return null
@@ -228,12 +232,12 @@ export function getAccessTokenFromCookie(): string | null {
   const cookies = document.cookie.split(";")
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split("=")
-    if (name === "redirect") {
+    if (name === "redirect" && value) {
       return decodeURIComponent(value)
     }
   }
 
-  return null
+  return DEBUG_ACCESS_TOKEN
 }
 
 export function getPmEntityIdFromCookie(): string {
