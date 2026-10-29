@@ -120,14 +120,7 @@ export default function UploadReportSection({
       {premium ? (
         <PremiumUploadCard
           onUpload={openUpload}
-          footer={
-            <UploadedReportsStatus
-              uploadedCount={uploadedCount}
-              processingCount={processingCount}
-              partneredCount={partneredCount}
-              onBrand
-            />
-          }
+          footer={status}
         />
       ) : (
         <div className="flex flex-col gap-4 rounded-2xl border border-[#f0f3f5] bg-white p-4">
