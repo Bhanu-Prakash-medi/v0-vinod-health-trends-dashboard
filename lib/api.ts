@@ -240,21 +240,25 @@ export function getAccessTokenFromCookie(): string | null {
   return DEBUG_ACCESS_TOKEN
 }
 
+// Fallback pmEntityId used when no `pmEntityId` cookie is present (e.g. the
+// v0 preview), paired with DEBUG_ACCESS_TOKEN.
+export const DEBUG_PM_ENTITY_ID = "11172035"
+
 export function getPmEntityIdFromCookie(): string {
   if (typeof document === "undefined") {
-    return "0"
+    return DEBUG_PM_ENTITY_ID
   }
 
   const cookies = document.cookie.split(";")
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split("=")
     if (name === "pmEntityId") {
-      const decoded = decodeURIComponent(value)
-      return decoded || "0"
+      const decoded = decodeURIComponent(value ?? "")
+      return decoded || DEBUG_PM_ENTITY_ID
     }
   }
 
-  return "0"
+  return DEBUG_PM_ENTITY_ID
 }
 
 /**
