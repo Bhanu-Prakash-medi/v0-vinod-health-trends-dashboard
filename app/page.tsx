@@ -125,9 +125,11 @@ export default function HealthDashboard() {
   // load finishes, letting us show the empty-report fallback instead of an
   // endless skeleton when the analysis comes back with no usable data.
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
-  // Per beneficiary: requestId -> whether it is a user-uploaded report that is
-  // still processing, built from each /health/reports response.
-  const [uploadedReportStatus, setUploadedReportStatus] = useState<Map<string, Map<string, boolean>>>(new Map())
+  // Per beneficiary: requestId -> report kind, built from each /health/reports
+  // response. Anything not user-uploaded is a MediBuddy partnered report.
+  const [uploadedReportStatus, setUploadedReportStatus] = useState<
+    Map<string, Map<string, "uploaded" | "processing" | "partnered">>
+  >(new Map())
   const { design } = useDesign()
   const premium = design === "premium"
   const ProfileCard = premium ? PremiumProfileCard : ClassicProfileCard
@@ -415,16 +417,15 @@ export default function HealthDashboard() {
               requestSourceById.get(docId),
             )
             const source = (report.reportSource ?? requestSourceById.get(docId) ?? "").toString().toLowerCase()
-            if (source === "uploaded") {
-              const isProcessing = (report.reportStatus ?? "").toString().toLowerCase() === "processing"
-              setUploadedReportStatus((prev) => {
-                const next = new Map(prev)
-                const perBeneficiary = new Map(next.get(beneficiary.uid) ?? [])
-                perBeneficiary.set(docId, isProcessing)
-                next.set(beneficiary.uid, perBeneficiary)
-                return next
-              })
-            }
+            const isProcessing = (report.reportStatus ?? "").toString().toLowerCase() === "processing"
+            const kind = source === "uploaded" ? (isProcessing ? "processing" : "uploaded") : "partnered"
+            setUploadedReportStatus((prev) => {
+              const next = new Map(prev)
+              const perBeneficiary = new Map(next.get(beneficiary.uid) ?? [])
+              perBeneficiary.set(docId, kind)
+              next.set(beneficiary.uid, perBeneficiary)
+              return next
+            })
             // Update UI incrementally as each report comes in
             updateWithPartialData(report, docId)
             return { status: "fulfilled" as const, value: report, docId }
@@ -1159,9 +1160,20 @@ export default function HealthDashboard() {
 
           {SHOW_REPORT_UPLOAD && (
             <UploadReportSection
-              uploadedCount={uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.size ?? 0}
+              uploadedCount={
+                [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(
+                  (k) => k !== "partnered",
+                ).length
+              }
               processingCount={
-                [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(Boolean).length
+                [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(
+                  (k) => k === "processing",
+                ).length
+              }
+              partneredCount={
+                [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(
+                  (k) => k === "partnered",
+                ).length
               }
             />
           )}
