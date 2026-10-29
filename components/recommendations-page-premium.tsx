@@ -65,7 +65,7 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "next", label: "Next steps" },
 ]
 
-function labsUrl(native: boolean, packageId?: number) {
+export function labsUrl(native: boolean, packageId?: number) {
   if (packageId) return `https://www.medibuddy.in/labs/packages/${packageId}`
   return native ? "https://www.medibuddy.in/labsLandingPage" : "https://www.medibuddy.in/consumerLabs"
 }
@@ -78,7 +78,7 @@ function openProgramsForm() {
   trackClick("explore_more_programs_click")
   openExternalUrl(PROGRAMS_FORM_URL)
 }
-function consultUrl(native: boolean) {
+export function consultUrl(native: boolean) {
   return native ? "https://www.medibuddy.in/ask" : "https://doctor.medibuddy.in/main.html#askDoctor"
 }
 
@@ -229,7 +229,7 @@ export default function RecommendationsPage({
   )
 }
 
-function ParameterCard({
+export function ParameterCard({
   param,
   expanded,
   onToggle,
