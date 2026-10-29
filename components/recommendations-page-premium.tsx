@@ -111,67 +111,26 @@ export default function RecommendationsPage({
     if (!initialParamId) return "priority"
     return priority.some((p) => paramKey(p) === initialParamId) || priority.length === 0 ? "priority" : "all"
   })
-  const [selectedId, setSelectedId] = useState<string | null>(initialParamId ?? null)
-  const [section, setSection] = useState<SectionId>("understand")
-  const [summaryOpen, setSummaryOpen] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(initialParamId ?? null)
 
   const items = view === "priority" ? priority : allParams
-  const selected = items.find((p) => paramKey(p) === selectedId) || items[0]
-  const available = selected ? SECTIONS.filter((s) => hasSection(selected, s.id)) : []
-  const activeSection = available.some((s) => s.id === section) ? section : available[0]?.id
   const dateLabel = formatReportDate(reportDate)
 
   const switchView = (v: View) => {
     if (v === view) return
     setView(v)
-    setSelectedId(null)
-    setSection("understand")
+    setExpandedId(null)
   }
 
-  const selectParam = (p: RecParameter) => {
-    setSelectedId(paramKey(p))
-    setSection("understand")
-  }
-
-  const selectedIndex = selected ? items.findIndex((p) => paramKey(p) === paramKey(selected)) : -1
-  const touchStart = useRef<{ x: number; y: number } | null>(null)
-  const chipRow = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!selected || !chipRow.current) return
-    const chip = chipRow.current.querySelector<HTMLElement>(`[data-key="${CSS.escape(paramKey(selected))}"]`)
-    chip?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
-  }, [selected])
-
-  const stepParam = (delta: number) => {
-    const next = items[selectedIndex + delta]
-    if (next) selectParam(next)
-  }
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches[0]
-    touchStart.current = { x: t.clientX, y: t.clientY }
-  }
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const start = touchStart.current
-    touchStart.current = null
-    if (!start) return
-    const t = e.changedTouches[0]
-    const dx = t.clientX - start.x
-    const dy = t.clientY - start.y
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
-    stepParam(dx < 0 ? 1 : -1)
-  }
-
-  const selectSection = (id: SectionId) => {
-    setSection(id)
+  const toggleParam = (p: RecParameter) => {
+    const key = paramKey(p)
+    setExpandedId((cur) => (cur === key ? null : key))
   }
 
   return (
     <div className="min-h-screen bg-[#eef3fa] [&_button]:font-[inherit]">
       <div className="mx-auto min-h-screen max-w-[420px] bg-[#eef3fa] sm:my-8 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:shadow-lg">
-        <header className="sticky top-0 z-20 overflow-hidden rounded-b-[28px] bg-[linear-gradient(160deg,#0d3f96_0%,#082a66_45%,#061b44_100%)] pb-1 shadow-[0_12px_30px_-14px_rgba(6,27,68,0.6)]">
+        <header className="sticky top-0 z-20 overflow-hidden rounded-b-[28px] bg-[linear-gradient(160deg,#0d3f96_0%,#082a66_45%,#061b44_100%)] pb-4 shadow-[0_12px_30px_-14px_rgba(6,27,68,0.6)]">
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.07] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_9px)]"
             aria-hidden="true"
@@ -194,51 +153,18 @@ export default function RecommendationsPage({
           </div>
 
           {data && !isLoading && (
-            <>
-              <div className="relative mx-4 mt-3 flex rounded-full border border-[#ffffff]/10 bg-[#ffffff]/10 p-1" role="tablist" aria-label="Recommendation type">
-                <SegTab active={view === "priority"} onClick={() => switchView("priority")} label="Top priorities" count={priority.length} />
-                <SegTab active={view === "all"} onClick={() => switchView("all")} label="All parameters" count={allParams.length} />
-              </div>
-
-              {items.length > 0 && (
-                <div
-                  ref={chipRow}
-                  className="relative flex snap-x gap-2 overflow-x-auto overscroll-x-contain px-4 pb-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  role="listbox"
-                  aria-label="Select a parameter"
-                >
-                  {items.map((p) => {
-                    const active = selected && paramKey(selected) === paramKey(p)
-                    const tone = statusTone(p.status)
-                    return (
-                      <button
-                        key={paramKey(p)}
-                        data-key={paramKey(p)}
-                        type="button"
-                        role="option"
-                        aria-selected={Boolean(active)}
-                        onClick={() => selectParam(p)}
-                        className={`inline-flex h-8 shrink-0 snap-center items-center gap-1.5 rounded-full border px-3 text-[12px] transition-colors ${
-                          active
-                            ? "border-[#ffffff] bg-[#ffffff] font-semibold text-[#0d3f96] shadow-[0_4px_14px_rgba(0,0,0,0.25)]"
-                            : "border-[#ffffff]/20 bg-[#ffffff]/[0.08] font-medium text-[#ffffff]/90 hover:bg-[#ffffff]/15"
-                        }`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${active ? tone.dot : "bg-[#ffffff]/70"}`}
-                          aria-hidden="true"
-                        />
-                        <span className="max-w-36 truncate">{p.parameter}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </>
+            <div
+              className="relative mx-4 mt-3 flex rounded-full border border-[#ffffff]/10 bg-[#ffffff]/10 p-1"
+              role="tablist"
+              aria-label="Recommendation type"
+            >
+              <SegTab active={view === "priority"} onClick={() => switchView("priority")} label="Top priorities" count={priority.length} />
+              <SegTab active={view === "all"} onClick={() => switchView("all")} label="All parameters" count={allParams.length} />
+            </div>
           )}
         </header>
 
-        <main className="flex flex-col gap-4 p-4 pb-8">
+        <main className="flex flex-col gap-3 p-4 pb-8">
           {isLoading && <PageSkeleton />}
 
           {error && !isLoading && (
@@ -257,116 +183,37 @@ export default function RecommendationsPage({
 
           {data && !isLoading && (
             <>
-              {data.overall_summary && view === "priority" && (
-                <button
-                  type="button"
-                  onClick={() => setSummaryOpen((o) => !o)}
-                  aria-expanded={summaryOpen}
-                  className="flex items-start gap-2 rounded-2xl border border-[#dbe5f3] bg-[#ffffff] px-4 py-3 text-left shadow-[0_6px_18px_-12px_rgba(13,63,150,0.35)]"
-                >
-                  <span className={`flex-1 text-[13px] leading-relaxed text-[#3d4a5a] text-pretty ${summaryOpen ? "" : "line-clamp-2"}`}>
-                    {data.overall_summary}
-                  </span>
-                  <ChevronDown
-                    className={`mt-1 h-4 w-4 shrink-0 text-[#0d3f96] transition-transform ${summaryOpen ? "rotate-180" : ""}`}
-                    aria-hidden="true"
-                  />
-                </button>
-              )}
-
               {items.length === 0 ? (
                 <p className="rounded-2xl bg-[#ffffff] p-6 text-center text-sm text-[#4d5c6f]">
                   No recommendations available for this report.
                 </p>
               ) : (
-                selected && (
-                  <>
-                  <article
-                    onTouchStart={onTouchStart}
-                    onTouchEnd={onTouchEnd}
-                    className="touch-pan-y overflow-hidden rounded-3xl border border-[#dbe5f3] bg-[#ffffff] shadow-[0_18px_40px_-20px_rgba(13,63,150,0.4)]"
-                  >
-                    <ParameterHeader param={selected} />
-
-                    {available.length > 1 && (
-                      <div
-                        className="mx-4 mb-1 flex gap-1 rounded-full bg-[#eef3fa] p-1"
-                        role="tablist"
-                        aria-label="Recommendation details"
-                      >
-                        {available.map((s) => {
-                          const active = s.id === activeSection
-                          return (
-                            <button
-                              key={s.id}
-                              type="button"
-                              role="tab"
-                              aria-selected={active}
-                              onClick={() => selectSection(s.id)}
-                              className={`h-8 flex-auto whitespace-nowrap rounded-full px-2.5 text-[12px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d3f96]/30 ${
-                                active
-                                  ? "bg-[linear-gradient(160deg,#0d3f96,#082a66)] font-semibold text-[#ffffff] shadow-[0_4px_10px_-2px_rgba(8,42,102,0.45)]"
-                                  : "font-medium text-[#4d5c6f] hover:text-[#0d3f96]"
-                              }`}
-                            >
-                              {s.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {activeSection && (
-                      <div className="px-5 pb-5 pt-4" role="tabpanel" key={`${paramKey(selected)}-${activeSection}`}>
-                        <SectionContent
-                          section={activeSection}
-                          param={selected}
-                          onBookTest={(name, packageId) => {
-                            trackClick("health_recommendation_test_click", { test_name: name })
-                            openExternalUrl(labsUrl(native, packageId))
-                          }}
-                          onConsult={(specialist, url) => {
-                            trackClick("health_recommendation_consult_click", { consult_type: specialist })
-                            openExternalUrl(url || consultUrl(native))
-                          }}
-                        />
-                      </div>
-                    )}
-                  </article>
-
-                  {items.length > 1 && (
-                    <div className="flex items-center justify-between px-1">
-                      <button
-                        type="button"
-                        onClick={() => stepParam(-1)}
-                        disabled={selectedIndex <= 0}
-                        aria-label="Previous parameter"
-                        className="inline-flex h-9 items-center gap-1 rounded-full border border-[#dbe5f3] bg-[#ffffff] pl-2.5 pr-3.5 text-[12px] font-semibold text-[#0d3f96] shadow-[0_4px_12px_-6px_rgba(13,63,150,0.35)] transition-colors hover:border-[#0d3f96]/40 disabled:border-[#e3e9f2] disabled:text-[#a9b5c4] disabled:shadow-none"
-                      >
-                        <ChevronLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
-                        Previous
-                      </button>
-                      <span className="text-[12px] font-semibold tabular-nums text-[#4d5c6f]" aria-live="polite">
-                        {selectedIndex + 1}
-                        <span className="font-medium text-[#9dabbd]">{` of ${items.length}`}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => stepParam(1)}
-                        disabled={selectedIndex >= items.length - 1}
-                        aria-label="Next parameter"
-                        className="inline-flex h-9 items-center gap-1 rounded-full bg-[linear-gradient(160deg,#0d3f96,#082a66)] pl-3.5 pr-2.5 text-[12px] font-semibold text-[#ffffff] shadow-[0_6px_14px_-4px_rgba(8,42,102,0.5)] transition-opacity hover:opacity-90 disabled:bg-none disabled:bg-[#e3e9f2] disabled:text-[#a9b5c4] disabled:shadow-none"
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
-                      </button>
-                    </div>
-                  )}
-                  </>
-                )
+                <ul className="flex flex-col gap-3" key={view}>
+                  {items.map((p, i) => (
+                    <li
+                      key={paramKey(p)}
+                      className="animate-[ht-rise_0.45s_cubic-bezier(0.22,1,0.36,1)_both]"
+                      style={{ animationDelay: `${Math.min(i, 8) * 55}ms` }}
+                    >
+                      <ParameterCard
+                        param={p}
+                        expanded={expandedId === paramKey(p)}
+                        onToggle={() => toggleParam(p)}
+                        onBookTest={(name, packageId) => {
+                          trackClick("health_recommendation_test_click", { test_name: name })
+                          openExternalUrl(labsUrl(native, packageId))
+                        }}
+                        onConsult={(specialist, url) => {
+                          trackClick("health_recommendation_consult_click", { consult_type: specialist })
+                          openExternalUrl(url || consultUrl(native))
+                        }}
+                      />
+                    </li>
+                  ))}
+                </ul>
               )}
 
-              <p className="flex items-start gap-1.5 px-1 text-[11px] leading-relaxed text-[#9dabbd]">
+              <p className="flex items-start gap-1.5 px-1 pt-1 text-[11px] leading-relaxed text-[#9dabbd]">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span className="flex flex-col gap-1">
                   {RECOMMENDATIONS_DISCLAIMER.map((line) => (
@@ -379,6 +226,138 @@ export default function RecommendationsPage({
         </main>
       </div>
     </div>
+  )
+}
+
+function ParameterCard({
+  param,
+  expanded,
+  onToggle,
+  onBookTest,
+  onConsult,
+}: {
+  param: RecParameter
+  expanded: boolean
+  onToggle: () => void
+  onBookTest: (name: string, packageId?: number) => void
+  onConsult: (specialist: string, url?: string) => void
+}) {
+  const Icon = organIcon(param.organ)
+  const tone = statusTone(param.status)
+  const panelId = useId()
+  const cardRef = useRef<HTMLElement>(null)
+  const sections = SECTIONS.filter((s) => hasSection(param, s.id))
+
+  useEffect(() => {
+    if (!expanded || !cardRef.current) return
+    const el = cardRef.current
+    const t = window.setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 220)
+    return () => window.clearTimeout(t)
+  }, [expanded])
+
+  return (
+    <article
+      ref={cardRef}
+      className={`scroll-mt-32 overflow-hidden rounded-3xl border bg-[#ffffff] transition-[box-shadow,border-color,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        expanded
+          ? "border-[#0d3f96]/25 shadow-[0_24px_48px_-22px_rgba(13,63,150,0.55)]"
+          : "border-[#dbe5f3] shadow-[0_8px_22px_-16px_rgba(13,63,150,0.4)] active:scale-[0.99]"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className="relative flex w-full items-center gap-3 px-4 py-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0d3f96]/30"
+      >
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-500 ${
+            expanded
+              ? "bg-[linear-gradient(160deg,#0d3f96,#082a66)] text-[#ffffff] shadow-[0_8px_18px_-6px_rgba(8,42,102,0.6)]"
+              : "bg-[#eef3fa] text-[#0d3f96]"
+          }`}
+          aria-hidden="true"
+        >
+          <Icon className="h-5 w-5" strokeWidth={2} />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-[15px] font-semibold leading-snug text-[#1b2431] text-pretty">{param.parameter}</span>
+          <span className="flex items-center gap-2">
+            {param.value && <span className="text-[13px] font-bold tabular-nums text-[#0d3f96]">{param.value}</span>}
+            {tone.label && (
+              <span className={`rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider ${tone.pill}`}>
+                {tone.label}
+              </span>
+            )}
+          </span>
+        </span>
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            expanded ? "rotate-180 bg-[#0d3f96] text-[#ffffff]" : "bg-[#eef3fa] text-[#0d3f96]"
+          }`}
+          aria-hidden="true"
+        >
+          <ChevronDown className="h-4 w-4" strokeWidth={2.25} />
+        </span>
+      </button>
+
+      <div
+        id={panelId}
+        className={`grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+        inert={!expanded}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-5 px-4 pb-5">
+            <div className="h-px bg-[linear-gradient(90deg,transparent,#dbe5f3,transparent)]" aria-hidden="true" />
+
+            {(param.value || param.normal_range) && (
+              <div
+                className={`relative flex items-end justify-between gap-3 overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#0d3f96_0%,#082a66_60%,#061b44_100%)] px-4 py-4 ${
+                  expanded ? "animate-[ht-rise_0.45s_cubic-bezier(0.22,1,0.36,1)_both]" : ""
+                }`}
+              >
+                <span
+                  className="pointer-events-none absolute inset-0 opacity-[0.08] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_9px)]"
+                  aria-hidden="true"
+                />
+                {param.value && (
+                  <p className="relative flex flex-col gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#e8f2ff]/75">Your value</span>
+                    <span className="text-[26px] font-bold leading-none tracking-tight text-[#ffffff] tabular-nums">{param.value}</span>
+                  </p>
+                )}
+                {param.normal_range && (
+                  <p className="relative text-right text-[11px] leading-relaxed text-[#e8f2ff]/75">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wider">Normal</span>
+                    <span className="font-semibold text-[#ffffff] tabular-nums">{param.normal_range}</span>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {sections.map((s, i) => (
+              <section
+                key={s.id}
+                aria-label={s.label}
+                className={`flex flex-col gap-3 ${expanded ? "animate-[ht-rise_0.5s_cubic-bezier(0.22,1,0.36,1)_both]" : ""}`}
+                style={{ animationDelay: `${(i + 1) * 80}ms` }}
+              >
+                <h3 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#0d3f96]">
+                  <span className="h-3.5 w-1 rounded-full bg-[linear-gradient(180deg,#156ddc,#0d3f96)]" aria-hidden="true" />
+                  {s.label}
+                </h3>
+                <div className="rounded-2xl border border-[#e6edf7] bg-[#f8fafd] p-4">
+                  <SectionContent section={s.id} param={param} onBookTest={onBookTest} onConsult={onConsult} />
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      </div>
+    </article>
   )
 }
 
