@@ -135,6 +135,10 @@ export interface ApiHealthReport {
     contractType?: string | number | null
   }>
   health_summary: HealthSummaryItem[]
+  /** `source` from /health/reports (e.g. "uploaded"). */
+  reportSource?: string | null
+  /** `status` from /health/reports (e.g. "Processing"). */
+  reportStatus?: string | null
   /** Per-report-date health summaries, sorted latest date first. Powers the
    *  Health Summary date dropdown so users can view historical summaries. The
    *  first entry corresponds to the same data as `health_summary` (latest). */
@@ -220,6 +224,33 @@ export async function fetchBmi(
   }
 }
 
+export const DEFAULT_BMI_DOB = "1900-01-01"
+
+/**
+ * Save height/weight via POST /health/update-bmi (through the proxy route) and
+ * return the backend-calculated BMI. Throws with the backend message on failure.
+ */
+export async function updateBmi(
+  params: { vasBenefId: string | number; height: number; weight: number; dob?: string },
+  accessToken?: string | null,
+): Promise<BmiResponse> {
+  const response = await fetch("/api/health/update-bmi", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", accesstoken: accessToken ?? "" },
+    body: JSON.stringify({
+      vasBenefId: Number(params.vasBenefId),
+      dob: params.dob || DEFAULT_BMI_DOB,
+      height: params.height,
+      weight: params.weight,
+    }),
+  })
+  const data = await response.json().catch(() => null)
+  if (!response.ok || !data || data.isSuccess === false) {
+    throw new Error(data?.message || data?.error || "Could not update BMI. Please try again.")
+  }
+  return data as BmiResponse
+}
+
 export function getAccessTokenFromCookie(): string | null {
   if (typeof document === "undefined") {
     return null
@@ -228,7 +259,7 @@ export function getAccessTokenFromCookie(): string | null {
   const cookies = document.cookie.split(";")
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split("=")
-    if (name === "redirect") {
+    if (name === "redirect" && value) {
       return decodeURIComponent(value)
     }
   }
@@ -238,19 +269,18 @@ export function getAccessTokenFromCookie(): string | null {
 
 export function getPmEntityIdFromCookie(): string {
   if (typeof document === "undefined") {
-    return "0"
+    return ""
   }
 
   const cookies = document.cookie.split(";")
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split("=")
     if (name === "pmEntityId") {
-      const decoded = decodeURIComponent(value)
-      return decoded || "0"
+      return decodeURIComponent(value ?? "")
     }
   }
 
-  return "0"
+  return ""
 }
 
 /**
@@ -1040,6 +1070,10 @@ export function transformReportDetails(data: any, fallbackDate?: string, fileUrl
       },
     ],
     health_summary: healthSummary,
+    reportSource:
+      (getValueCaseInsensitive(data, "source") ?? getValueCaseInsensitive(reportData, "source") ?? null)?.toString() ??
+      null,
+    reportStatus: status || null,
     latestReportDate: fullfilmentDate,
     contractType,
     recommendationSource: buildRecommendationSource(data, reportData, fullfilmentDate, transformedParameters),

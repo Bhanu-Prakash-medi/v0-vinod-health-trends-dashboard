@@ -125,6 +125,11 @@ export default function HealthDashboard() {
   // load finishes, letting us show the empty-report fallback instead of an
   // endless skeleton when the analysis comes back with no usable data.
   const [completedBeneficiaries, setCompletedBeneficiaries] = useState<Set<string>>(new Set())
+  // Per beneficiary: requestId -> report kind, built from each /health/reports
+  // response. Anything not user-uploaded is a MediBuddy partnered report.
+  const [uploadedReportStatus, setUploadedReportStatus] = useState<
+    Map<string, Map<string, "uploaded" | "processing" | "partnered">>
+  >(new Map())
   const { design } = useDesign()
   const premium = design === "premium"
   const ProfileCard = premium ? PremiumProfileCard : ClassicProfileCard
@@ -411,6 +416,16 @@ export default function HealthDashboard() {
               requestFileById.get(docId),
               requestSourceById.get(docId),
             )
+            const source = (report.reportSource ?? requestSourceById.get(docId) ?? "").toString().toLowerCase()
+            const isProcessing = (report.reportStatus ?? "").toString().toLowerCase() === "processing"
+            const kind = source === "uploaded" ? (isProcessing ? "processing" : "uploaded") : "partnered"
+            setUploadedReportStatus((prev) => {
+              const next = new Map(prev)
+              const perBeneficiary = new Map(next.get(beneficiary.uid) ?? [])
+              perBeneficiary.set(docId, kind)
+              next.set(beneficiary.uid, perBeneficiary)
+              return next
+            })
             // Update UI incrementally as each report comes in
             updateWithPartialData(report, docId)
             return { status: "fulfilled" as const, value: report, docId }
@@ -1143,7 +1158,25 @@ export default function HealthDashboard() {
   />
           </div>
 
-          {SHOW_REPORT_UPLOAD && <UploadReportSection />}
+          {SHOW_REPORT_UPLOAD && (
+            <UploadReportSection
+              uploadedCount={
+                [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(
+                  (k) => k !== "partnered",
+                ).length
+              }
+              processingCount={
+                [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(
+                  (k) => k === "processing",
+                ).length
+              }
+              partneredCount={
+                [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(
+                  (k) => k === "partnered",
+                ).length
+              }
+            />
+          )}
 
           {/* Records exist but the load hasn't settled yet — show skeleton
               immediately (no "no records" flash) until data, a fallback, or an
