@@ -265,7 +265,8 @@ export function getAccessTokenFromCookie(): string | null {
   }
 
   return null
-}
+  }
+
 
 export function getPmEntityIdFromCookie(): string {
   if (typeof document === "undefined") {

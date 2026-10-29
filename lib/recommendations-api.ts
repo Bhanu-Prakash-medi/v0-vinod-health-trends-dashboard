@@ -75,6 +75,14 @@ export interface RecommendationsResponse {
 
 const RECOMMENDATIONS_API_URL = "/healthtrends-recommendations"
 
+// Account userId from the beneficiary profile API. Report data often omits
+// mbUserId, and the recommendations backend rejects requests without it.
+let profileMbUserId = ""
+
+export function setRecommendationsMbUserId(id: string | number | null | undefined) {
+  profileMbUserId = id === undefined || id === null ? "" : String(id)
+}
+
 function toIsoDate(raw: string): string {
   if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
   const d = new Date(raw)
@@ -87,7 +95,7 @@ export function buildRecommendationsPayload(source: RecommendationSource) {
     sourceType: "",
     reportDate: toIsoDate(String(source.report_data?.fullfilmentDate ?? "")),
     employee: {
-      mbUserId: String(source.report_data?.mbUserId ?? ""),
+      mbUserId: profileMbUserId || String(source.report_data?.mbUserId ?? ""),
       vasBenefId: String(source.report_data?.rVasBenefId ?? ""),
     },
     reportDetails: {
