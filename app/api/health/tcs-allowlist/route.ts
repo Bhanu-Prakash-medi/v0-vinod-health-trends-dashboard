@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-const TCS_ALLOWLIST_URL = "https://n8n-public.medibuddy.in/webhook/health/fetchtcsallowlist"
-const HEALTHTRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
+import { HEALTHTRENDS_BACKEND_URL, TCS_ALLOWLIST_WEBHOOK_URL } from "@/lib/config/api-environment"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 8000): Promise<Response> {
   const controller = new AbortController()
@@ -42,7 +40,7 @@ function splitEmails(raw: unknown): string[] {
  */
 async function getProfileEmails(accessToken: string): Promise<string[] | null> {
   const res = await fetchWithTimeout(
-    `${HEALTHTRENDS_BACKEND}/beneficiary/profile`,
+    `${HEALTHTRENDS_BACKEND_URL}/beneficiary/profile`,
     { method: "GET", headers: { accesstoken: accessToken }, cache: "no-store" },
     15000,
   )
@@ -93,7 +91,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const upstream = await fetchWithTimeout(TCS_ALLOWLIST_URL, {
+    const upstream = await fetchWithTimeout(TCS_ALLOWLIST_WEBHOOK_URL, {
       method: "GET",
       headers: { Accept: "application/json", "x-healthverse": webhookAuth },
       next: { revalidate: 300 },

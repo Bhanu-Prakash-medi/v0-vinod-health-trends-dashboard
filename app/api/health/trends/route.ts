@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { HEALTHTRENDS_BACKEND_URL } from "@/lib/config/api-environment"
 
 // The trends endpoint on the production Health Trends backend.
-const TRENDS_BACKEND = "https://healthtrends-backend.medibuddy.in"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 30000): Promise<Response> {
   const controller = new AbortController()
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const response = await fetchWithTimeout(`${TRENDS_BACKEND}/health/trends`, {
+    const response = await fetchWithTimeout(`${HEALTHTRENDS_BACKEND_URL}/health/trends`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

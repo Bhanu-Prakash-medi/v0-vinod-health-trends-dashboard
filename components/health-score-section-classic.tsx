@@ -541,21 +541,6 @@ export default function HealthScoreSection({
     )
   }
 
-  // No API risk score available for this beneficiary — show a fallback prompting
-  // the user to take an AHC (Annual Health Checkup) lab test.
-  return (
-    <section aria-label="Health score unavailable" className="rounded-2xl border border-[#f0f3f5] bg-white p-4">
-      {header}
-      <div className="flex flex-col items-center py-6 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef4fd]">
-          <Activity className="h-7 w-7 text-[#156ddc]" />
-        </div>
-        <h3 className="mt-4 text-sm font-semibold text-[#2e3742]">Your health score is missing</h3>
-        <p className="mt-1 max-w-[280px] text-pretty text-xs leading-relaxed text-[#9dabbd]">
-          We couldn&apos;t find a health score for you yet. Take an AHC (Annual Health Checkup) lab test to unlock your
-          personalized health score.
-        </p>
-      </div>
-    </section>
-  )
+  // The score section is shown only when the health-score API succeeds with a score.
+  return null
 }

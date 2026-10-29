@@ -1,7 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-
-const RECOMMENDATIONS_API_URL =
-  process.env.RECOMMENDATIONS_API_URL || "https://healthtrends-backend.medibuddy.in/healthtrends-recommendations"
+import { RECOMMENDATIONS_API_URL } from "@/lib/config/api-environment"
 
 export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers)

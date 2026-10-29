@@ -28,7 +28,7 @@ export function paramKey(p: RecParameter) {
 
 export function useRecommendations(patientData: ApiHealthReport | null | undefined) {
   const source = patientData?.recommendationSource
-  const accessToken = useMemo(() => getAccessTokenFromCookie() || "", [])
+  const accessToken = useMemo(() => getAccessTokenFromCookie(), [])
 
   const swrKey =
     source && accessToken

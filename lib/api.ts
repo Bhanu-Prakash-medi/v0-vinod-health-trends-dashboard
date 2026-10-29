@@ -2,6 +2,8 @@
 
 import { genderAvatar } from "@/lib/health-utils"
 import { cachedRequest } from "@/lib/request-cache"
+import { getAccessToken, onUnauthorized } from "@/lib/auth"
+import { DEFAULT_CONTRACT_TYPE, USE_MOCKS } from "@/lib/constants"
 
 /**
  * A single lab-report reference from the profile / beneficiary reports API.
@@ -1747,4 +1749,321 @@ export function mergeReportsKeepLatest(
     latestReportDate: latestReportData?.fullfilmentDate || latestReportData?.date || latestReport.latestReportDate,
     recommendationSource: pickLatestRecommendationSource(reports),
   }
+}
+
+// ---------------------------------------------------------------------------
+// Report upload (getsignedurl -> S3 PUT -> savefile)
+// ---------------------------------------------------------------------------
+
+export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again."
+export const SESSION_EXPIRED_MESSAGE = "Your session has expired. Please sign in again."
+export const UPLOAD_EXPIRED_MESSAGE = "Upload session expired. Please upload the file again."
+
+export type ApiErrorKind = "badRequest" | "unauthorized" | "server" | "expired" | "aborted"
+
+export class ApiError extends Error {
+  readonly kind: ApiErrorKind
+  readonly status: number
+  readonly messages: string[]
+
+  constructor(kind: ApiErrorKind, status: number, messages: string[]) {
+    super(messages[0] || kind)
+    this.name = "ApiError"
+    this.kind = kind
+    this.status = status
+    this.messages = messages
+  }
+}
+
+export function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof ApiError && error.kind === "aborted") ||
+    (error instanceof DOMException && error.name === "AbortError")
+  )
+}
+
+export interface SignedUrlResponse {
+  success: boolean
+  response?: string
+  signedURL: string
+  fileIdentifier: string
+  fileName?: string
+  fileType?: string
+  appId?: number
+  httpStatusCode?: string
+}
+
+export interface SaveFilePayload {
+  contractType: number
+  fileName: string
+  signedURL: string
+  fileIdentifier: string
+  dms_doc_name: string
+  dms_doc_date: string
+  retail_vasbenefid: number
+  user_name: string
+  description?: string
+  patientname?: string
+  relation?: string
+}
+
+export interface SaveFileResponse {
+  success: boolean
+  message?: string
+  id: number
+  queued: boolean
+  processingCount: number
+  limit: number
+}
+
+export interface FamilyMember {
+  vasBenifId: number
+  name: string
+  relation: string
+  gender?: string
+  age?: number
+}
+
+export type MockScenario = "success" | "queued" | "badRequest" | "unauthorized" | "serverError" | "expiredUrl"
+
+let mockScenario: MockScenario = "success"
+export function setMockScenario(scenario: MockScenario) {
+  mockScenario = scenario
+}
+
+const JSON_TIMEOUT_MS = 30000
+
+function normalizeMessages(body: unknown): string[] {
+  const message = (body as { message?: unknown } | null)?.message
+  if (Array.isArray(message)) return message.map(String).filter(Boolean)
+  if (typeof message === "string" && message) return [message]
+  return []
+}
+
+async function errorFromResponse(response: Response): Promise<ApiError> {
+  let body: unknown = null
+  try {
+    body = await response.json()
+  } catch {
+    // Non-JSON error bodies are treated as generic failures below.
+  }
+  const messages = normalizeMessages(body)
+  if (response.status === 401) {
+    onUnauthorized()
+    return new ApiError("unauthorized", 401, [SESSION_EXPIRED_MESSAGE])
+  }
+  if (response.status >= 400 && response.status < 500 && messages.length > 0) {
+    return new ApiError("badRequest", response.status, messages)
+  }
+  return new ApiError("server", response.status, [GENERIC_ERROR_MESSAGE])
+}
+
+function withTimeout(signal: AbortSignal | undefined, timeoutMs: number) {
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeoutMs)
+  const onAbort = () => controller.abort()
+  signal?.addEventListener("abort", onAbort, { once: true })
+  return {
+    signal: controller.signal,
+    didTimeOut: () => timedOut,
+    cleanup: () => {
+      clearTimeout(timer)
+      signal?.removeEventListener("abort", onAbort)
+    },
+  }
+}
+
+async function requestJson<T>(path: string, init: RequestInit, signal?: AbortSignal): Promise<T> {
+  const token = getAccessToken()
+  if (!token) {
+    onUnauthorized()
+    throw new ApiError("unauthorized", 401, [SESSION_EXPIRED_MESSAGE])
+  }
+  const timeout = withTimeout(signal, JSON_TIMEOUT_MS)
+  let response: Response
+  try {
+    response = await fetch(path, {
+      ...init,
+      headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), accesstoken: token },
+      signal: timeout.signal,
+    })
+  } catch (error) {
+    if (signal?.aborted && !timeout.didTimeOut()) throw new ApiError("aborted", 0, [])
+    throw new ApiError("server", 0, [GENERIC_ERROR_MESSAGE])
+  } finally {
+    timeout.cleanup()
+  }
+  if (!response.ok) throw await errorFromResponse(response)
+  try {
+    return (await response.json()) as T
+  } catch {
+    throw new ApiError("server", response.status, [GENERIC_ERROR_MESSAGE])
+  }
+}
+
+function mockDelay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer)
+        reject(new ApiError("aborted", 0, []))
+      },
+      { once: true },
+    )
+  })
+}
+
+export async function getSignedUploadUrl(fileName: string, signal?: AbortSignal): Promise<SignedUrlResponse> {
+  if (USE_MOCKS) {
+    await mockDelay(600, signal)
+    if (mockScenario === "unauthorized") {
+      onUnauthorized()
+      throw new ApiError("unauthorized", 401, [SESSION_EXPIRED_MESSAGE])
+    }
+    return {
+      success: true,
+      response: "URL generated to upload File",
+      signedURL: "https://mock-s3.local/upload",
+      fileIdentifier: crypto.randomUUID(),
+      fileName,
+      fileType: "Prescription",
+      appId: 9203,
+      httpStatusCode: "OK",
+    }
+  }
+
+  const data = await requestJson<SignedUrlResponse>(
+    "/api/getsignedurl",
+    { method: "POST", body: JSON.stringify({ contractType: DEFAULT_CONTRACT_TYPE, fileName }) },
+    signal,
+  )
+  if (!data?.success || !data.signedURL || !data.fileIdentifier) {
+    throw new ApiError("server", 200, [GENERIC_ERROR_MESSAGE])
+  }
+  return data
+}
+
+/** PUTs the file straight to S3. Never sends the access token. */
+export function uploadFileToSignedUrl(
+  signedURL: string,
+  file: File,
+  onProgress: (percent: number) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  if (USE_MOCKS) {
+    return new Promise((resolve, reject) => {
+      let percent = 0
+      const interval = setInterval(() => {
+        percent = Math.min(100, percent + 8)
+        onProgress(percent)
+        if (mockScenario === "expiredUrl" && percent >= 40) {
+          clearInterval(interval)
+          reject(new ApiError("expired", 403, [UPLOAD_EXPIRED_MESSAGE]))
+        } else if (percent >= 100) {
+          clearInterval(interval)
+          resolve()
+        }
+      }, 250)
+      signal?.addEventListener(
+        "abort",
+        () => {
+          clearInterval(interval)
+          reject(new ApiError("aborted", 0, []))
+        },
+        { once: true },
+      )
+    })
+  }
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open("PUT", signedURL)
+    xhr.setRequestHeader("x-amz-acl", "private")
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100))
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100)
+        resolve()
+      } else if (xhr.status === 403) {
+        reject(new ApiError("expired", 403, [UPLOAD_EXPIRED_MESSAGE]))
+      } else {
+        reject(new ApiError("server", xhr.status, [GENERIC_ERROR_MESSAGE]))
+      }
+    }
+    xhr.onerror = () => reject(new ApiError("server", 0, [GENERIC_ERROR_MESSAGE]))
+    xhr.ontimeout = () => reject(new ApiError("server", 0, [GENERIC_ERROR_MESSAGE]))
+    xhr.onabort = () => reject(new ApiError("aborted", 0, []))
+    if (signal?.aborted) {
+      reject(new ApiError("aborted", 0, []))
+      return
+    }
+    signal?.addEventListener("abort", () => xhr.abort(), { once: true })
+    xhr.send(file)
+  })
+}
+
+export async function saveReportFile(payload: SaveFilePayload, signal?: AbortSignal): Promise<SaveFileResponse> {
+  if (USE_MOCKS) {
+    await mockDelay(900, signal)
+    if (mockScenario === "badRequest") {
+      throw new ApiError("badRequest", 400, [
+        "dms_doc_date must be a valid ISO 8601 date string",
+        "dms_doc_name should not be empty",
+      ])
+    }
+    if (mockScenario === "serverError") throw new ApiError("server", 500, [GENERIC_ERROR_MESSAGE])
+    const queued = mockScenario === "queued"
+    return {
+      success: true,
+      message: "File saved successfully.",
+      id: 1570,
+      queued,
+      processingCount: queued ? 3 : 1,
+      limit: 3,
+    }
+  }
+
+  const data = await requestJson<SaveFileResponse>(
+    "/api/savefile",
+    { method: "POST", body: JSON.stringify(payload) },
+    signal,
+  )
+  if (!data?.success) throw new ApiError("server", 200, [GENERIC_ERROR_MESSAGE])
+  return data
+}
+
+const MOCK_FAMILY: FamilyMember[] = [
+  { vasBenifId: 42322617, name: "Karthik", relation: "Self", gender: "Male", age: 32 },
+  { vasBenifId: 42322618, name: "Priya", relation: "Wife", gender: "Female", age: 30 },
+  { vasBenifId: 42322619, name: "Ravi", relation: "Father", gender: "Male", age: 61 },
+]
+
+export async function fetchFamilyMembers(): Promise<FamilyMember[]> {
+  if (USE_MOCKS) {
+    await mockDelay(700)
+    return MOCK_FAMILY
+  }
+  const data = await requestJson<unknown>("/api/beneficiary-profile", { method: "GET" })
+  const root = (Array.isArray(data) ? data[0] : data) as { beneficiaries?: unknown[] } | undefined
+  const list = Array.isArray(root?.beneficiaries) ? root.beneficiaries : []
+  return list
+    .map((raw) => {
+      const b = raw as Record<string, unknown>
+      return {
+        vasBenifId: Number(b.vasBenifId),
+        name: String(b.name ?? "").trim(),
+        relation: String(b.relation ?? "").trim(),
+        gender: typeof b.gender === "string" ? b.gender : undefined,
+        age: typeof b.age === "number" ? b.age : undefined,
+      }
+    })
+    .filter((m) => Number.isFinite(m.vasBenifId) && m.vasBenifId > 0 && m.name)
 }

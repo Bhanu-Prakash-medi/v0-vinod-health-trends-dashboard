@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Info, RefreshCw, Stethoscope, X, type LucideIcon } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Info, RefreshCw, Sparkles, Stethoscope, X, type LucideIcon } from "lucide-react"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import type { ApiHealthReport } from "@/lib/api"
 import { isNativeAppPlatform } from "@/lib/api"
@@ -19,7 +19,16 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "next", label: "Next steps" },
 ]
 
-function labsUrl(native: boolean, packageId?: number) {
+  const PROGRAMS_FORM_URL = "https://docs.google.com/forms/d/1tiJ7dyy-5aTUtwRDoH_SlRKQYAmdkH1EihtpTvjeHd4/viewform"
+  const RECOMMENDATIONS_DISCLAIMER = [
+    "Recommended tests are for users whose last test was 3+ months ago. Ignore recently completed tests and consider an online consultation if recommended.",
+    "These insights are based on general clinical patterns, not a diagnosis. Please consult a licensed doctor before making any changes to medication or treatment.",
+  ]
+  function openProgramsForm() {
+    trackEvent("recommendations_explore_programs_clicked")
+    openExternalUrl(PROGRAMS_FORM_URL)
+  }
+  function labsUrl(native: boolean, packageId?: number) {
   if (packageId) return `https://www.medibuddy.in/labs/packages/${packageId}`
   return native ? "https://www.medibuddy.in/labsLandingPage" : "https://www.medibuddy.in/consumerLabs"
 }
@@ -304,8 +313,11 @@ export default function RecommendationsPage({
 
               <p className="flex items-start gap-1.5 px-1 text-[11px] leading-relaxed text-[#9dabbd]">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                {data.disclaimer ||
-                  "These recommendations are generated from your report and may not be fully accurate. Please consult a qualified doctor before acting on any suggestion."}
+                <span className="flex flex-col gap-1">
+                  {RECOMMENDATIONS_DISCLAIMER.map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
+                </span>
               </p>
             </>
           )}
@@ -435,8 +447,7 @@ function SectionContent({
   return (
     <div className="flex flex-col gap-3">
       {next.consult_doctor?.advice && <p className="text-sm leading-relaxed text-[#4d5c6f]">{next.consult_doctor.advice}</p>}
-      {(specialists.length > 0 || tests.length > 0) && (
-        <div className="flex flex-col divide-y divide-[#f0f3f5] overflow-hidden rounded-xl border border-[#eef1f4]">
+      <div className="flex flex-col divide-y divide-[#f0f3f5] overflow-hidden rounded-xl border border-[#eef1f4]">
           {specialists.map((s) => (
             <CtaRow
               key={`doc-${s}`}
@@ -456,8 +467,8 @@ function SectionContent({
               onClick={() => onBookTest(t.name, t.package_ids?.[0])}
             />
           ))}
+          <CtaRow icon={Sparkles} label="Explore more programs" action="Explore" onClick={openProgramsForm} />
         </div>
-      )}
       {otherTests.length > 0 && (
         <p className="text-xs leading-relaxed text-[#9dabbd]">
           <span className="font-semibold text-[#4d5c6f]">Also ask your doctor about: </span>

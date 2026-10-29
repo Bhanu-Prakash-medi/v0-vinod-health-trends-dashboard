@@ -1,8 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { RISK_BANDS, getRiskLevel, getBenchmarkForBand } from "@/lib/health-score-benchmarks"
-
-// The overall-risk-score endpoint on the production Health Trends backend.
-const HEALTHSCORE_BACKEND = "https://healthtrends-backend.medibuddy.in"
+import { HEALTHTRENDS_BACKEND_URL } from "@/lib/config/api-environment"
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 30000): Promise<Response> {
   const controller = new AbortController()
@@ -46,7 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const response = await fetchWithTimeout(`${HEALTHSCORE_BACKEND}/healthscore/overall-risk-score`, {
+    const response = await fetchWithTimeout(`${HEALTHTRENDS_BACKEND_URL}/healthscore/overall-risk-score`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

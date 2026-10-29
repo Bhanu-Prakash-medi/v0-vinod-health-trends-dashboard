@@ -28,8 +28,7 @@ import RecommendationsPage from "@/components/recommendations-page"
 import FeedbackSection from "@/components/feedback-section"
 import FaqSection from "@/components/faq-section"
 
-// Temporarily hidden; flip to true to re-enable.
-const SHOW_REPORT_UPLOAD = false
+const SHOW_REPORT_UPLOAD = true
 const SHOW_FEEDBACK_SNACKBAR = false
 import AllTrendsPage from "@/components/all-trends-page"
 import HealthConsentModal from "@/components/health-consent-modal"
@@ -669,7 +668,7 @@ export default function HealthDashboard() {
           cookieToken = null
         }
 
-        let token = cookieToken || ""
+        let token = cookieToken
 
         const pmEntityId = getPmEntityIdFromCookie()
         setPmEntityId(pmEntityId)
@@ -677,7 +676,8 @@ export default function HealthDashboard() {
         const data = await withAuthRetry(async () => {
           // Re-read the cookie on every attempt: it may have been set since the
           // previous one.
-          token = getAccessTokenFromCookie() || cookieToken || ""
+          token = getAccessTokenFromCookie() || cookieToken
+          if (!token) throw new Error("Missing access token")
           return await fetchBeneficiaries(token, pmEntityId)
         })
 
@@ -1200,20 +1200,18 @@ export default function HealthDashboard() {
 
           {!currentBeneficiaryError && hasReports && hasUsableData && currentProfileData && (
             <>
-                {/* Health Risk Score is shown only for the Self profile, not for
-                    other family beneficiaries. App-wide access (including this
-                    section) is gated earlier for restricted orgs. */}
-                {activeBeneficiary?.relation?.toLowerCase() === "self" && (
-                  <HealthScoreSection
-                    patientData={currentProfileData}
-                    vasbenefId={activeBeneficiary?.rVasBenefId}
-                    requestIds={activeBeneficiary ? scoreRequestIds.get(activeBeneficiary.uid) : undefined}
-                    accessToken={accessToken}
-                    gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
-                    age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
-                    reportsLoading={!isLoadComplete}
-                  />
-                )}
+                {/* Health Risk Score shows for every beneficiary, but the section
+                    renders only when the health-score API returns a score. */}
+                <HealthScoreSection
+                  key={activeBeneficiary?.uid}
+                  patientData={currentProfileData}
+                  vasbenefId={activeBeneficiary?.rVasBenefId}
+                  requestIds={activeBeneficiary ? scoreRequestIds.get(activeBeneficiary.uid) : undefined}
+                  accessToken={accessToken}
+                  gender={activeBeneficiary?.gender || currentProfileData?.patient_info?.gender}
+                  age={activeBeneficiary?.age || currentProfileData?.patient_info?.age}
+                  reportsLoading={!isLoadComplete}
+                />
               <div id="nav-summary" className={premium ? "ht-card scroll-mt-20" : "scroll-mt-20 space-y-6"}>
               <SectionViewTracker section="summary">
                       <HealthSummarySection

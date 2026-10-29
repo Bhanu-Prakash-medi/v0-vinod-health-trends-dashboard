@@ -1,0 +1,24 @@
+import { getAccessTokenFromCookie } from "@/lib/api"
+
+/**
+ * Access token for the Health Trends backend. Reads `localStorage.accesstoken`
+ * first, then falls back to the dashboard's `redirect` cookie.
+ */
+export function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    const stored = window.localStorage.getItem("accesstoken")
+    if (stored) return stored
+  } catch {
+    // localStorage can throw in privacy modes / sandboxed iframes.
+  }
+  return getAccessTokenFromCookie()
+}
+
+export const UNAUTHORIZED_EVENT = "healthtrends:unauthorized"
+
+/** Called whenever the backend answers 401. Listen for UNAUTHORIZED_EVENT to redirect to sign-in. */
+export function onUnauthorized(): void {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT))
+}
