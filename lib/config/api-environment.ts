@@ -1,5 +1,5 @@
-// Pinned to staging on purpose; the API_ENV environment variable is intentionally ignored.
-export const HEALTHTRENDS_BACKEND_URL = "https://healthtrends-backend.mbstg.in"
+// Pinned to production on purpose; the API_ENV environment variable is intentionally ignored.
+export const HEALTHTRENDS_BACKEND_URL = "https://healthtrends-backend.medibuddy.in"
 
 export const RECOMMENDATIONS_API_URL = `${HEALTHTRENDS_BACKEND_URL}/healthtrends-recommendations`
 
