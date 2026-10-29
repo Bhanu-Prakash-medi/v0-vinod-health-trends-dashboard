@@ -16,6 +16,8 @@ export interface ReportRequest {
   file?: string
   /** Contract type for this report (from the reports listing endpoint). */
   contractType?: string | null
+  /** Report source (profile `requestIds[].sourceType`), sent as `reportsource` to /health/reports. */
+  sourceType?: string | null
   }
 
 export interface Beneficiary {
@@ -659,6 +661,8 @@ function parseReportRequests(raw: any): ReportRequest[] {
       ""
     const contractTypeRaw =
       getValueCaseInsensitive(r, "contractType") ?? getValueCaseInsensitive(r, "contract_type")
+    const sourceTypeRaw =
+      getValueCaseInsensitive(r, "sourceType") ?? getValueCaseInsensitive(r, "source_type")
     out.push({
       requestId,
       date,
@@ -667,6 +671,10 @@ function parseReportRequests(raw: any): ReportRequest[] {
         contractTypeRaw === undefined || contractTypeRaw === null || contractTypeRaw === ""
           ? null
           : String(contractTypeRaw),
+      sourceType:
+        sourceTypeRaw === undefined || sourceTypeRaw === null || sourceTypeRaw === ""
+          ? null
+          : String(sourceTypeRaw),
     })
   }
   return out
@@ -1095,13 +1103,14 @@ export async function fetchReportDetailsAsHealthReport(
   requestId: string | number,
   reportDate?: string,
   fileUrl?: string,
+  reportSource?: string | null,
 ): Promise<ApiHealthReport> {
   // A report's analyzed details are immutable within a session, so cache them
   // per (beneficiary, report). This is the highest-volume call — one per report
   // per beneficiary — so caching it is what stops the burst of repeat requests
   // when the user returns to the dashboard.
   return cachedRequest(`reportDetails:${vasBenefId}:${requestId}`, () =>
-    fetchReportDetailsAsHealthReportUncached(accessToken, vasBenefId, requestId, reportDate, fileUrl),
+    fetchReportDetailsAsHealthReportUncached(accessToken, vasBenefId, requestId, reportDate, fileUrl, reportSource),
   )
 }
 
@@ -1111,6 +1120,7 @@ async function fetchReportDetailsAsHealthReportUncached(
   requestId: string | number,
   reportDate?: string,
   fileUrl?: string,
+  reportSource?: string | null,
 ): Promise<ApiHealthReport> {
   await fetchReportsThrottle.acquire()
   try {
@@ -1121,7 +1131,7 @@ async function fetchReportDetailsAsHealthReportUncached(
           "Content-Type": "application/json",
           ...(accessToken ? { accesstoken: accessToken } : {}),
         },
-        body: JSON.stringify({ vasBenefId, requestId }),
+        body: JSON.stringify({ vasBenefId, requestId, ...(reportSource ? { reportsource: reportSource } : {}) }),
       })
 
       if (response.status === 401) {

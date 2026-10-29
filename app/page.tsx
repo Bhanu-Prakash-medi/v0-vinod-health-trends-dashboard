@@ -204,10 +204,19 @@ export default function HealthDashboard() {
       // The profile endpoint only populates Self, so every beneficiary's real
       // report set comes from here. Falls back to profile-provided requests.
       let reportRequests = beneficiary.reportRequests || []
+      // sourceType comes from the profile API's requestIds; keep it so it can be
+      // sent as `reportsource` even when the reports listing replaces the list.
+      const profileSourceById = new Map(
+        reportRequests.filter((r) => r.sourceType).map((r) => [r.requestId, r.sourceType as string]),
+      )
       if (beneficiary.rVasBenefId !== undefined && beneficiary.rVasBenefId !== null && beneficiary.rVasBenefId !== "") {
         try {
           const vasBenefId = beneficiary.rVasBenefId
-          const fetched = await withAuthRetry(() => fetchBeneficiaryReportRequests(token, vasBenefId))
+          const fetchedRaw = await withAuthRetry(() => fetchBeneficiaryReportRequests(token, vasBenefId))
+          const fetched = fetchedRaw.map((r) => ({
+            ...r,
+            sourceType: profileSourceById.get(r.requestId) ?? r.sourceType ?? null,
+          }))
           if (fetched.length > 0) {
             reportRequests = fetched
             const docIds = fetched.map((r) => r.requestId)
@@ -276,6 +285,7 @@ export default function HealthDashboard() {
         // Original report PDF URL per requestId (from the beneficiary reports API),
         // used to offer an "download original report" action in Test Reports.
         const requestFileById = new Map(reportRequests.map((r) => [r.requestId, r.file || ""]))
+        const requestSourceById = new Map(reportRequests.map((r) => [r.requestId, r.sourceType ?? null]))
 
         if (allDocIds.length === 0) {
           setBeneficiaryErrors((prev) => {
@@ -400,6 +410,7 @@ export default function HealthDashboard() {
               docId,
               requestDateById.get(docId),
               requestFileById.get(docId),
+              requestSourceById.get(docId),
             )
             // Update UI incrementally as each report comes in
             updateWithPartialData(report, docId)
