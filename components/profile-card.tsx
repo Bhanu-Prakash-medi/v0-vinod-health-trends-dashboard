@@ -172,7 +172,7 @@ export default function ProfileCard({
   const hasReports = !countLoading && reportCount > 0
 
   return (
-    <div className={`relative isolate ${showBmiInfo || showDisclaimer ? "z-50" : ""} rounded-[28px] p-px shadow-[0_24px_48px_-24px_rgba(6,30,74,0.85)] [background:linear-gradient(140deg,rgba(255,255,255,0.55),rgba(127,209,255,0.15)_35%,rgba(255,255,255,0.05)_60%,rgba(127,209,255,0.45))]">
+    <div className={`relative isolate ${showBmiInfo || showDisclaimer ? "z-50" : ""} rounded-[28px] p-px shadow-[0_24px_48px_-24px_rgba(6,30,74,0.85)] [background:linear-gradient(140deg,rgba(255,255,255,0.55),rgba(127,209,255,0.15)_35%,rgba(255,255,255,0.05)_60%,rgba(127,209,255,0.45))]`}>
       <div className="relative rounded-[27px] bg-[#071f4d] p-4 text-white">
         {/* Decorative layers are clipped separately so popovers can overflow the card. */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[27px]">
@@ -214,7 +214,7 @@ export default function ProfileCard({
             </div>
 
             <div className="min-w-0 flex-1">
-              {/* Inline color beats the global `.ht-card h2` rule that darkened the name. */}
+              {/* Inline color beats the global .ht-card heading rule that darkened the name. */}
               <h2 className="truncate text-[19px] font-bold leading-tight tracking-tight" style={{ color: "#ffffff" }}>
                 {name}
               </h2>
