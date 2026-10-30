@@ -144,7 +144,7 @@ export default function HealthDashboard() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>("")
   const [mbUserId, setMbUserId] = useState<string>("")
-  const [pmEntityId, setPmEntityId] = useState<string>("0")
+  const [pmEntityId, setPmEntityId] = useState<string>("")
   // App-level access for the restricted org, resolved via the API allowlist.
   // null = not yet determined; false = denied (show "coming soon").
   const [appAccessAllowed, setAppAccessAllowed] = useState<boolean | null>(null)
