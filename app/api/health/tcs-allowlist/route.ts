@@ -69,6 +69,44 @@ async function getProfileEmails(accessToken: string): Promise<string[] | null> {
   return emails
 }
 
+const TCS_ALLOWLIST_AUTH = process.env.TCS_ALLOWLIST_AUTH ?? "Healthtrends@12345yuiop"
+
+function parseIsAllowed(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase()
+    if (v === "true") return true
+    if (v === "false") return false
+  }
+  return null
+}
+
+/**
+ * Asks the upstream webhook whether a single email is allowed.
+ * Returns true/false on a definitive answer, null on any failure.
+ */
+async function checkEmailAllowed(email: string): Promise<boolean | null> {
+  try {
+    const res = await fetchWithTimeout(TCS_ALLOWLIST_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        healthtrends: TCS_ALLOWLIST_AUTH,
+      },
+      body: JSON.stringify({ email }),
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+
+    const data = await res.json()
+    const root = Array.isArray(data) ? data[0] : data
+    return parseIsAllowed(getCaseInsensitive(root, "isAllowed"))
+  } catch {
+    return null
+  }
+}
+
 // GET /api/health/tcs-allowlist
 // Returns ONLY `{ allowed: boolean }` for the authenticated caller. The raw
 // allowlist never leaves the server. Requires the user's `accesstoken` header;
@@ -80,40 +118,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Access token required" }, { status: 401 })
   }
 
-  const webhookAuth = process.env.HEALTHVERSE_WEBHOOK_AUTH
-  if (!webhookAuth) {
-    return NextResponse.json({ error: "Allowlist webhook auth is not configured" }, { status: 502 })
-  }
-
   try {
     const emails = await getProfileEmails(accessToken)
     if (!emails) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const upstream = await fetchWithTimeout(TCS_ALLOWLIST_WEBHOOK_URL, {
-      method: "GET",
-      headers: { Accept: "application/json", "x-healthverse": webhookAuth },
-      next: { revalidate: 300 },
-    })
+    const uniqueEmails = [...new Set(emails)]
+    if (uniqueEmails.length === 0) {
+      return NextResponse.json({ allowed: false }, { headers: { "Cache-Control": "private, no-store" } })
+    }
 
-    if (!upstream.ok) {
+    const results = await Promise.all(uniqueEmails.map(checkEmailAllowed))
+    if (results.includes(true)) {
+      return NextResponse.json({ allowed: true }, { headers: { "Cache-Control": "private, no-store" } })
+    }
+    // Every lookup failed (no definitive answer) => fail closed with 502.
+    if (results.every((r) => r === null)) {
       return NextResponse.json({ error: "Upstream allowlist request failed" }, { status: 502 })
     }
 
-    const data = await upstream.json()
-    if (!Array.isArray(data?.allowlist)) {
-      return NextResponse.json({ error: "Malformed allowlist response" }, { status: 502 })
-    }
-
-    const allowed = new Set(
-      (data.allowlist as unknown[]).filter((e): e is string => typeof e === "string").map(normalizeEmail),
-    )
-
-    return NextResponse.json(
-      { allowed: emails.some((e) => allowed.has(e)) },
-      { headers: { "Cache-Control": "private, no-store" } },
-    )
+    return NextResponse.json({ allowed: false }, { headers: { "Cache-Control": "private, no-store" } })
   } catch {
     return NextResponse.json({ error: "Unable to verify access" }, { status: 502 })
   }
