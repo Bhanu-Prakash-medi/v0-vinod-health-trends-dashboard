@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
-import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus, Youtube, Globe, ChevronRight } from "lucide-react"
+import { Activity, PieChart, Ruler, BarChart3, TrendingDown, TrendingUp, Minus, Globe, ChevronRight } from "lucide-react"
 import { openExternalUrl } from "@/lib/open-external"
 import { trackClick, trackLanding } from "@/lib/analytics/posthog"
 
@@ -217,7 +217,13 @@ export default function HealthScoreSection({
         className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-[#f7f9fb] active:bg-[#f0f3f5] focus:outline-none focus-visible:bg-[#f7f9fb]"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef4fd]">
-          <Youtube className="h-4 w-4 text-[#156ddc]" />
+          <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+            <path
+              fill="#FF0000"
+              d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"
+            />
+            <path fill="#FFFFFF" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+          </svg>
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-semibold text-[#2e3742]">How it&apos;s calculated</span>
