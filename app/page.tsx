@@ -82,6 +82,7 @@ interface BeneficiaryError {
 
 // The Health Risk Score API accepts at most 15 requestIds per call.
 const MAX_HEALTH_SCORE_REQUEST_IDS = 15
+const PROCESSING_POLL_INTERVAL_MS = 30_000
 
 // Only reports with this contract type feed the Health Risk Score. The summary
 // and trends deliberately ignore contract type and use every available report.
@@ -169,6 +170,11 @@ export default function HealthDashboard() {
   // Per beneficiary: requestId -> report-details outcome. Lets a post-upload
   // reload call report-details only for requestIds with no response yet.
   const reportResultsRef = useRef<Map<string, Map<string, ApiHealthReport | "not_found">>>(new Map())
+  // Per beneficiary: pending 30s re-poll while any report is still "Processing".
+  const processingPollTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const loadBeneficiaryReportRef = useRef<
+    ((beneficiary: Beneficiary, token: string, options?: { silent?: boolean }) => Promise<void>) | null
+  >(null)
 
   // Build trend analysis + lab reports client-side from the analyzed reports
   // (each report's parameters become time-series points). This replaces the old
@@ -201,7 +207,12 @@ export default function HealthDashboard() {
   )
 
   const loadBeneficiaryReport = useCallback(
-    async (beneficiary: Beneficiary, token: string) => {
+    async (beneficiary: Beneficiary, token: string, options?: { silent?: boolean }) => {
+      const existingPoll = processingPollTimersRef.current.get(beneficiary.uid)
+      if (existingPoll) {
+        clearTimeout(existingPoll)
+        processingPollTimersRef.current.delete(beneficiary.uid)
+      }
       setBeneficiaryErrors((prev) => {
         const newMap = new Map(prev)
         newMap.delete(beneficiary.uid)
@@ -325,8 +336,10 @@ export default function HealthDashboard() {
         const reportDocIdMap = new Map<ApiHealthReport, string>()
         const loadedLatestDocIds = new Set<string>()
         const failedDocIds = new Set<string>()
+        const processingDocIds = new Set<string>()
         let hasDisplayedPartialData = false
-        let hasLoaderBeenShown = false
+        // Background polls must not flash the loading skeleton.
+        let hasLoaderBeenShown = options?.silent === true
 
 
         // Function to show loader after first API call is triggered
@@ -435,7 +448,13 @@ export default function HealthDashboard() {
                   requestFileById.get(docId),
                   requestSourceById.get(docId),
                 )
-                knownResults.set(docId, report)
+                if ((report.reportStatus ?? "").toString().toLowerCase() === "processing") {
+                  // Keep it unresolved so the next poll re-calls report-details.
+                  processingDocIds.add(docId)
+                  clearRequestCache(`reportDetails:${reportVasBenefId}:${docId}`)
+                } else {
+                  knownResults.set(docId, report)
+                }
               } catch (fetchErr) {
                 if (fetchErr instanceof Error && fetchErr.message === "NO_REPORTS_404") {
                   knownResults.set(docId, "not_found")
@@ -603,6 +622,17 @@ export default function HealthDashboard() {
           return next
         })
 
+        if (processingDocIds.size > 0) {
+          const pollTarget = beneficiary
+          processingPollTimersRef.current.set(
+            beneficiary.uid,
+            setTimeout(() => {
+              processingPollTimersRef.current.delete(pollTarget.uid)
+              loadBeneficiaryReportRef.current?.(pollTarget, token, { silent: true })
+            }, PROCESSING_POLL_INTERVAL_MS),
+          )
+        }
+
         // Fire Health Summary Loaded once (self user only) after all reports are merged
         if (!hasHealthSummaryEventFiredRef.current) {
           hasHealthSummaryEventFiredRef.current = true
@@ -661,6 +691,18 @@ export default function HealthDashboard() {
     },
     [attachTrendsToReport],
   )
+
+  useEffect(() => {
+    loadBeneficiaryReportRef.current = loadBeneficiaryReport
+  }, [loadBeneficiaryReport])
+
+  useEffect(() => {
+    const timers = processingPollTimersRef.current
+    return () => {
+      for (const timer of timers.values()) clearTimeout(timer)
+      timers.clear()
+    }
+  }, [])
 
   const retryLoadReport = useCallback(
     (beneficiaryUid: string) => {
