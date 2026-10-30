@@ -37,11 +37,8 @@ export function UploadSuccess({
         <h3 className={cn("text-lg font-bold", premium ? "text-[#0b2a5b]" : "text-[#2e3742]")}>Uploaded successfully</h3>
         <p className="text-pretty text-sm leading-relaxed text-[#4d5c6f]">
           Please revisit after 60 minutes for your digitised report.
-        </p>
-        <p className="text-xs text-[#4d5c6f]">
-          Reports currently being processed: {result.processingCount} of {result.limit}
-        </p>
-      </div>
+  </p>
+  </div>
       {result.queued && (
         <div className="flex items-start gap-2 rounded-xl bg-[#e8f2ff] p-3 text-left text-sm leading-relaxed text-[#2e3742]">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#156ddc]" aria-hidden="true" />

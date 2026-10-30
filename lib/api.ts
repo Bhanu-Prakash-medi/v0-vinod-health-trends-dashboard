@@ -265,8 +265,7 @@ export function getAccessTokenFromCookie(): string | null {
   }
 
   return null
-  }
-
+}
 
 export function getPmEntityIdFromCookie(): string {
   if (typeof document === "undefined") {
@@ -520,7 +519,7 @@ export function extractDmsDocIdFromFileUrl(fileUrl?: string): string | null {
  *
  * `pmEntityId` is sent to the profile endpoint as the `pmentityid` header.
  */
-export async function fetchBeneficiaries(accessToken: string, pmEntityId = "0"): Promise<BeneficiariesResponse> {
+export async function fetchBeneficiaries(accessToken: string, pmEntityId = ""): Promise<BeneficiariesResponse> {
   // Cached + de-duplicated so returning to the dashboard doesn't re-hit the
   // profile API, and concurrent mounts share one request.
   return cachedRequest(`beneficiaries:${accessToken}:${pmEntityId}`, () =>
@@ -528,7 +527,7 @@ export async function fetchBeneficiaries(accessToken: string, pmEntityId = "0"):
   )
 }
 
-async function fetchBeneficiariesUncached(accessToken: string, pmEntityId = "0"): Promise<BeneficiariesResponse> {
+async function fetchBeneficiariesUncached(accessToken: string, pmEntityId = ""): Promise<BeneficiariesResponse> {
   const response = await fetch("/api/health/profile", {
     method: "GET",
     headers: {
