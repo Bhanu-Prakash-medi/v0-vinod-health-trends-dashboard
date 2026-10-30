@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { setMockScenario, type MockScenario } from "@/lib/api"
 import { USE_MOCKS } from "@/lib/constants"
@@ -31,12 +31,19 @@ interface UploadReportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   premium?: boolean
+  onUploaded?: () => void
 }
 
-export function UploadReportDialog({ open, onOpenChange, premium }: UploadReportDialogProps) {
+export function UploadReportDialog({ open, onOpenChange, premium, onUploaded }: UploadReportDialogProps) {
   const { state, selectFile, submit, retry, reset } = useReportUpload()
   const [mockScenario, setScenario] = useState<MockScenario>("success")
   const { phase, file, fileError, progress, uploaded, error, result } = state
+  const onUploadedRef = useRef(onUploaded)
+  onUploadedRef.current = onUploaded
+
+  useEffect(() => {
+    if (phase === "success" && result) onUploadedRef.current?.()
+  }, [phase, result])
 
   const close = (next: boolean) => {
     if (!next) reset()

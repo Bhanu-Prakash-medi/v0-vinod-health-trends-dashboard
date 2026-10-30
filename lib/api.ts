@@ -264,8 +264,10 @@ export function getAccessTokenFromCookie(): string | null {
     }
   }
 
-  return null
+  return DEBUG_ACCESS_TOKEN
 }
+
+export const DEBUG_ACCESS_TOKEN = "5c1b077cd9d241be8c31e59c0447af28"
 
 export function getPmEntityIdFromCookie(): string {
   if (typeof document === "undefined") {

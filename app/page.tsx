@@ -72,6 +72,7 @@ import {
   type Beneficiary,
   type TrendAnalysisItem,
 } from "@/lib/api"
+import { clearRequestCache } from "@/lib/request-cache"
 import { genderAvatar, hasVisibleTrends } from "@/lib/health-utils"
 
 interface BeneficiaryError {
@@ -165,6 +166,9 @@ export default function HealthDashboard() {
   // Beneficiaries whose lazy load is in-flight — used to show the loading
   // skeleton immediately on selection instead of flashing an empty state.
   const [lazyPending, setLazyPending] = useState<Set<string>>(new Set())
+  // Per beneficiary: requestId -> report-details outcome. Lets a post-upload
+  // reload call report-details only for requestIds with no response yet.
+  const reportResultsRef = useRef<Map<string, Map<string, ApiHealthReport | "not_found">>>(new Map())
 
   // Build trend analysis + lab reports client-side from the analyzed reports
   // (each report's parameters become time-series points). This replaces the old
@@ -409,14 +413,36 @@ export default function HealthDashboard() {
             showLoaderOnFirstApiCall()
             // Fetch the fully analyzed report for this requestId from the new
             // report-details API (synchronous — no polling).
-            const report = await fetchReportDetailsAsHealthReport(
-              token,
-              reportVasBenefId,
-              docId,
-              requestDateById.get(docId),
-              requestFileById.get(docId),
-              requestSourceById.get(docId),
-            )
+            // RequestIds that already responded (success metadata or 404) are
+            // reused; only unseen (e.g. newly uploaded) ids hit report-details.
+            let knownResults = reportResultsRef.current.get(beneficiary.uid)
+            if (!knownResults) {
+              knownResults = new Map()
+              reportResultsRef.current.set(beneficiary.uid, knownResults)
+            }
+            const known = knownResults.get(docId)
+            if (known === "not_found") throw new Error("NO_REPORTS_404")
+            let report: ApiHealthReport
+            if (known) {
+              report = known
+            } else {
+              try {
+                report = await fetchReportDetailsAsHealthReport(
+                  token,
+                  reportVasBenefId,
+                  docId,
+                  requestDateById.get(docId),
+                  requestFileById.get(docId),
+                  requestSourceById.get(docId),
+                )
+                knownResults.set(docId, report)
+              } catch (fetchErr) {
+                if (fetchErr instanceof Error && fetchErr.message === "NO_REPORTS_404") {
+                  knownResults.set(docId, "not_found")
+                }
+                throw fetchErr
+              }
+            }
             const source = (report.reportSource ?? requestSourceById.get(docId) ?? "").toString().toLowerCase()
             const isProcessing = (report.reportStatus ?? "").toString().toLowerCase() === "processing"
             const kind = source === "uploaded" ? (isProcessing ? "processing" : "uploaded") : "partnered"
@@ -645,11 +671,44 @@ export default function HealthDashboard() {
           newMap.set(beneficiary.uid, createInitialProfileFromBeneficiary(beneficiary))
           return newMap
         })
+        reportResultsRef.current.delete(beneficiary.uid)
         loadBeneficiaryReport(beneficiary, accessToken)
       }
     },
     [beneficiaries, loadBeneficiaryReport, accessToken],
   )
+
+  // After a successful upload: re-call the profile API, then reload every
+  // already-loaded beneficiary. Their existing requestIds are served from
+  // reportResultsRef, so report-details is only called for the new requestId.
+  const handleReportUploaded = useCallback(async () => {
+    if (!accessToken) return
+    clearRequestCache("beneficiaries:")
+    clearRequestCache("reportRequests:")
+    try {
+      const data = await withAuthRetry(() => fetchBeneficiaries(accessToken, pmEntityId))
+      const refreshed = data.beneficiaries || []
+      setBeneficiaries((prev) =>
+        prev.map((b) => {
+          const next = refreshed.find((r) => r.uid === b.uid)
+          return next
+            ? {
+                ...b,
+                reportRequests: next.reportRequests,
+                dmS_Doc_ID: next.dmS_Doc_ID,
+                reportCount: Math.max(b.reportCount || 0, next.reportCount || 0),
+              }
+            : b
+        }),
+      )
+      for (const fresh of refreshed) {
+        if (!requestedBeneficiariesRef.current.has(fresh.uid)) continue
+        loadBeneficiaryReport(fresh, accessToken)
+      }
+    } catch (err) {
+      console.error("[v0] Post-upload refresh failed:", err)
+    }
+  }, [accessToken, pmEntityId, loadBeneficiaryReport])
 
   // Initialize Snowplow on mount
   useEffect(() => {
@@ -1162,6 +1221,7 @@ export default function HealthDashboard() {
 
           {SHOW_REPORT_UPLOAD && (
             <UploadReportSection
+              onUploaded={handleReportUploaded}
               uploadedCount={
                 [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(
                   (k) => k !== "partnered",

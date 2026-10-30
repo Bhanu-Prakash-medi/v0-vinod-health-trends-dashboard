@@ -11,6 +11,7 @@ interface UploadReportSectionProps {
   uploadedCount?: number
   processingCount?: number
   partneredCount?: number
+  onUploaded?: () => void
 }
 
 function UploadedReportsStatus({
@@ -18,7 +19,7 @@ function UploadedReportsStatus({
   processingCount,
   partneredCount,
   onBrand = false,
-}: Required<UploadReportSectionProps> & { onBrand?: boolean }) {
+}: Required<Omit<UploadReportSectionProps, "onUploaded">> & { onBrand?: boolean }) {
   if (uploadedCount === 0 && partneredCount === 0) return null
   const countClass = onBrand ? "text-[#ffffff]" : "text-[#2e3742]"
   return (
@@ -99,6 +100,7 @@ export default function UploadReportSection({
   uploadedCount = 0,
   processingCount = 0,
   partneredCount = 0,
+  onUploaded,
 }: UploadReportSectionProps) {
   const [open, setOpen] = useState(false)
   const { design } = useDesign()
@@ -146,7 +148,7 @@ export default function UploadReportSection({
         </div>
       )}
 
-      <UploadReportDialog open={open} onOpenChange={setOpen} premium={premium} />
+      <UploadReportDialog open={open} onOpenChange={setOpen} premium={premium} onUploaded={onUploaded} />
     </>
   )
 }
