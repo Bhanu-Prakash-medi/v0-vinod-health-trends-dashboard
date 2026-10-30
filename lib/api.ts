@@ -264,7 +264,7 @@ export function getAccessTokenFromCookie(): string | null {
     }
   }
 
-  return "44013b7db77441ef9827dc60eeddf1d9"
+  return null
 }
 
 export function getPmEntityIdFromCookie(): string {
