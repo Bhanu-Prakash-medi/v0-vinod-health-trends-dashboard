@@ -260,12 +260,12 @@ export function getAccessTokenFromCookie(): string | null {
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split("=")
     if (name === "redirect" && value) {
-      return decodeURIComponent(value)
-    }
+  return decodeURIComponent(value)
   }
-
+  }
+  
   return null
-}
+  }
 
 export function getPmEntityIdFromCookie(): string {
   if (typeof document === "undefined") {

@@ -36,7 +36,9 @@ export function UploadSuccess({
       <div className={cn("flex flex-col gap-1.5", premium && "ht-rise [animation-delay:500ms]")}>
         <h3 className={cn("text-lg font-bold", premium ? "text-[#0b2a5b]" : "text-[#2e3742]")}>Uploaded successfully</h3>
         <p className="text-pretty text-sm leading-relaxed text-[#4d5c6f]">
-          Please revisit after 60 minutes for your digitised report.
+          This will take some time to Digitize and summarize your report
+  <br />
+  Please revisit after few minutes.
   </p>
   </div>
       {result.queued && (

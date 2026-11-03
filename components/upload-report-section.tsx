@@ -6,12 +6,14 @@ import { useDesign } from "@/lib/design-context"
 import { trackClick } from "@/lib/analytics/posthog"
 import { PremiumUploadCard } from "@/components/report-upload/premium-upload-card"
 import { UploadReportDialog } from "@/components/report-upload/upload-report-dialog"
+import type { DefaultUploadMember } from "@/components/report-upload/report-details-form"
 
 interface UploadReportSectionProps {
   uploadedCount?: number
   processingCount?: number
   partneredCount?: number
   onUploaded?: () => void
+  defaultMember?: DefaultUploadMember
 }
 
 function UploadedReportsStatus({
@@ -19,7 +21,7 @@ function UploadedReportsStatus({
   processingCount,
   partneredCount,
   onBrand = false,
-}: Required<Omit<UploadReportSectionProps, "onUploaded">> & { onBrand?: boolean }) {
+}: Required<Omit<UploadReportSectionProps, "onUploaded" | "defaultMember">> & { onBrand?: boolean }) {
   if (uploadedCount === 0 && partneredCount === 0) return null
   const countClass = onBrand ? "text-[#ffffff]" : "text-[#2e3742]"
   return (
@@ -101,6 +103,7 @@ export default function UploadReportSection({
   processingCount = 0,
   partneredCount = 0,
   onUploaded,
+  defaultMember,
 }: UploadReportSectionProps) {
   const [open, setOpen] = useState(false)
   const { design } = useDesign()
@@ -148,7 +151,7 @@ export default function UploadReportSection({
         </div>
       )}
 
-      <UploadReportDialog open={open} onOpenChange={setOpen} premium={premium} onUploaded={onUploaded} />
+      <UploadReportDialog open={open} onOpenChange={setOpen} premium={premium} onUploaded={onUploaded} defaultMember={defaultMember} />
     </>
   )
 }

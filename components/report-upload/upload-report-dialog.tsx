@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { setMockScenario, type MockScenario } from "@/lib/api"
 import { USE_MOCKS } from "@/lib/constants"
 import { FileDropZone } from "./file-drop-zone"
-import { ReportDetailsForm } from "./report-details-form"
+import { ReportDetailsForm, type DefaultUploadMember } from "./report-details-form"
 import { SelectedFileCard } from "./selected-file-card"
 import { StepIndicator } from "./step-indicator"
 import { UploadErrorAlert } from "./upload-error-alert"
@@ -32,9 +32,10 @@ interface UploadReportDialogProps {
   onOpenChange: (open: boolean) => void
   premium?: boolean
   onUploaded?: () => void
+  defaultMember?: DefaultUploadMember
 }
 
-export function UploadReportDialog({ open, onOpenChange, premium, onUploaded }: UploadReportDialogProps) {
+export function UploadReportDialog({ open, onOpenChange, premium, onUploaded, defaultMember }: UploadReportDialogProps) {
   const { state, selectFile, submit, retry, reset } = useReportUpload()
   const [mockScenario, setScenario] = useState<MockScenario>("success")
   const { phase, file, fileError, progress, uploaded, error, result } = state
@@ -117,6 +118,7 @@ export function UploadReportDialog({ open, onOpenChange, premium, onUploaded }: 
                 return submit(...args)
               }}
               premium={premium}
+              defaultMember={defaultMember}
             />
           </div>
         )}

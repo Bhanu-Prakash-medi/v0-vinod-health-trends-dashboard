@@ -1264,6 +1264,11 @@ export default function HealthDashboard() {
           {SHOW_REPORT_UPLOAD && (
             <UploadReportSection
               onUploaded={handleReportUploaded}
+              defaultMember={
+                activeBeneficiary
+                  ? { vasBenefId: activeBeneficiary.rVasBenefId, name: activeBeneficiary.name }
+                  : undefined
+              }
               uploadedCount={
                 [...(uploadedReportStatus.get(activeBeneficiary?.uid ?? "")?.values() ?? [])].filter(
                   (k) => k !== "partnered",
