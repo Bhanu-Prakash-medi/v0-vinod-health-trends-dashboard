@@ -26,7 +26,15 @@ interface ReportDetailsFormProps {
   isSaving: boolean
   onSubmit: (details: ReportDetails) => void
   premium?: boolean
+  defaultMember?: DefaultUploadMember
 }
+
+export interface DefaultUploadMember {
+  vasBenefId?: string | number
+  name?: string
+}
+
+const normalizeName = (value?: string) => (value ?? "").trim().toLowerCase()
 
 const inputClass =
   "w-full rounded-lg border border-[#dbe4ec] bg-white px-3 py-2 text-sm text-[#2e3742] placeholder:text-[#8a97a6] focus:border-[#156ddc] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#156ddc]/30"
@@ -53,7 +61,15 @@ function buildDetails(member: FamilyMember, date: Date, name: string, descriptio
   return details
 }
 
-export function ReportDetailsForm({ fileName, canSubmit, isUploading, isSaving, onSubmit, premium }: ReportDetailsFormProps) {
+export function ReportDetailsForm({
+  fileName,
+  canSubmit,
+  isUploading,
+  isSaving,
+  onSubmit,
+  premium,
+  defaultMember,
+}: ReportDetailsFormProps) {
   const ids = { date: useId(), name: useId(), description: useId(), member: useId(), hint: useId() }
   const [date, setDate] = useState<Date | undefined>()
   const [dateOpen, setDateOpen] = useState(false)
@@ -71,9 +87,15 @@ export function ReportDetailsForm({ fileName, canSubmit, isUploading, isSaving, 
 
   useEffect(() => {
     if (memberId || !members?.length) return
-    const self = members.find((m) => m.relation.trim().toLowerCase() === "self") ?? members[0]
-    setMemberId(String(self.vasBenifId))
-  }, [members, memberId])
+    const activeId = defaultMember?.vasBenefId != null ? String(defaultMember.vasBenefId) : ""
+    const activeName = normalizeName(defaultMember?.name)
+    const current =
+      (activeId && members.find((m) => String(m.vasBenifId) === activeId)) ||
+      (activeName && members.find((m) => normalizeName(m.name) === activeName)) ||
+      members.find((m) => m.relation.trim().toLowerCase() === "self") ||
+      members[0]
+    setMemberId(String(current.vasBenifId))
+  }, [members, memberId, defaultMember?.vasBenefId, defaultMember?.name])
 
   const member = members?.find((m) => String(m.vasBenifId) === memberId)
   const isFuture = !!date && date > endOfToday()
